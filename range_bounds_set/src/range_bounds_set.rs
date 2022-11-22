@@ -4,7 +4,7 @@ use std::ops::{Bound, RangeBounds};
 
 use derive_new::new;
 
-use crate::bound_ext::{EndBoundWithOrd, StartBoundWithOrd};
+use crate::specific_bounds::{EndBound, StartBound};
 
 type Id = u128;
 
@@ -14,9 +14,9 @@ pub struct RangeBoundsSet<T, I> {
 	#[new(default)]
 	ranges: HashMap<Id, T>,
 	#[new(default)]
-	starts: BTreeSet<StartBoundWithOrd<I>>,
+	starts: BTreeSet<StartBound<I>>,
 	#[new(default)]
-	ends: BTreeSet<EndBoundWithOrd<I>>,
+	ends: BTreeSet<EndBound<I>>,
 	phantom_data: PhantomData<I>,
 
 	#[new(default)]
@@ -26,7 +26,7 @@ pub struct RangeBoundsSet<T, I> {
 impl<T, I> RangeBoundsSet<T, I>
 where
 	T: RangeBounds<I>,
-	I: Ord,
+	I: Ord + Clone,
 {
 	//returns Err(()) if the inserting the given range overlaps another range
 	//coalesces ranges if they touch
@@ -37,7 +37,11 @@ where
 	pub fn raw_insert(&mut self, range: T) {}
 
 	pub fn overlapping(&self, range: T) {
-		self.ends.range(range);
+		let end_bounds_range = (
+			EndBound::from(range.start_bound().cloned()),
+			EndBound::from(range.end_bound().cloned()),
+		);
+		self.ends.range(end_bounds_range);
 	}
 
 	pub fn get(&self, point: &I) {}
@@ -66,4 +70,17 @@ mod tests {
 	// script to streamline the manual input process. The script
 	// essentially enumerates all of the generated cases and asks me
 	// to input the expected
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    // Rusts Bounds types are overly ambiguous in RangeBouns, it
+    // should return StartBound and EndBound so that you can
+    // implement Ord on them
 }
