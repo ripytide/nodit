@@ -1,9 +1,10 @@
-use std::collections::{BTreeSet, HashMap, BTreeMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::marker::PhantomData;
 
 use derive_new::new;
 
 use crate::bounds::{EndBound, StartBound};
+use crate::btree_ext::BTreeMapExt;
 use crate::range_bounds::RangeBounds;
 use crate::StdBound;
 
@@ -37,13 +38,19 @@ where
 			//we require the EndBound:Ord imlementation to work with
 			//the Included range only
 			StdBound::Included(range_bounds.start_bound().cloned()),
-			StdBound::Included(StartBound::from(range_bounds.end_bound().cloned())),
+			StdBound::Included(StartBound::from(
+				range_bounds.end_bound().cloned(),
+			)),
 		);
 		//this range will hold all the ranges we want except possibly
-		//the last RangeBounds
-		let ends_range = self.starts.range(start_range_bounds);
+		//the first RangeBound in the range
+		let mut ends_range = self.starts.range(start_range_bounds);
 
-        let possible_missing_range_bounds = self.starts.
+		if let Some(possible_missing_range_bounds) =
+			self.starts.next_below_upper_bound(StdBound::Included(
+				//optimisation fix this without cloning
+				&range_bounds.start_bound().cloned(),
+			)) {}
 	}
 
 	pub fn get(&self, point: &I) {}

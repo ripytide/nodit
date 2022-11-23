@@ -1,7 +1,5 @@
 use std::cmp::Ordering;
 
-use crate::range_bounds::RangeBounds;
-
 pub enum StartBound<T> {
 	Included(T),
 	Excluded(T),
@@ -24,10 +22,10 @@ impl<T> StartBound<T> {
 		}
 	}
 
-	pub fn copy_outer(&self) -> StartBound<&T> {
+	pub fn as_ref(&self) -> StartBound<&T> {
 		match self {
-			StartBound::Included(ref point) => StartBound::Included(point),
-			StartBound::Excluded(ref point) => StartBound::Excluded(point),
+			StartBound::Included(point) => StartBound::Included(point),
+			StartBound::Excluded(point) => StartBound::Excluded(point),
 			StartBound::Unbounded => StartBound::Unbounded,
 		}
 	}
@@ -120,15 +118,14 @@ impl<T> EndBound<T> {
 		}
 	}
 
-	pub fn copy_outer(&self) -> EndBound<&T> {
+	pub fn as_ref(&self) -> EndBound<&T> {
 		match self {
-			EndBound::Included(ref point) => EndBound::Included(point),
-			EndBound::Excluded(ref point) => EndBound::Excluded(point),
+			EndBound::Included(point) => EndBound::Included(point),
+			EndBound::Excluded(point) => EndBound::Excluded(point),
 			EndBound::Unbounded => EndBound::Unbounded,
 		}
 	}
 }
-
 impl<T> EndBound<&T>
 where
 	T: Clone,
@@ -182,24 +179,11 @@ where
 }
 
 impl<T> From<StartBound<T>> for EndBound<T> {
-	fn from(start_bound: StartBound<T>) -> Self {
-		match start_bound {
+	fn from(end_bound: StartBound<T>) -> Self {
+		match end_bound {
 			StartBound::Included(point) => EndBound::Included(point),
 			StartBound::Excluded(point) => EndBound::Excluded(point),
 			StartBound::Unbounded => EndBound::Unbounded,
 		}
-	}
-}
-
-impl<T> RangeBounds<EndBound<T>>
-	for (StartBound<EndBound<T>>, EndBound<EndBound<T>>)
-where
-	T: Ord,
-{
-	fn start_bound(&self) -> StartBound<&EndBound<T>> {
-		self.0.copy_outer()
-	}
-	fn end_bound(&self) -> EndBound<&EndBound<T>> {
-		self.1.copy_outer()
 	}
 }
