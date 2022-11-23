@@ -1,23 +1,19 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, BTreeMap};
 use std::marker::PhantomData;
-use std::ops::{Bound, RangeBounds};
 
 use derive_new::new;
 
-use crate::specific_bounds::{EndBound, StartBound};
+use crate::bounds::{EndBound, StartBound};
+use crate::range_bounds::RangeBounds;
+use crate::StdBound;
 
 type Id = u128;
 
 //todo switch to slot map thingy
-#[derive(Default, new)]
+#[derive(new)]
 pub struct RangeBoundsSet<T, I> {
-	#[new(default)]
-	ranges: HashMap<Id, T>,
-	#[new(default)]
-	starts: BTreeSet<StartBound<I>>,
-	#[new(default)]
-	ends: BTreeSet<EndBound<I>>,
-	phantom_data: PhantomData<I>,
+	#[new(value="BTreeMap::new()")]
+	starts: BTreeMap<StartBound<I>, T>,
 
 	#[new(default)]
 	id: u128,
@@ -30,18 +26,24 @@ where
 {
 	//returns Err(()) if the inserting the given range overlaps another range
 	//coalesces ranges if they touch
-	pub fn insert(&mut self, range: T) -> Result<(), ()> {
+	pub fn insert(&mut self, range_bounds: T) -> Result<(), ()> {
 		Ok(())
 	}
 
-	pub fn raw_insert(&mut self, range: T) {}
+	pub fn raw_insert(&mut self, range_bounds: T) {}
 
-	pub fn overlapping(&self, range: T) {
-		let end_bounds_range = (
-			EndBound::from(range.start_bound().cloned()),
-			EndBound::from(range.end_bound().cloned()),
+	pub fn overlapping(&self, range_bounds: T) {
+		let start_range_bounds = (
+			//we require the EndBound:Ord imlementation to work with
+			//the Included range only
+			StdBound::Included(range_bounds.start_bound().cloned()),
+			StdBound::Included(StartBound::from(range_bounds.end_bound().cloned())),
 		);
-		self.ends.range(end_bounds_range);
+		//this range will hold all the ranges we want except possibly
+		//the last RangeBounds
+		let ends_range = self.starts.range(start_range_bounds);
+
+        let possible_missing_range_bounds = self.starts.
 	}
 
 	pub fn get(&self, point: &I) {}
@@ -70,17 +72,17 @@ mod tests {
 	// script to streamline the manual input process. The script
 	// essentially enumerates all of the generated cases and asks me
 	// to input the expected
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    // Rusts Bounds types are overly ambiguous in RangeBouns, it
-    // should return StartBound and EndBound so that you can
-    // implement Ord on them
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	// Rusts Bounds types are overly ambiguous in RangeBouns, it
+	// should return StartBound and EndBound so that you can
+	// implement Ord on them
 }

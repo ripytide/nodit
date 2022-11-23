@@ -1,19 +1,24 @@
-use std::ops::{Bound, RangeBounds};
+use crate::bounds::{EndBound, StartBound};
 
-use crate::bound_ext::BoundExt;
-
-pub trait RangeBoundsExt<T> {
-	fn overlaps(&self, other: &Self) -> bool;
-	fn get_pair(&self) -> (Bound<&T>, Bound<&T>);
-}
-
-impl<T, K> RangeBoundsExt<T> for K
+pub trait RangeBounds<T>
 where
-	K: RangeBounds<T>,
 	T: PartialOrd,
 {
-	fn get_pair(&self) -> (Bound<&T>, Bound<&T>) {
+	fn start_bound(&self) -> StartBound<&T>;
+	fn end_bound(&self) -> EndBound<&T>;
+	fn get_pair(&self) -> (StartBound<&T>, EndBound<&T>) {
 		(self.start_bound(), self.end_bound())
+	}
+	fn contains(&self, item: &T) -> bool {
+		(match self.start_bound() {
+			StartBound::Included(start) => start <= item,
+			StartBound::Excluded(start) => start < item,
+			StartBound::Unbounded => true,
+		}) && (match self.end_bound() {
+			EndBound::Included(end) => item <= end,
+			EndBound::Excluded(end) => item < end,
+			EndBound::Unbounded => true,
+		})
 	}
 	fn overlaps(&self, other: &Self) -> bool {
 		let self_start_contained = self
@@ -38,8 +43,8 @@ where
 			&& other.end_bound().is_unbounded();
 		let same_exclusive = match (self.get_pair(), other.get_pair()) {
 			(
-				(Bound::Excluded(start1), Bound::Excluded(end1)),
-				(Bound::Excluded(start2), Bound::Excluded(end2)),
+				(StartBound::Excluded(start1), EndBound::Excluded(end1)),
+				(StartBound::Excluded(start2), EndBound::Excluded(end2)),
 			) if start1 == start2 && end1 == end2 => true,
 			_ => false,
 		};
