@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::iter::once;
 use std::marker::PhantomData;
 
 use derive_new::new;
+use either::Either;
 
 use crate::bounds::{EndBound, StartBound};
 use crate::btree_ext::BTreeMapExt;
@@ -33,24 +35,37 @@ where
 
 	pub fn raw_insert(&mut self, range_bounds: T) {}
 
-	pub fn overlapping(&self, range_bounds: T) {
+	pub fn overlapping(
+		&self,
+		search_range_bounds: T,
+	) -> Either<impl Iterator<Item = &T>, impl Iterator<Item = &T>> {
 		let start_range_bounds = (
-			//we require the EndBound:Ord imlementation to work with
-			//the Included range only
-			StdBound::Included(range_bounds.start_bound().cloned()),
+			//Included is lossless regarding meta-bounds searches
+			StdBound::Included(search_range_bounds.start_bound().cloned()),
 			StdBound::Included(StartBound::from(
-				range_bounds.end_bound().cloned(),
+				search_range_bounds.end_bound().cloned(),
 			)),
 		);
 		//this range will hold all the ranges we want except possibly
 		//the first RangeBound in the range
-		let mut ends_range = self.starts.range(start_range_bounds);
+		let most_range_bounds = self.starts.range(start_range_bounds);
 
-		if let Some(possible_missing_range_bounds) =
-			self.starts.next_below_upper_bound(StdBound::Included(
-				//optimisation fix this without cloning
-				&range_bounds.start_bound().cloned(),
-			)) {}
+		if let Some(missing_entry @ (_, possible_missing_range_bounds)) =
+			//Excluded is lossless regarding meta-bounds searches
+			//because we don't want equal bound as they would have be
+			//coverded in the previous step
+			self.starts.next_below_upper_bound(StdBound::Excluded(
+					//optimisation fix this without cloning
+					&search_range_bounds.start_bound().cloned(),
+				)) {
+			if possible_missing_range_bounds.overlaps(&search_range_bounds) {
+				return Either::Left(
+					once(missing_entry).chain(most_range_bounds).map(|x| x.1),
+				);
+			}
+		}
+
+		return Either::Right(most_range_bounds.map(|x| x.1));
 	}
 
 	pub fn get(&self, point: &I) {}

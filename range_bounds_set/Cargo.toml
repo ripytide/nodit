@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 derive-new = "0.5"
+either = "1.8.0"
