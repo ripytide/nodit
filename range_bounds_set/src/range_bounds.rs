@@ -9,6 +9,7 @@ where
 	fn get_pair(&self) -> (StartBound<&T>, EndBound<&T>) {
 		(self.start_bound(), self.end_bound())
 	}
+	fn dummy(start_bound: StartBound<T>, end_bound: EndBound<T>) -> Self;
 	fn contains(&self, item: &T) -> bool {
 		(match self.start_bound() {
 			StartBound::Included(start) => start <= item,
