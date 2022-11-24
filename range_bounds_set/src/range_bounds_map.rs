@@ -1,15 +1,13 @@
 use std::collections::BTreeMap;
 use std::iter::once;
+use std::ops::Bound;
 
 use either::Either;
 
 use crate::bounds::{EndBound, StartBound};
 use crate::btree_ext::BTreeMapExt;
 use crate::range_bounds::RangeBounds;
-use crate::StdBound;
 
-//todo switch to slot map thingy
-#[derive(Default)]
 pub struct RangeBoundsMap<I, K, V> {
 	starts: BTreeMap<StartBound<I>, (K, V)>,
 }
@@ -32,10 +30,16 @@ where
 			return Err(());
 		}
 
+        //todo panic on invalid inputs
+
 		self.starts
 			.insert(range_bounds.start_bound().cloned(), (range_bounds, value));
 
 		return Ok(());
+	}
+
+	pub fn contains_point(&self, point: &I) -> bool {
+		self.get(point).is_some()
 	}
 
 	pub fn overlaps(&self, search_range_bounds: &K) -> bool {
@@ -45,12 +49,11 @@ where
 	pub fn overlapping(
 		&self,
 		search_range_bounds: &K,
-	) -> Either<impl Iterator<Item = (&K, &V)>, impl Iterator<Item = (&K, &V)>>
-	{
+	) -> impl Iterator<Item = (&K, &V)> {
 		let start_range_bounds = (
 			//Included is lossless regarding meta-bounds searches
-			StdBound::Included(search_range_bounds.start_bound().cloned()),
-			StdBound::Included(StartBound::from(
+			Bound::Included(search_range_bounds.start_bound().cloned()),
+			Bound::Included(StartBound::from(
 				search_range_bounds.end_bound().cloned(),
 			)),
 		);
@@ -62,7 +65,7 @@ where
 			//Excluded is lossless regarding meta-bounds searches
 			//because we don't want equal bound as they would have be
 			//coverded in the previous step
-			self.starts.next_below_upper_bound(StdBound::Excluded(
+			self.starts.next_below_upper_bound(Bound::Excluded(
 					//optimisation fix this without cloning
 					&search_range_bounds.start_bound().cloned(),
 				)) {
@@ -105,10 +108,6 @@ where
 				.map(|(_, value)| value);
 		}
 		return None;
-	}
-
-	pub fn contains_point(&self, point: &I) -> bool {
-		self.get(point).is_some()
 	}
 
 	pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
