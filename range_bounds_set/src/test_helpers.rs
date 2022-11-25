@@ -21,7 +21,10 @@ pub fn all_valid_test_bounds() -> Vec<TestBounds> {
 	return output;
 }
 
-const NUMBERS: &'static [u8] = &[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
+pub const NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
+//go a bit around on either side to compensate for Unbounded
+pub const NUMBERS_DOMAIN: &'static [u8] =
+	&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 fn all_finite_bounded_pairs() -> Vec<(Bound<u8>, Bound<u8>)> {
 	let mut output = Vec::new();

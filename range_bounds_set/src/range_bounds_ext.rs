@@ -147,10 +147,9 @@ where
 
 #[cfg(test)]
 mod tests {
-	use ranges::GenericRange;
 
 	use super::*;
-	use crate::test_helpers::all_valid_test_bounds;
+	use crate::test_helpers::{all_valid_test_bounds, NUMBERS_DOMAIN};
 
 	//we test our function against GenericRange's is_overlapping()
 	//which we trust cuz y not lel
@@ -158,22 +157,18 @@ mod tests {
 	fn mass_overlaps_test() {
 		for range_bounds1 in all_valid_test_bounds() {
 			for range_bounds2 in all_valid_test_bounds() {
-				let mut trusted_answer = GenericRange::from(range_bounds1)
-					.is_overlapping(&GenericRange::from(range_bounds2));
-
 				let our_answer = range_bounds1.overlaps(&range_bounds2);
 
-				//the only thing the "trusted" answer get wrong --__--
-                if let (Bound::Included(start1), Bound::Included(end1)) = range_bounds1 &&
-                   let (Bound::Included(start2), Bound::Included(end2)) = range_bounds2 &&
-                   (start1 == end1) && (start2 == end2) && (end1 == start2)
-                {
-                    trusted_answer = true;
-                }
+				//since we are using discrete numbers this is indeed
+				//the mathematical_definition_of_overlap
+				let mathematical_definition_of_overlap =
+					NUMBERS_DOMAIN.iter().any(|x| {
+						range_bounds1.contains(x) && range_bounds2.contains(x)
+					});
 
-				if our_answer != trusted_answer {
+				if our_answer != mathematical_definition_of_overlap {
 					dbg!(range_bounds1, range_bounds2);
-					dbg!(trusted_answer, our_answer);
+					dbg!(mathematical_definition_of_overlap, our_answer);
 					panic!("Discrepency in .overlaps() detected!");
 				}
 			}
