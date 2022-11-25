@@ -4,9 +4,8 @@ use std::ops::Bound;
 
 use either::Either;
 
-use crate::bounds::{EndBound, StartBound};
-use crate::btree_ext::BTreeMapExt;
-use crate::range_bounds::RangeBounds;
+use crate::bounds::StartBound;
+use crate::range_bounds_ext::RangeBoundsExt;
 
 pub struct RangeBoundsMap<I, K, V> {
 	starts: BTreeMap<StartBound<I>, (K, V)>,
@@ -14,7 +13,7 @@ pub struct RangeBoundsMap<I, K, V> {
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
-	K: RangeBounds<I>,
+	K: RangeBoundsExt<I>,
 	I: Ord + Clone,
 {
 	pub fn new() -> Self {
@@ -32,8 +31,10 @@ where
 
 		//todo panic on invalid inputs
 
-		self.starts
-			.insert(range_bounds.start_bound().cloned(), (range_bounds, value));
+		self.starts.insert(
+			StartBound::from(range_bounds.start_bound().cloned()),
+			(range_bounds, value),
+		);
 
 		return Ok(());
 	}
@@ -52,7 +53,9 @@ where
 	) -> impl Iterator<Item = (&K, &V)> {
 		let start_range_bounds = (
 			//Included is lossless regarding meta-bounds searches
-			Bound::Included(search_range_bounds.start_bound().cloned()),
+			Bound::Included(StartBound::from(
+				search_range_bounds.start_bound().cloned(),
+			)),
 			Bound::Included(
 				StartBound::from(search_range_bounds.end_bound().cloned())
 					.as_end_value(),
@@ -66,11 +69,19 @@ where
 			//Excluded is lossless regarding meta-bounds searches
 			//because we don't want equal bound as they would have be
 			//coverded in the previous step
-			self.starts.next_below_upper_bound(Bound::Excluded(
-					//optimisation fix this without cloning
-                    //todo should probably use .as_end_value()
-					&search_range_bounds.start_bound().cloned(),
-				)) {
+			self.starts
+					.range((
+						Bound::Unbounded,
+						Bound::Excluded(
+							//optimisation fix this without cloning
+							//todo should probably use .as_end_value()
+							StartBound::from(
+								search_range_bounds.start_bound().cloned(),
+							),
+						),
+					))
+					.next()
+		{
 			if possible_missing_range_bounds.overlaps(&search_range_bounds) {
 				return Either::Left(
 					once(missing_entry)
@@ -93,8 +104,8 @@ where
 		//a zero-range included-included range is equivalent to a point
 		return self
 			.overlapping(&K::dummy(
-				StartBound::Included(point.clone()),
-				EndBound::Included(point.clone()),
+				Bound::Included(point.clone()),
+				Bound::Included(point.clone()),
 			))
 			.next();
 	}
@@ -106,7 +117,7 @@ where
 			return self
 				.starts
 				//optimisation fix this without cloning
-				.get_mut(&overlapping_start_bound.cloned())
+				.get_mut(&StartBound::from(overlapping_start_bound.cloned()))
 				.map(|(_, value)| value);
 		}
 		return None;

@@ -3,17 +3,17 @@
 use std::fmt::Display;
 use std::ops::Bound;
 
-use range_bounds_set::range_bounds::RangeBounds;
-use range_bounds_set::RangeBoundsSet;
+use range_bounds_set::range_bounds_ext::RangeBoundsExt;
 
 static NICE_NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
 type TestBounds = (Bound<u8>, Bound<u8>);
 
 fn main() {
 	color_backtrace::install();
-	for test_case in generate_overlaps_test_cases() {
-		println!("{}", test_case);
-	}
+    for test_case in generate_overlaps_test_cases() {
+    println!("{}", test_case);
+    }
+	//println!("{}", generate_overlapping_test_cases().len());
 }
 
 struct OverlapsTestCase {
@@ -26,7 +26,7 @@ struct OverlapsTestCaseWithAnswer {
 }
 
 struct OverlappingTestCase {
-	range_bounds_set: RangeBoundsSet<u8, TestBounds>,
+	range_bounds_set: Vec<TestBounds>,
 	overlap_range: TestBounds,
 }
 struct OverlappingTestCaseWithAnswer {
@@ -103,8 +103,8 @@ fn bound_symbol(bound: &Bound<u8>) -> String {
 fn generate_overlaps_test_cases() -> Vec<OverlapsTestCase> {
 	let mut output = Vec::new();
 
-	for overlap_range in all_valid_test_bounds() {
-		for (range_bounds1, range_bounds2) in all_valid_test_bounds_pairs() {
+	for range_bounds1 in all_valid_test_bounds() {
+		for range_bounds2 in all_valid_test_bounds() {
 			output.push(OverlapsTestCase {
 				range_bounds1,
 				range_bounds2,
@@ -120,7 +120,7 @@ fn generate_overlapping_test_cases() -> Vec<OverlappingTestCase> {
 	//case zero
 	for overlap_range in all_valid_test_bounds() {
 		output.push(OverlappingTestCase {
-			range_bounds_set: RangeBoundsSet::new(),
+			range_bounds_set: Vec::new(),
 			overlap_range,
 		})
 	}
@@ -128,8 +128,8 @@ fn generate_overlapping_test_cases() -> Vec<OverlappingTestCase> {
 	//case one
 	for overlap_range in all_valid_test_bounds() {
 		for inside_range in all_valid_test_bounds() {
-			let mut range_bounds_set = range_bounds_set::RangeBoundsSet::new();
-			range_bounds_set.insert(inside_range).unwrap();
+			let mut range_bounds_set = Vec::new();
+			range_bounds_set.push(inside_range);
 			output.push(OverlappingTestCase {
 				range_bounds_set,
 				overlap_range,
@@ -140,9 +140,9 @@ fn generate_overlapping_test_cases() -> Vec<OverlappingTestCase> {
 	//case two
 	for overlap_range in all_valid_test_bounds() {
 		for (test_bounds1, test_bounds2) in all_valid_test_bounds_pairs() {
-			let mut range_bounds_set = range_bounds_set::RangeBoundsSet::new();
-			range_bounds_set.insert(test_bounds1).unwrap();
-			range_bounds_set.insert(test_bounds2).unwrap();
+			let mut range_bounds_set = Vec::new();
+			range_bounds_set.push(test_bounds1);
+			range_bounds_set.push(test_bounds2);
 			output.push(OverlappingTestCase {
 				range_bounds_set,
 				overlap_range,
@@ -183,15 +183,15 @@ fn all_valid_test_bounds() -> Vec<TestBounds> {
 		}
 	}
 	//bounded-unbounded
-    for start_bound in all_finite_bounded() {
-    output.push((start_bound, Bound::Unbounded));
-    }
+	for start_bound in all_finite_bounded() {
+		output.push((start_bound, Bound::Unbounded));
+	}
 	//unbounded-bounded
-    for end_bound in all_finite_bounded() {
-    output.push((Bound::Unbounded, end_bound));
-    }
+	for end_bound in all_finite_bounded() {
+		output.push((Bound::Unbounded, end_bound));
+	}
 	//unbounded-unbounded
-    output.push((Bound::Unbounded, Bound::Unbounded));
+	output.push((Bound::Unbounded, Bound::Unbounded));
 
 	output.retain(is_valid_test_bounds);
 	return output;

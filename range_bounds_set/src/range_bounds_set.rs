@@ -1,4 +1,4 @@
-use crate::range_bounds::RangeBounds;
+use crate::range_bounds_ext::RangeBoundsExt;
 use crate::range_bounds_map::RangeBoundsMap;
 
 pub struct RangeBoundsSet<I, K> {
@@ -7,7 +7,7 @@ pub struct RangeBoundsSet<I, K> {
 
 impl<I, K> RangeBoundsSet<I, K>
 where
-	K: RangeBounds<I>,
+	K: RangeBoundsExt<I>,
 	I: Ord + Clone,
 {
 	pub fn new() -> Self {

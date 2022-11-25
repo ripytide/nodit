@@ -7,4 +7,7 @@ edition = "2021"
 
 [dependencies]
 either = "1.8.0"
+
+[dev-dependencies]
 color-backtrace = "0.5.1"
+ranges = "0.3.3"
