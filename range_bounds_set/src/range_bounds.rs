@@ -16,10 +16,12 @@ where
 			StartBound::Included(start) => start <= item,
 			StartBound::Excluded(start) => start < item,
 			StartBound::Unbounded => true,
+			StartBound::ReverseUnbounded => panic!("unsuitable operation"),
 		}) && (match self.end_bound() {
 			EndBound::Included(end) => item <= end,
 			EndBound::Excluded(end) => item < end,
 			EndBound::Unbounded => true,
+			EndBound::ReverseUnbounded => panic!("unsuitable operation"),
 		})
 	}
 	fn overlaps(&self, other: &Self) -> bool {

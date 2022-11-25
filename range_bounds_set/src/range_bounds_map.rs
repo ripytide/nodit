@@ -30,7 +30,7 @@ where
 			return Err(());
 		}
 
-        //todo panic on invalid inputs
+		//todo panic on invalid inputs
 
 		self.starts
 			.insert(range_bounds.start_bound().cloned(), (range_bounds, value));
@@ -53,9 +53,10 @@ where
 		let start_range_bounds = (
 			//Included is lossless regarding meta-bounds searches
 			Bound::Included(search_range_bounds.start_bound().cloned()),
-			Bound::Included(StartBound::from(
-				search_range_bounds.end_bound().cloned(),
-			)),
+			Bound::Included(
+				StartBound::from(search_range_bounds.end_bound().cloned())
+					.as_end_value(),
+			),
 		);
 		//this range will hold all the ranges we want except possibly
 		//the first RangeBound in the range
@@ -67,6 +68,7 @@ where
 			//coverded in the previous step
 			self.starts.next_below_upper_bound(Bound::Excluded(
 					//optimisation fix this without cloning
+                    //todo should probably use .as_end_value()
 					&search_range_bounds.start_bound().cloned(),
 				)) {
 			if possible_missing_range_bounds.overlaps(&search_range_bounds) {

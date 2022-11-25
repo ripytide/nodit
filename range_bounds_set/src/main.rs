@@ -10,19 +10,40 @@ static NICE_NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
 type TestBounds = (Bound<u8>, Bound<u8>);
 
 fn main() {
-    //pretty_trace::PrettyTrace::new().on();
-    color_backtrace::install();
-	for test_case in generate_overlap_test_cases() {
+	color_backtrace::install();
+	for test_case in generate_overlaps_test_cases() {
 		println!("{}", test_case);
 	}
 }
 
-struct OverlapTestCase {
+struct OverlapsTestCase {
+	range_bounds1: TestBounds,
+	range_bounds2: TestBounds,
+}
+struct OverlapsTestCaseWithAnswer {
+	test_case: OverlapsTestCase,
+	answer: bool,
+}
+
+struct OverlappingTestCase {
 	range_bounds_set: RangeBoundsSet<u8, TestBounds>,
 	overlap_range: TestBounds,
 }
+struct OverlappingTestCaseWithAnswer {
+	test_case: OverlappingTestCase,
+	answer: Vec<TestBounds>,
+}
 
-impl Display for OverlapTestCase {
+impl Display for OverlapsTestCase {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		writeln!(f, "===  1  2  3  4  5  6  7  8  9  10 ===")?;
+		writeln!(f, "{}", display_test_bounds(&self.range_bounds1))?;
+		writeln!(f, "{}", display_test_bounds(&self.range_bounds2))?;
+		Ok(())
+	}
+}
+
+impl Display for OverlappingTestCase {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		let range_bounds_iterator = self.range_bounds_set.iter();
 
@@ -42,13 +63,31 @@ impl Display for OverlapTestCase {
 }
 
 fn display_test_bounds(test_bounds: &TestBounds) -> String {
-	let first_symbol_position = inner(&test_bounds.0).unwrap_or(&0);
-	let second_symbol_position = inner(&test_bounds.1).unwrap_or(&16);
+	let first_scale = 3;
+	let first_offset = 2;
+
+	let second_scale = 3;
+	let second_offset = 1;
+
+	let first_unbounded_position = 0;
+	let second_unbounded_position = 36;
+
+	let first_symbol_position = inner(&test_bounds.0)
+		.map(|x| x * first_scale + first_offset)
+		.unwrap_or(first_unbounded_position);
+
+	let second_symbol_position = inner(&test_bounds.1)
+		.map(|x| x * second_scale + second_offset)
+		.unwrap_or(second_unbounded_position);
+
 	format!(
 		"{}{}{}{}",
-		" ".repeat(*first_symbol_position as usize),
+		" ".repeat(first_symbol_position as usize),
 		bound_symbol(&test_bounds.0),
-		"-".repeat(*second_symbol_position as usize),
+		"-".repeat(
+			(second_symbol_position.saturating_sub(first_symbol_position))
+				as usize
+		),
 		bound_symbol(&test_bounds.1)
 	)
 }
@@ -61,16 +100,26 @@ fn bound_symbol(bound: &Bound<u8>) -> String {
 	}
 }
 
-struct OverlapTestCaseWithAnswer {
-	test_case: OverlapTestCase,
-	answer: Vec<TestBounds>,
+fn generate_overlaps_test_cases() -> Vec<OverlapsTestCase> {
+	let mut output = Vec::new();
+
+	for overlap_range in all_valid_test_bounds() {
+		for (range_bounds1, range_bounds2) in all_valid_test_bounds_pairs() {
+			output.push(OverlapsTestCase {
+				range_bounds1,
+				range_bounds2,
+			})
+		}
+	}
+
+	return output;
 }
 
-fn generate_overlap_test_cases() -> Vec<OverlapTestCase> {
+fn generate_overlapping_test_cases() -> Vec<OverlappingTestCase> {
 	let mut output = Vec::new();
 	//case zero
 	for overlap_range in all_valid_test_bounds() {
-		output.push(OverlapTestCase {
+		output.push(OverlappingTestCase {
 			range_bounds_set: RangeBoundsSet::new(),
 			overlap_range,
 		})
@@ -81,7 +130,7 @@ fn generate_overlap_test_cases() -> Vec<OverlapTestCase> {
 		for inside_range in all_valid_test_bounds() {
 			let mut range_bounds_set = range_bounds_set::RangeBoundsSet::new();
 			range_bounds_set.insert(inside_range).unwrap();
-			output.push(OverlapTestCase {
+			output.push(OverlappingTestCase {
 				range_bounds_set,
 				overlap_range,
 			})
@@ -93,9 +142,8 @@ fn generate_overlap_test_cases() -> Vec<OverlapTestCase> {
 		for (test_bounds1, test_bounds2) in all_valid_test_bounds_pairs() {
 			let mut range_bounds_set = range_bounds_set::RangeBoundsSet::new();
 			range_bounds_set.insert(test_bounds1).unwrap();
-            dbg!(test_bounds2);
 			range_bounds_set.insert(test_bounds2).unwrap();
-			output.push(OverlapTestCase {
+			output.push(OverlappingTestCase {
 				range_bounds_set,
 				overlap_range,
 			})
@@ -135,15 +183,15 @@ fn all_valid_test_bounds() -> Vec<TestBounds> {
 		}
 	}
 	//bounded-unbounded
-	for start_bound in all_finite_bounded() {
-		output.push((start_bound, Bound::Unbounded));
-	}
+    for start_bound in all_finite_bounded() {
+    output.push((start_bound, Bound::Unbounded));
+    }
 	//unbounded-bounded
-	for end_bound in all_finite_bounded() {
-		output.push((Bound::Unbounded, end_bound));
-	}
-	//bounded-bounded
-	output.push((Bound::Unbounded, Bound::Unbounded));
+    for end_bound in all_finite_bounded() {
+    output.push((Bound::Unbounded, end_bound));
+    }
+	//unbounded-unbounded
+    output.push((Bound::Unbounded, Bound::Unbounded));
 
 	output.retain(is_valid_test_bounds);
 	return output;
@@ -173,9 +221,9 @@ fn inner(bound: &Bound<u8>) -> Option<&u8> {
 
 fn all_finite_bounded() -> Vec<Bound<u8>> {
 	let mut output = Vec::new();
-	for i in 0..5 {
+	for i in NICE_NUMBERS {
 		for k in 0..=1 {
-			output.push(finite_bound(i, k == 0));
+			output.push(finite_bound(*i, k == 0));
 		}
 	}
 	return output;
