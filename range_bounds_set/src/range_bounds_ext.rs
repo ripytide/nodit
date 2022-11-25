@@ -144,3 +144,39 @@ where
 		}
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use ranges::GenericRange;
+
+	use super::*;
+	use crate::test_helpers::all_valid_test_bounds;
+
+	//we test our function against GenericRange's is_overlapping()
+	//which we trust cuz y not lel
+	#[test]
+	fn mass_overlaps_test() {
+		for range_bounds1 in all_valid_test_bounds() {
+			for range_bounds2 in all_valid_test_bounds() {
+				let mut trusted_answer = GenericRange::from(range_bounds1)
+					.is_overlapping(&GenericRange::from(range_bounds2));
+
+				let our_answer = range_bounds1.overlaps(&range_bounds2);
+
+				//the only thing the "trusted" answer get wrong --__--
+                if let (Bound::Included(start1), Bound::Included(end1)) = range_bounds1 &&
+                   let (Bound::Included(start2), Bound::Included(end2)) = range_bounds2 &&
+                   (start1 == end1) && (start2 == end2) && (end1 == start2)
+                {
+                    trusted_answer = true;
+                }
+
+				if our_answer != trusted_answer {
+					dbg!(range_bounds1, range_bounds2);
+					dbg!(trusted_answer, our_answer);
+					panic!("Discrepency in .overlaps() detected!");
+				}
+			}
+		}
+	}
+}
