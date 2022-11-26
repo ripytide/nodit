@@ -6,7 +6,7 @@ pub enum StartBound<T> {
 	Included(T),
 	Excluded(T),
 	Unbounded,
-	//a workaround type used only for allowing bounded-unbounded range searches
+	//a workaround type used only for allowing end-unbounded range searches
 	//in overlapping()
 	ReverseUnbounded,
 }
@@ -106,5 +106,57 @@ impl<T> From<StartBound<T>> for Bound<T> {
 			StartBound::Unbounded => Bound::Unbounded,
 			StartBound::ReverseUnbounded => panic!("unsuitable operation"),
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[rustfmt::skip]
+	#[test]
+	fn mass_start_bound_partial_ord_test() {
+		assert!(StartBound::Included(2) == StartBound::Included(2));
+		assert!(StartBound::Included(2) <= StartBound::Included(2));
+		assert!(StartBound::Included(2) >= StartBound::Included(2));
+		assert!(StartBound::Included(0) < StartBound::Included(2));
+		assert!(StartBound::Included(2) > StartBound::Included(0));
+
+		assert!(StartBound::Included(2) < StartBound::Excluded(2));
+		assert!(StartBound::Included(0) < StartBound::Excluded(2));
+		assert!(StartBound::Included(2) > StartBound::Excluded(0));
+
+		assert!(StartBound::Excluded(2) > StartBound::Included(2));
+		assert!(StartBound::Excluded(2) > StartBound::Included(0));
+		assert!(StartBound::Excluded(0) < StartBound::Included(2));
+
+		assert!(StartBound::Excluded(2) == StartBound::Excluded(2));
+		assert!(StartBound::Excluded(2) <= StartBound::Excluded(2));
+		assert!(StartBound::Excluded(2) >= StartBound::Excluded(2));
+		assert!(StartBound::Excluded(0) < StartBound::Excluded(2));
+		assert!(StartBound::Excluded(2) > StartBound::Excluded(0));
+
+		assert!(StartBound::Included(2) > StartBound::Unbounded);
+		assert!(StartBound::Excluded(2) > StartBound::Unbounded);
+
+		assert!(StartBound::Unbounded < StartBound::Included(2));
+		assert!(StartBound::Unbounded < StartBound::Excluded(2));
+
+		assert!(StartBound::Included(2) < StartBound::ReverseUnbounded);
+		assert!(StartBound::Excluded(2) < StartBound::ReverseUnbounded);
+
+		assert!(StartBound::ReverseUnbounded > StartBound::Included(2));
+		assert!(StartBound::ReverseUnbounded > StartBound::Excluded(2));
+
+		assert!(StartBound::Unbounded::<u8> == StartBound::Unbounded);
+		assert!(StartBound::Unbounded::<u8> <= StartBound::Unbounded);
+		assert!(StartBound::Unbounded::<u8> >= StartBound::Unbounded);
+
+		assert!(StartBound::ReverseUnbounded::<u8> == StartBound::ReverseUnbounded);
+		assert!(StartBound::ReverseUnbounded::<u8> <= StartBound::ReverseUnbounded);
+		assert!(StartBound::ReverseUnbounded::<u8> >= StartBound::ReverseUnbounded);
+
+		assert!(StartBound::Unbounded::<u8> < StartBound::ReverseUnbounded);
+		assert!(StartBound::ReverseUnbounded::<u8> > StartBound::Unbounded);
 	}
 }

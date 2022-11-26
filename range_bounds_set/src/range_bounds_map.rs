@@ -134,57 +134,90 @@ mod tests {
 	//if that works everything is likely to work so there are only
 	//tests for overlapping()
 
+	use crate::range_bounds_ext::RangeBoundsExt;
 	use crate::test_helpers::{all_valid_test_bounds, TestBounds};
-	use crate::RangeBoundsMap;
+	use crate::RangeBoundsSet;
 
-	//fn mass_overlapping_test() {
-	////case zero
-	//for overlap_range in all_valid_test_bounds() {
-	//RangeBoundsMap::new().o
-	//}
+    #[test]
+	fn mass_overlapping_test() {
+		//case zero
+		for overlap_range in all_valid_test_bounds() {
+			//you can't overlap nothing
+			assert!(
+				RangeBoundsSet::new()
+					.overlapping(&overlap_range)
+					.next()
+					.is_none()
+			);
+		}
 
-	////case one
-	//for overlap_range in all_valid_test_bounds() {
-	//for inside_range in all_valid_test_bounds() {
-	//let mut range_bounds_set = Vec::new();
-	//range_bounds_set.push(inside_range);
-	//output.push(OverlappingTestCase {
-	//range_bounds_set,
-	//overlap_range,
-	//})
-	//}
-	//}
+		//case one
+		for overlap_range in all_valid_test_bounds() {
+			for inside_range in all_valid_test_bounds() {
+				let mut range_bounds_set = RangeBoundsSet::new();
+				range_bounds_set.insert(inside_range).unwrap();
 
-	////case two
-	//for overlap_range in all_valid_test_bounds() {
-	//for (test_bounds1, test_bounds2) in
-	//all_non_overlapping_test_bound_pairs()
-	//{
-	//let mut range_bounds_set = Vec::new();
-	//range_bounds_set.push(test_bounds1);
-	//range_bounds_set.push(test_bounds2);
-	//output.push(OverlappingTestCase {
-	//range_bounds_set,
-	//overlap_range,
-	//})
-	//}
-	//}
+				let expected_answer = overlap_range.overlaps(&inside_range);
+				let answer = range_bounds_set
+					.overlapping(&overlap_range)
+					.next()
+					.is_some_and(|overlapped_range| {
+						*overlapped_range == inside_range
+					});
 
-	//return output;
-	//}
+				if answer != expected_answer {
+					dbg!(overlap_range, inside_range);
+					dbg!(answer, expected_answer);
+					panic!(
+						"Discrepency in .overlapping() with single inside range detected!"
+					);
+				}
+			}
+		}
 
-	//fn all_non_overlapping_test_bound_pairs() -> Vec<(TestBounds, TestBounds)> {
-	//let mut output = Vec::new();
-	//for test_bounds1 in all_valid_test_bounds() {
-	//for test_bounds2 in all_valid_test_bounds() {
-	//if !GenericRange::from(test_bounds1)
-	//.is_overlapping(&GenericRange::from(test_bounds2))
-	//{
-	//output.push((test_bounds1, test_bounds2));
-	//}
-	//}
-	//}
+		//case two
+		for overlap_range in all_valid_test_bounds() {
+			for (inside_range1, inside_range2) in
+				all_non_overlapping_test_bound_pairs()
+			{
+				let mut range_bounds_set = RangeBoundsSet::new();
+				range_bounds_set.insert(inside_range1).unwrap();
+				range_bounds_set.insert(inside_range2).unwrap();
 
-	//return output;
-	//}
+				let mut expected_overlapping = Vec::new();
+				if overlap_range.overlaps(&inside_range1) {
+					expected_overlapping.push(inside_range1);
+				}
+				if overlap_range.overlaps(&inside_range2) {
+					expected_overlapping.push(inside_range2);
+				}
+
+				let overlapping = range_bounds_set
+					.overlapping(&overlap_range)
+					.copied()
+					.collect::<Vec<_>>();
+
+				if overlapping != expected_overlapping {
+					dbg!(overlap_range, inside_range1, inside_range2);
+					dbg!(overlapping, expected_overlapping);
+					panic!(
+						"Discrepency in .overlapping() with two inside ranges detected!"
+					);
+				}
+			}
+		}
+	}
+
+	fn all_non_overlapping_test_bound_pairs() -> Vec<(TestBounds, TestBounds)> {
+		let mut output = Vec::new();
+		for test_bounds1 in all_valid_test_bounds() {
+			for test_bounds2 in all_valid_test_bounds() {
+				if !test_bounds1.overlaps(&test_bounds2) {
+					output.push((test_bounds1, test_bounds2));
+				}
+			}
+		}
+
+		return output;
+	}
 }

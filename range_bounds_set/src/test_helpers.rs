@@ -21,6 +21,8 @@ pub fn all_valid_test_bounds() -> Vec<TestBounds> {
 	return output;
 }
 
+//only every other number to allow mathematical_overlapping_definition
+//to test between bounds in finite using smaller intervalled finite
 pub const NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
 //go a bit around on either side to compensate for Unbounded
 pub const NUMBERS_DOMAIN: &'static [u8] =
