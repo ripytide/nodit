@@ -18,7 +18,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::collections::BTreeMap;
-use std::fmt::Debug;
 use std::iter::once;
 use std::ops::Bound;
 
@@ -33,8 +32,8 @@ pub struct RangeBoundsMap<I, K, V> {
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
-	K: RangeBoundsExt<I> + Debug,
-	I: Ord + Clone + Debug,
+	K: RangeBoundsExt<I>,
+	I: Ord + Clone,
 {
 	pub fn new() -> Self {
 		RangeBoundsMap {
@@ -77,8 +76,6 @@ where
 		let end = StartBound::from(search_range_bounds.end_bound().cloned())
 			.as_end_bound();
 
-		dbg!(&start);
-		dbg!(&end);
 		let start_range_bounds = (
 			//Included is lossless regarding meta-bounds searches
 			//which is what we want

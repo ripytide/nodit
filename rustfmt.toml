@@ -1,0 +1,6 @@
+edition="2024"
+version = "Two"
+hard_tabs=true
+imports_granularity="Module"
+group_imports="StdExternalCrate"
+max_width=80
