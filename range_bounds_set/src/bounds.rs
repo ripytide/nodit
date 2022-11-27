@@ -17,7 +17,7 @@ impl<T> StartBound<T> {
 	//when using this as an end value in a range search
 	pub(crate) fn as_end_bound(self) -> StartBound<T> {
 		match self {
-            //flipping is unnecessary
+			//flipping is unnecessary
 			StartBound::Included(point) => StartBound::Included(point),
 			//flip to Reverses
 			StartBound::Excluded(point) => StartBound::ReverseExcluded(point),

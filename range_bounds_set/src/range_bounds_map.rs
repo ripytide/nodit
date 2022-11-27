@@ -82,11 +82,10 @@ where
 							//optimisation fix this without cloning
 							StartBound::from(
 								search_range_bounds.start_bound().cloned(),
-							)
-							.as_end_bound(),
+							),
 						),
 					))
-					.next()
+					.next_back()
 		{
 			if possible_missing_range_bounds.overlaps(&search_range_bounds) {
 				return Either::Left(
