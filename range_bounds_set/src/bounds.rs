@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 use std::ops::Bound;
 
-#[derive(PartialEq)]
-pub enum StartBound<T> {
+#[derive(PartialEq, Debug)]
+pub(crate) enum StartBound<T> {
 	Included(T),
 	Excluded(T),
 	Unbounded,
@@ -15,7 +15,7 @@ pub enum StartBound<T> {
 
 impl<T> StartBound<T> {
 	//when using this as an end value in a range search
-	pub fn as_end_value(self) -> StartBound<T> {
+	pub(crate) fn as_end_bound(self) -> StartBound<T> {
 		match self {
             //flipping is unnecessary
 			StartBound::Included(point) => StartBound::Included(point),

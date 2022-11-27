@@ -1,8 +1,8 @@
 use std::ops::Bound;
 
-pub type TestBounds = (Bound<u8>, Bound<u8>);
+pub(crate) type TestBounds = (Bound<u8>, Bound<u8>);
 
-pub fn all_valid_test_bounds() -> Vec<TestBounds> {
+pub(crate) fn all_valid_test_bounds() -> Vec<TestBounds> {
 	let mut output = Vec::new();
 
 	//bounded-bounded
@@ -23,9 +23,9 @@ pub fn all_valid_test_bounds() -> Vec<TestBounds> {
 
 //only every other number to allow mathematical_overlapping_definition
 //to test between bounds in finite using smaller intervalled finite
-pub const NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
+pub(crate) const NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
 //go a bit around on either side to compensate for Unbounded
-pub const NUMBERS_DOMAIN: &'static [u8] =
+pub(crate) const NUMBERS_DOMAIN: &'static [u8] =
 	&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 fn all_finite_bounded_pairs() -> Vec<(Bound<u8>, Bound<u8>)> {

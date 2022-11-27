@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 use std::iter::once;
 use std::ops::Bound;
 
@@ -13,8 +14,8 @@ pub struct RangeBoundsMap<I, K, V> {
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
-	K: RangeBoundsExt<I>,
-	I: Ord + Clone,
+	K: RangeBoundsExt<I> + Debug,
+	I: Ord + Clone + Debug,
 {
 	pub fn new() -> Self {
 		RangeBoundsMap {
@@ -51,33 +52,38 @@ where
 		&self,
 		search_range_bounds: &K,
 	) -> impl Iterator<Item = (&K, &V)> {
+		let start =
+			StartBound::from(search_range_bounds.start_bound().cloned());
+
+		let end = StartBound::from(search_range_bounds.end_bound().cloned())
+			.as_end_bound();
+
+		dbg!(&start);
+		dbg!(&end);
 		let start_range_bounds = (
 			//Included is lossless regarding meta-bounds searches
-			Bound::Included(StartBound::from(
-				search_range_bounds.start_bound().cloned(),
-			)),
-			Bound::Included(
-				StartBound::from(search_range_bounds.end_bound().cloned())
-					.as_end_value(),
-			),
+			//which is what we want
+			Bound::Included(start),
+			Bound::Included(end),
 		);
 		//this range will hold all the ranges we want except possibly
 		//the first RangeBound in the range
 		let most_range_bounds = self.starts.range(start_range_bounds);
 
+		//then we check for this possibly missing range_bounds
 		if let Some(missing_entry @ (_, (possible_missing_range_bounds, _))) =
 			//Excluded is lossless regarding meta-bounds searches
-			//because we don't want equal bound as they would have be
-			//coverded in the previous step
+			//because we don't want equal bounds as they would have be
+			//covered in the previous step and we don't want duplicates
 			self.starts
 					.range((
 						Bound::Unbounded,
 						Bound::Excluded(
 							//optimisation fix this without cloning
-							//todo should probably use .as_end_value()
 							StartBound::from(
 								search_range_bounds.start_bound().cloned(),
-							),
+							)
+							.as_end_bound(),
 						),
 					))
 					.next()
@@ -134,11 +140,14 @@ mod tests {
 	//if that works everything is likely to work so there are only
 	//tests for overlapping()
 
+	use std::ops::RangeBounds;
+
+	use crate::bounds::StartBound;
 	use crate::range_bounds_ext::RangeBoundsExt;
 	use crate::test_helpers::{all_valid_test_bounds, TestBounds};
 	use crate::RangeBoundsSet;
 
-    #[test]
+	#[test]
 	fn mass_overlapping_test() {
 		//case zero
 		for overlap_range in all_valid_test_bounds() {
@@ -157,17 +166,19 @@ mod tests {
 				let mut range_bounds_set = RangeBoundsSet::new();
 				range_bounds_set.insert(inside_range).unwrap();
 
-				let expected_answer = overlap_range.overlaps(&inside_range);
-				let answer = range_bounds_set
-					.overlapping(&overlap_range)
-					.next()
-					.is_some_and(|overlapped_range| {
-						*overlapped_range == inside_range
-					});
+				let mut expected_overlapping = Vec::new();
+				if overlap_range.overlaps(&inside_range) {
+					expected_overlapping.push(inside_range);
+				}
 
-				if answer != expected_answer {
+				let overlapping = range_bounds_set
+					.overlapping(&overlap_range)
+					.copied()
+					.collect::<Vec<_>>();
+
+				if overlapping != expected_overlapping {
 					dbg!(overlap_range, inside_range);
-					dbg!(answer, expected_answer);
+					dbg!(overlapping, expected_overlapping);
 					panic!(
 						"Discrepency in .overlapping() with single inside range detected!"
 					);
@@ -190,6 +201,15 @@ mod tests {
 				}
 				if overlap_range.overlaps(&inside_range2) {
 					expected_overlapping.push(inside_range2);
+				}
+				//make our expected_overlapping the correct order
+				if expected_overlapping.len() > 1 {
+					if StartBound::from(expected_overlapping[0].start_bound())
+						> StartBound::from(
+							expected_overlapping[1].start_bound(),
+						) {
+						expected_overlapping.swap(0, 1);
+					}
 				}
 
 				let overlapping = range_bounds_set

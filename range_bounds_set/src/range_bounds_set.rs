@@ -7,8 +7,8 @@ pub struct RangeBoundsSet<I, K> {
 
 impl<I, K> RangeBoundsSet<I, K>
 where
-	K: RangeBoundsExt<I>,
-	I: Ord + Clone,
+	K: RangeBoundsExt<I> + std::fmt::Debug,
+	I: Ord + Clone + std::fmt::Debug,
 {
 	pub fn new() -> Self {
 		RangeBoundsSet {
