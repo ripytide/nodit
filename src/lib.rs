@@ -32,22 +32,24 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ```
 //! # use range_bounds_map::RangeBoundsMap;
+//!
 //! let mut range_bounds_map = RangeBoundsMap::new();
 //!
 //! range_bounds_map.insert(0..5, true);
 //! range_bounds_map.insert(5..10, false);
 //!
-//! assert!(range_bounds_map.overlaps(-2..12))
-//! assert!(!range_bounds_map.contains_point(20))
-//! assert!(range_bounds_map.contains_point(5))
-//!
-//! assert(range_bounds.overlapping())
-//!
-//! assert!(false)
+//! assert!(range_bounds_map.overlaps(&(-2..12)));
+//! assert!(!range_bounds_map.contains_point(&20));
+//! assert!(range_bounds_map.contains_point(&5));
 //! ```
 //!
 //! # Example using a custom [`RangeBounds`] type
 //! ```
+//! # use std::ops::RangeBounds;
+//! # use std::ops::Bound;
+//! # use range_bounds_map::RangeBoundsMap;
+//!
+//! #[derive(Debug)]
 //! enum Reservation {
 //!     // Start, End (Inclusive-Inclusive)
 //!     Finite(u8, u8),
@@ -55,21 +57,38 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!     Infinite(u8)
 //! }
 //!
-//! // First we need to implement RangeBounds
-//! impl RangeBound<u8> for Reservation {
-//!     fn start_bound(&self) -> Bound {
+//! // First, we need to implement RangeBounds
+//! impl RangeBounds<u8> for Reservation {
+//!     fn start_bound(&self) -> Bound<&u8> {
 //!         match self {
-//!             Reservation::Finite(start, _) => Bound::Inclusive(start),
-//!             Reservation::Infinite(start) => Bound::Exclusive(start),
+//!             Reservation::Finite(start, _) => Bound::Included(start),
+//!             Reservation::Infinite(start) => Bound::Excluded(start),
 //!         }
 //!     }
-//!     fn end_bound(&self) -> Bound {
+//!     fn end_bound(&self) -> Bound<&u8> {
 //!         match self {
-//!             Reservation::Finite(_, end) => Bound::Inclusive(end),
+//!             Reservation::Finite(_, end) => Bound::Included(end),
 //!             Reservation::Infinite(_) => Bound::Unbounded,
 //!         }
 //!     }
 //! }
+//!
+//! // Next we can create a custom typed RangeBoundsMap
+//! let mut reservations_map = RangeBoundsMap::new();
+//!
+//! reservations_map.insert(Reservation::Finite(10, 20), "Ferris".to_string());
+//! reservations_map.insert(Reservation::Infinite(20), "Corro".to_string());
+//!
+//! for (reservation, name) in reservations_map.overlapping(&(16..17)) {
+//!     println!("{name} has reserved {reservation:?} inside the range 16..17");
+//! }
+//!
+//! for (reservation, name) in reservations_map.iter() {
+//!     println!("{name} has reserved {reservation:?}");
+//! }
+//!
+//! assert!(reservations_map.overlaps(&Reservation::Infinite(0)));
+//! assert!(reservations_map.overlaps(&Reservation::Infinite(0)));
 //! ```
 //!
 //!

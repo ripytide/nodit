@@ -21,6 +21,10 @@
 
 - update lines of code figures on docs
 
+- make all functions' trait bounds specific instead of at impl level
+
+- turn overlaps back into a trait to make it public, mabye
+
 - run cargo fmt
 - run and fix cargo clippy
 - take a look around idiomatic rust for a bit first
