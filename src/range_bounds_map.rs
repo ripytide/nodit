@@ -51,6 +51,7 @@ where
 		//todo panic on invalid inputs
 
 		self.starts.insert(
+			//optimisation fix this without cloning
 			StartBound::from(range_bounds.start_bound().cloned()),
 			(range_bounds, value),
 		);
@@ -70,9 +71,10 @@ where
 		&self,
 		search_range_bounds: &K,
 	) -> impl Iterator<Item = (&K, &V)> {
+		//optimisation fix this without cloning
 		let start =
 			StartBound::from(search_range_bounds.start_bound().cloned());
-
+		//optimisation fix this without cloning
 		let end = StartBound::from(search_range_bounds.end_bound().cloned())
 			.as_end_bound();
 
@@ -94,12 +96,10 @@ where
 			self.starts
 					.range((
 						Bound::Unbounded,
-						Bound::Excluded(
+						Bound::Excluded(StartBound::from(
 							//optimisation fix this without cloning
-							StartBound::from(
-								search_range_bounds.start_bound().cloned(),
-							),
-						),
+							search_range_bounds.start_bound().cloned(),
+						)),
 					))
 					.next_back()
 		{
