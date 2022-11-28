@@ -17,7 +17,8 @@ You should have received a copy of the GNU General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use crate::range_bounds_ext::RangeBoundsExt;
+use std::ops::RangeBounds;
+
 use crate::range_bounds_map::RangeBoundsMap;
 
 pub struct RangeBoundsSet<I, K> {
@@ -26,7 +27,7 @@ pub struct RangeBoundsSet<I, K> {
 
 impl<I, K> RangeBoundsSet<I, K>
 where
-	K: RangeBoundsExt<I>,
+	K: RangeBounds<I>,
 	I: Ord + Clone,
 {
 	pub fn new() -> Self {
@@ -41,14 +42,20 @@ where
 		self.map.insert(range_bounds, ())
 	}
 
-	pub fn overlaps(&self, search_range_bounds: &K) -> bool {
+	pub fn overlaps<Q>(&self, search_range_bounds: &Q) -> bool
+	where
+		Q: RangeBounds<I>,
+	{
 		self.map.overlaps(search_range_bounds)
 	}
 
-	pub fn overlapping(
+	pub fn overlapping<Q>(
 		&self,
-		search_range_bounds: &K,
-	) -> impl Iterator<Item = &K> {
+		search_range_bounds: &Q,
+	) -> impl Iterator<Item = &K>
+	where
+		Q: RangeBounds<I>,
+	{
 		self.map
 			.overlapping(search_range_bounds)
 			.map(|(key, _)| key)

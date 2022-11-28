@@ -17,14 +17,14 @@ You should have received a copy of the GNU General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::iter::once;
-use std::ops::Bound;
+use std::ops::{Bound, RangeBounds};
 
 use either::Either;
 
 use crate::bounds::StartBound;
-use crate::range_bounds_ext::RangeBoundsExt;
 
 pub struct RangeBoundsMap<I, K, V> {
 	starts: BTreeMap<StartBound<I>, (K, V)>,
@@ -32,7 +32,7 @@ pub struct RangeBoundsMap<I, K, V> {
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
-	K: RangeBoundsExt<I>,
+	K: RangeBounds<I>,
 	I: Ord + Clone,
 {
 	pub fn new() -> Self {
@@ -63,14 +63,20 @@ where
 		self.get(point).is_some()
 	}
 
-	pub fn overlaps(&self, search_range_bounds: &K) -> bool {
+	pub fn overlaps<Q>(&self, search_range_bounds: &Q) -> bool
+	where
+		Q: RangeBounds<I>,
+	{
 		self.overlapping(search_range_bounds).next().is_some()
 	}
 
-	pub fn overlapping(
+	pub fn overlapping<Q>(
 		&self,
-		search_range_bounds: &K,
-	) -> impl Iterator<Item = (&K, &V)> {
+		search_range_bounds: &Q,
+	) -> impl Iterator<Item = (&K, &V)>
+	where
+		Q: RangeBounds<I>,
+	{
 		//optimisation fix this without cloning
 		let start =
 			StartBound::from(search_range_bounds.start_bound().cloned());
@@ -103,7 +109,7 @@ where
 					))
 					.next_back()
 		{
-			if possible_missing_range_bounds.overlaps(&search_range_bounds) {
+			if overlaps(possible_missing_range_bounds, search_range_bounds) {
 				return Either::Left(
 					once(missing_entry)
 						.chain(most_range_bounds)
@@ -124,7 +130,7 @@ where
 	pub fn get_key_value(&self, point: &I) -> Option<(&K, &V)> {
 		//a zero-range included-included range is equivalent to a point
 		return self
-			.overlapping(&K::dummy(
+			.overlapping(&(
 				Bound::Included(point.clone()),
 				Bound::Included(point.clone()),
 			))
@@ -149,18 +155,74 @@ where
 	}
 }
 
+fn overlaps<I, A, B>(a: &A, b: &B) -> bool
+where
+	A: RangeBounds<I>,
+	B: RangeBounds<I>,
+	I: PartialOrd,
+{
+	let a_start = a.start_bound();
+	let a_end = a.end_bound();
+
+	let b_start = b.start_bound();
+	let b_end = b.end_bound();
+
+	let (left_end, right_start) =
+		match StartBound::from(a_start).cmp(&StartBound::from(b_start)) {
+			Ordering::Less => (a_end, b_start),
+			Ordering::Greater => (b_end, a_start),
+			Ordering::Equal => return true,
+		};
+
+	match (left_end, right_start) {
+		(Bound::Included(end), Bound::Included(start)) => end >= start,
+
+		(Bound::Excluded(end), Bound::Excluded(start)) => end > start,
+		(Bound::Included(end), Bound::Excluded(start)) => end > start,
+		(Bound::Excluded(end), Bound::Included(start)) => end > start,
+
+		(Bound::Unbounded, _) => true,
+
+		(_, Bound::Unbounded) => unreachable!(),
+	}
+}
+
 #[cfg(test)]
 mod tests {
-	//all the functions in range_bounds_map rely upon overlapping so
-	//if that works everything is likely to work so there are only
-	//tests for overlapping()
+	use std::ops::{Bound, Range, RangeBounds};
 
-	use std::ops::RangeBounds;
-
+	use super::overlaps;
 	use crate::bounds::StartBound;
-	use crate::range_bounds_ext::RangeBoundsExt;
-	use crate::test_helpers::{all_valid_test_bounds, TestBounds};
 	use crate::RangeBoundsSet;
+
+	type TestBounds = (Bound<u8>, Bound<u8>);
+
+	//only every other number to allow mathematical_overlapping_definition
+	//to test between bounds in finite using smaller intervalled finite
+	pub(crate) const NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
+	//go a bit around on either side to compensate for Unbounded
+	pub(crate) const NUMBERS_DOMAIN: &'static [u8] =
+		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+	#[test]
+	fn mass_overlaps_test() {
+		for range_bounds1 in all_valid_test_bounds() {
+			for range_bounds2 in all_valid_test_bounds() {
+				let our_answer = overlaps(&range_bounds1, &range_bounds2);
+
+				let mathematical_definition_of_overlap =
+					NUMBERS_DOMAIN.iter().any(|x| {
+						range_bounds1.contains(x) && range_bounds2.contains(x)
+					});
+
+				if our_answer != mathematical_definition_of_overlap {
+					dbg!(range_bounds1, range_bounds2);
+					dbg!(mathematical_definition_of_overlap, our_answer);
+					panic!("Discrepency in .overlaps() detected!");
+				}
+			}
+		}
+	}
 
 	#[test]
 	fn mass_overlapping_test() {
@@ -168,7 +230,7 @@ mod tests {
 		for overlap_range in all_valid_test_bounds() {
 			//you can't overlap nothing
 			assert!(
-				RangeBoundsSet::new()
+				RangeBoundsSet::<u8, Range<u8>>::new()
 					.overlapping(&overlap_range)
 					.next()
 					.is_none()
@@ -182,7 +244,7 @@ mod tests {
 				range_bounds_set.insert(inside_range).unwrap();
 
 				let mut expected_overlapping = Vec::new();
-				if overlap_range.overlaps(&inside_range) {
+				if overlaps(&overlap_range, &inside_range) {
 					expected_overlapping.push(inside_range);
 				}
 
@@ -211,10 +273,10 @@ mod tests {
 				range_bounds_set.insert(inside_range2).unwrap();
 
 				let mut expected_overlapping = Vec::new();
-				if overlap_range.overlaps(&inside_range1) {
+				if overlaps(&overlap_range, &inside_range1) {
 					expected_overlapping.push(inside_range1);
 				}
-				if overlap_range.overlaps(&inside_range2) {
+				if overlaps(&overlap_range, &inside_range2) {
 					expected_overlapping.push(inside_range2);
 				}
 				//make our expected_overlapping the correct order
@@ -247,12 +309,67 @@ mod tests {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
-				if !test_bounds1.overlaps(&test_bounds2) {
+				if !overlaps(&test_bounds1, &test_bounds2) {
 					output.push((test_bounds1, test_bounds2));
 				}
 			}
 		}
 
 		return output;
+	}
+
+	fn all_valid_test_bounds() -> Vec<TestBounds> {
+		let mut output = Vec::new();
+
+		//bounded-bounded
+		output.append(&mut all_finite_bounded_pairs());
+		//bounded-unbounded
+		for start_bound in all_finite_bounded() {
+			output.push((start_bound, Bound::Unbounded));
+		}
+		//unbounded-bounded
+		for end_bound in all_finite_bounded() {
+			output.push((Bound::Unbounded, end_bound));
+		}
+		//unbounded-unbounded
+		output.push((Bound::Unbounded, Bound::Unbounded));
+
+		return output;
+	}
+
+	fn all_finite_bounded_pairs() -> Vec<(Bound<u8>, Bound<u8>)> {
+		let mut output = Vec::new();
+		for i in NUMBERS {
+			for j in NUMBERS {
+				for i_ex in [false, true] {
+					for j_ex in [false, true] {
+						if j > i || (j == i && !i_ex && !j_ex) {
+							output.push((
+								finite_bound(*i, i_ex),
+								finite_bound(*j, j_ex),
+							));
+						}
+					}
+				}
+			}
+		}
+		return output;
+	}
+
+	fn all_finite_bounded() -> Vec<Bound<u8>> {
+		let mut output = Vec::new();
+		for i in NUMBERS {
+			for j in 0..=1 {
+				output.push(finite_bound(*i, j == 1));
+			}
+		}
+		return output;
+	}
+
+	fn finite_bound(x: u8, included: bool) -> Bound<u8> {
+		match included {
+			false => Bound::Included(x),
+			true => Bound::Excluded(x),
+		}
 	}
 }

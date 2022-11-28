@@ -19,6 +19,8 @@
 
 - use it in robot_Sweet_graph for a bit before publishing
 
+- update caveates to address dummy-removal updates
+
 - run cargo fmt
 - run and fix cargo clippy
 - take a look around idiomatic rust for a bit first

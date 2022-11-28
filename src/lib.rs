@@ -59,7 +59,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!     Infinite(u8)
 //! }
 //!
-//! //First we need to implement RangeBounds
+//! // First we need to implement RangeBounds
 //! impl RangeBound<u8> for Reservation {
 //!     fn start_bound(&self) -> Bound {
 //!         match self {
@@ -71,6 +71,15 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!         match self {
 //!             Reservation::Finite(_, end) => Bound::Inclusive(end),
 //!             Reservation::Infinite(_) => Bound::Unbounded,
+//!         }
+//!     }
+//! }
+//!
+//! // Second we need to implement RangeBoundsExt
+//! impl RangeBoundsExt<u8> for Reservation {
+//!     fn dummy(start_bound: Bound<u8>, end_bound: Bound<u8>) -> Self {
+//!         match end_bound {
+//!             Bound::
 //!         }
 //!     }
 //! }
@@ -179,13 +188,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 #![feature(is_some_and)]
 #![feature(let_chains)]
 pub(crate) mod bounds;
-pub mod range_bounds_ext;
 pub mod range_bounds_map;
 pub mod range_bounds_set;
 
-#[cfg(test)]
-pub(crate) mod test_helpers;
-
-pub use crate::range_bounds_ext::RangeBoundsExt;
 pub use crate::range_bounds_map::RangeBoundsMap;
 pub use crate::range_bounds_set::RangeBoundsSet;
