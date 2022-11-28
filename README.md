@@ -19,7 +19,7 @@
 
 - use it in robot_Sweet_graph for a bit before publishing
 
-- update caveates to address dummy-removal updates
+- update lines of code figures on docs
 
 - run cargo fmt
 - run and fix cargo clippy

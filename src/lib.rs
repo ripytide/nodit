@@ -20,17 +20,13 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`].
 //!
 //! [`RangeBoundsMap`] is similar to [`BTreeMap`] except [`RangeBoundsMap`]
-//! uses any type that implements [`RangeBounds`] as keys, while
+//! uses any type that implements the [`RangeBounds`] trait as keys, while
 //! maintaining two invariants:
 //! - No two keys may overlap
 //! - A keys' [`start_bound()`] <= its [`end_bound()`]
 //!
 //! [`RangeBoundsSet`] is like [`RangeBoundsMap`] except it
 //! uses `()` as values, as [`BTreeSet`] does for [`BTreeMap`]
-//!
-//! If you use an custom type as a key, it must implement two main traits:
-//! - The std library's [`RangeBounds`]
-//! - This crate's [`RangeBoundsExt`]
 //!
 //! # Example using [`Range`]s
 //!
@@ -74,15 +70,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!         }
 //!     }
 //! }
-//!
-//! // Second we need to implement RangeBoundsExt
-//! impl RangeBoundsExt<u8> for Reservation {
-//!     fn dummy(start_bound: Bound<u8>, end_bound: Bound<u8>) -> Self {
-//!         match end_bound {
-//!             Bound::
-//!         }
-//!     }
-//! }
 //! ```
 //!
 //!
@@ -111,12 +98,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!   - `is_subset()`
 //!   - etc... a bunch more
 //! - Sub-optimal use of unnecessary `cloned()` just to placate the borrow checker
-//! - Requirement for `dummy()` trait function needed to implement some of
-//!   the internal functions that wouldn't be neccessary if `BTreeMap` had
-//!   either a Cursor API or a Comparator API (google for the respective
-//!   rust-lang issues) However the `dummy()` trait function would be
-//!   unavoidable for the `gaps()` function if you wanted an iterator over
-//!   your same key type
 //! - The library needs some benchmarks
 //! - Insert should panic on "bad" Zero RangeBounds like when start_bound >
 //!   end_bound or Excluded(x)-Excluded(x) Excluded(x)-Included(x) Included(x)-Excluded(x)
@@ -125,9 +106,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!   - FromIterator
 //!   - IntoIterator
 //!   - Probably a bunch more
-//! - Allow non-insert functions such as [`RangeBoundsMap::overlapping()`]
-//!   to take a possibly different [`RangeBounds`] type. Such as querying a
-//!   [`Range`]-based [`RangeBoundsMap`] using a [`RangeInclusive`]
 //!
 //! # Credit
 //!
