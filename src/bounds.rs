@@ -43,13 +43,13 @@ pub(crate) enum StartBound<T> {
 	/// [`BTreeMap::range`] searches in [`crate::RangeBoundsMap::overlapping()`]
 	///
 	/// [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
-    /// [`BTreeMap::range`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
+	/// [`BTreeMap::range`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 	ReverseExcluded(T),
 	/// Workaround type used to represent [`Bound::Unbounded`] in [`end_bound()`] in meta-bound
 	/// [`BTreeMap::range`] searches in [`crate::RangeBoundsMap::overlapping()`]
 	///
 	/// [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
-    /// [`BTreeMap::range`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
+	/// [`BTreeMap::range`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 	ReverseUnbounded,
 }
 

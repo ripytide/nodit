@@ -72,18 +72,15 @@ use crate::range_bounds_map::RangeBoundsMap;
 ///         Bound::Excluded(&self.start)
 ///     }
 ///     fn end_bound(&self) -> Bound<&NotNan<f32>> {
-///         Bound::Excluded(&self.start)
+///         Bound::Excluded(&self.end)
 ///     }
 /// }
 ///
-/// // Now we can make a [`RangeBoundsSet`] of [`ExEx``]s
+/// // Now we can make a [`RangeBoundsSet`] of [`ExEx`]s
 /// let mut set = RangeBoundsSet::new();
 ///
-/// set.insert(ExEx::new(0.0, 5.0));
-/// set.insert(ExEx::new(5.0, 7.5));
-///
-/// assert!(NotNan::new(5.0).unwrap() < NotNan::new(5.0).unwrap());
-/// panic!();
+/// set.insert(ExEx::new(0.0, 5.0)).unwrap();
+/// set.insert(ExEx::new(5.0, 7.5)).unwrap();
 ///
 /// assert_eq!(set.contains_point(&(NotNan::new(5.0).unwrap())), false);
 /// assert_eq!(set.contains_point(&(NotNan::new(7.0).unwrap())), true);

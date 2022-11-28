@@ -77,7 +77,7 @@ where
 	where
 		Q: RangeBounds<I>,
 	{
-        //todo panic on invalid search range
+		//todo panic on invalid search range
 
 		//optimisation fix this without cloning
 		let start =
@@ -130,8 +130,9 @@ where
 	}
 
 	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
-		if let Some(overlapping_start_bound) =
-			self.get_key_value_at_point(point).map(|(key, _)| key.start_bound())
+		if let Some(overlapping_start_bound) = self
+			.get_key_value_at_point(point)
+			.map(|(key, _)| key.start_bound())
 		{
 			return self
 				.starts
@@ -151,7 +152,6 @@ where
 			))
 			.next();
 	}
-
 
 	pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
 		self.starts.iter().map(|(_, (key, value))| (key, value))
