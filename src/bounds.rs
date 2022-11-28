@@ -20,20 +20,44 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 use std::cmp::Ordering;
 use std::ops::Bound;
 
+/// An Ord newtype of [`Bound`] specific to [`start_bound()`].
+///
+/// This type is used to circumvent [`BTreeMap`]s (and rust collections
+/// in general) lack of methods for searching with custom
+/// [`comparator`] functions and/or it's lack of a [`Cursor`]-like
+/// API
+///
+/// [`start_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.start_bound
+/// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
+/// [`comparator`]: https://stackoverflow.com/q/34028324
+/// [`Cursor`]: https://github.com/rust-lang/rfcs/issues/1778
 #[derive(PartialEq, Debug)]
 pub(crate) enum StartBound<T> {
+	/// Mirror of [`Bound::Included`]
 	Included(T),
+	/// Mirror of [`Bound::Excluded`]
 	Excluded(T),
+	/// Mirror of [`Bound::Unbounded`]
 	Unbounded,
-	//workaround types used only as ends_bounds in meta-bound
-	//StartBound range searches in overlapping() (non need for
-	//reverseIncluded as it would be equivalent to normal included)
+	/// Workaround type used to represent [`Bound::Excluded`] in [`end_bound()`] in meta-bound
+	/// [`BTreeMap::range`] searches in [`crate::RangeBoundsMap::overlapping()`]
+	///
+	/// [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
+    /// [`BTreeMap::range`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 	ReverseExcluded(T),
+	/// Workaround type used to represent [`Bound::Unbounded`] in [`end_bound()`] in meta-bound
+	/// [`BTreeMap::range`] searches in [`crate::RangeBoundsMap::overlapping()`]
+	///
+	/// [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
+    /// [`BTreeMap::range`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 	ReverseUnbounded,
 }
 
 impl<T> StartBound<T> {
-	//when using this as an end value in a range search
+	/// Converts the [`StartBound`] to the appropriate type for use as
+	/// an [`end_bound()`] in a range search
+	///
+	/// [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
 	pub(crate) fn as_end_bound(self) -> StartBound<T> {
 		match self {
 			//flipping is unnecessary
@@ -48,6 +72,10 @@ impl<T> StartBound<T> {
 
 impl<T> Eq for StartBound<T> where T: PartialEq {}
 
+/// The [`PartialOrd`] implementaion with the goal of allowing the use
+/// of [`BTreeMap::range`] on [`StartBound`]s
+///
+/// [`BTreeMap::range`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 #[rustfmt::skip]
 impl<T> PartialOrd for StartBound<T>
 where

@@ -32,7 +32,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ```
 //! # use range_bounds_map::RangeBoundsMap;
-//!
 //! let mut range_bounds_map = RangeBoundsMap::new();
 //!
 //! range_bounds_map.insert(0..5, true);
@@ -48,7 +47,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! # use std::ops::RangeBounds;
 //! # use std::ops::Bound;
 //! # use range_bounds_map::RangeBoundsMap;
-//!
 //! #[derive(Debug)]
 //! enum Reservation {
 //!     // Start, End (Inclusive-Inclusive)
@@ -97,8 +95,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! Most of the [`RangeBounds`]-specific methods on [`RangeBoundsMap`]
 //! utilize the [`RangeBoundsMap::overlapping()`] method which
 //! internally uses [`BTreeMap`]'s [`range()`] function. To allow
-//! using [`range()`] for this purpose a newtype wrapper wrapped
-//! around the [`start_bound()`]s so that we apply our custom [`Ord`]
+//! using [`range()`] for this purpose a newtype wrapper is wrapped
+//! around the [`start_bound()`]s so that we can apply our custom [`Ord`]
 //! implementation onto all the [`start_bound()`]s.
 //!
 //! # Improvements/Caveats

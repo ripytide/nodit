@@ -60,7 +60,7 @@ where
 	}
 
 	pub fn contains_point(&self, point: &I) -> bool {
-		self.get(point).is_some()
+		self.get_at_point(point).is_some()
 	}
 
 	pub fn overlaps<Q>(&self, search_range_bounds: &Q) -> bool
@@ -77,6 +77,8 @@ where
 	where
 		Q: RangeBounds<I>,
 	{
+        //todo panic on invalid search range
+
 		//optimisation fix this without cloning
 		let start =
 			StartBound::from(search_range_bounds.start_bound().cloned());
@@ -123,23 +125,13 @@ where
 		);
 	}
 
-	pub fn get(&self, point: &I) -> Option<&V> {
-		self.get_key_value(point).map(|(_, value)| value)
+	pub fn get_at_point(&self, point: &I) -> Option<&V> {
+		self.get_key_value_at_point(point).map(|(_, value)| value)
 	}
 
-	pub fn get_key_value(&self, point: &I) -> Option<(&K, &V)> {
-		//a zero-range included-included range is equivalent to a point
-		return self
-			.overlapping(&(
-				Bound::Included(point.clone()),
-				Bound::Included(point.clone()),
-			))
-			.next();
-	}
-
-	pub fn get_mut(&mut self, point: &I) -> Option<&mut V> {
+	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
 		if let Some(overlapping_start_bound) =
-			self.get_key_value(point).map(|(key, _)| key.start_bound())
+			self.get_key_value_at_point(point).map(|(key, _)| key.start_bound())
 		{
 			return self
 				.starts
@@ -149,6 +141,17 @@ where
 		}
 		return None;
 	}
+
+	pub fn get_key_value_at_point(&self, point: &I) -> Option<(&K, &V)> {
+		//a zero-range included-included range is equivalent to a point
+		return self
+			.overlapping(&(
+				Bound::Included(point.clone()),
+				Bound::Included(point.clone()),
+			))
+			.next();
+	}
+
 
 	pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
 		self.starts.iter().map(|(_, (key, value))| (key, value))

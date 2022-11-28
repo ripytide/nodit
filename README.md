@@ -25,6 +25,8 @@
 
 - turn overlaps back into a trait to make it public, mabye
 
+- review caveats again
+
 - run cargo fmt
 - run and fix cargo clippy
 - take a look around idiomatic rust for a bit first

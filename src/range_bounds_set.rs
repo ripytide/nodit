@@ -21,6 +21,77 @@ use std::ops::RangeBounds;
 
 use crate::range_bounds_map::RangeBoundsMap;
 
+/// An ordered set of [`RangeBounds`] based on [`BTreeSet`]
+///
+/// # Examples
+/// ```
+/// # use range_bounds_map::RangeBoundsSet;
+/// let mut visits = RangeBoundsSet::new();
+///
+/// // Add some ranges
+/// visits.insert(4..8);
+/// visits.insert(8..18);
+/// visits.insert(20..100);
+///
+/// // Check if a point is contained in the set
+/// if visits.contains_point(&0) {
+///     println!("No visit at the beginning ;(");
+/// }
+///
+/// // Iterate over the ranges overlapping another range
+/// for visit in visits.overlapping(&(2..=8)) {
+///     println!("{visit:?}");
+/// }
+/// ```
+/// Example using a custom [`RangeBounds`] type:
+/// ```
+/// # use std::ops::Bound;
+/// # use std::ops::RangeBounds;
+/// # use ordered_float::NotNan;
+/// # use range_bounds_map::RangeBoundsSet;
+/// // An Exlusive-Exlusive range of [`f32`]s not provided by any
+/// // std::ops ranges
+/// // We use [`ordered_float::NotNan`]s as the inner type must be Ord
+/// // similar to a normal [`BTreeSet`]
+/// struct ExEx {
+///     start: NotNan<f32>,
+///     end: NotNan<f32>,
+/// }
+/// # impl ExEx {
+/// #    fn new(start: f32, end: f32) -> ExEx {
+/// #        ExEx {
+/// #            start: NotNan::new(start).unwrap(),
+/// #            end: NotNan::new(end).unwrap(),
+/// #        }
+/// #    }
+/// # }
+///
+/// // Implement RangeBounds<f32> on our new type
+/// impl RangeBounds<NotNan<f32>> for ExEx {
+///     fn start_bound(&self) -> Bound<&NotNan<f32>> {
+///         Bound::Excluded(&self.start)
+///     }
+///     fn end_bound(&self) -> Bound<&NotNan<f32>> {
+///         Bound::Excluded(&self.start)
+///     }
+/// }
+///
+/// // Now we can make a [`RangeBoundsSet`] of [`ExEx``]s
+/// let mut set = RangeBoundsSet::new();
+///
+/// set.insert(ExEx::new(0.0, 5.0));
+/// set.insert(ExEx::new(5.0, 7.5));
+///
+/// assert!(NotNan::new(5.0).unwrap() < NotNan::new(5.0).unwrap());
+/// panic!();
+///
+/// assert_eq!(set.contains_point(&(NotNan::new(5.0).unwrap())), false);
+/// assert_eq!(set.contains_point(&(NotNan::new(7.0).unwrap())), true);
+/// assert_eq!(set.contains_point(&(NotNan::new(7.5).unwrap())), false);
+/// ```
+///
+/// [`RangeBounds`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
+/// [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
 pub struct RangeBoundsSet<I, K> {
 	map: RangeBoundsMap<I, K, ()>,
 }
@@ -61,8 +132,8 @@ where
 			.map(|(key, _)| key)
 	}
 
-	pub fn get(&self, point: &I) -> Option<&K> {
-		self.map.get_key_value(point).map(|(key, _)| key)
+	pub fn get_at_point(&self, point: &I) -> Option<&K> {
+		self.map.get_key_value_at_point(point).map(|(key, _)| key)
 	}
 
 	pub fn contains_point(&self, point: &I) -> bool {
