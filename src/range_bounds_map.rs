@@ -41,6 +41,10 @@ where
 		}
 	}
 
+    pub fn len(&self) -> usize {
+        self.starts.len()
+    }
+
 	//returns Err(()) if the given range overlaps another range
 	//does not coalesce ranges if they touch
 	pub fn insert(&mut self, range_bounds: K, value: V) -> Result<(), ()> {
@@ -155,6 +159,22 @@ where
 
 	pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
 		self.starts.iter().map(|(_, (key, value))| (key, value))
+	}
+}
+
+impl<const N: usize, I, K, V> TryFrom<[(K, V); N]> for RangeBoundsMap<I, K, V>
+where
+	K: RangeBounds<I>,
+	I: Ord + Clone,
+{
+	type Error = ();
+	fn try_from(pairs: [(K, V); N]) -> Result<Self, Self::Error> {
+		let mut range_bounds_map = RangeBoundsMap::new();
+		for (range_bounds, value) in pairs {
+			range_bounds_map.insert(range_bounds, value)?;
+		}
+
+		return Ok(range_bounds_map);
 	}
 }
 

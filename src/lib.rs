@@ -75,20 +75,20 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! }
 //!
 //! // Next we can create a custom typed RangeBoundsMap
-//! let mut reservations_map = RangeBoundsMap::new();
+//! let reservation_map = RangeBoundsMap::try_from([
+//!     (Reservation::Finite(10, 20), "Ferris".to_string()),
+//!     (Reservation::Infinite(20), "Corro".to_string()),
+//! ]).unwrap();
 //!
-//! reservations_map.insert(Reservation::Finite(10, 20), "Ferris".to_string());
-//! reservations_map.insert(Reservation::Infinite(20), "Corro".to_string());
-//!
-//! for (reservation, name) in reservations_map.overlapping(&(16..17)) {
+//! for (reservation, name) in reservation_map.overlapping(&(16..17)) {
 //!     println!("{name} has reserved {reservation:?} inside the range 16..17");
 //! }
 //!
-//! for (reservation, name) in reservations_map.iter() {
+//! for (reservation, name) in reservation_map.iter() {
 //!     println!("{name} has reserved {reservation:?}");
 //! }
 //!
-//! assert_eq!(reservations_map.overlaps(&Reservation::Infinite(0)), true);
+//! assert_eq!(reservation_map.overlaps(&Reservation::Infinite(0)), true);
 //! ```
 //!
 //!
