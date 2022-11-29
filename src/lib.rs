@@ -31,22 +31,25 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! # Example using [`Range`]s
 //!
 //! ```
-//! # use range_bounds_map::RangeBoundsMap;
+//! use range_bounds_map::RangeBoundsMap;
+//!
 //! let mut range_bounds_map = RangeBoundsMap::new();
 //!
 //! range_bounds_map.insert(0..5, true);
 //! range_bounds_map.insert(5..10, false);
 //!
-//! assert!(range_bounds_map.overlaps(&(-2..12)));
-//! assert!(!range_bounds_map.contains_point(&20));
-//! assert!(range_bounds_map.contains_point(&5));
+//! assert_eq!(range_bounds_map.overlaps(&(-2..12)), true);
+//! assert_eq!(range_bounds_map.contains_point(&20), false);
+//! assert_eq!(range_bounds_map.contains_point(&5), true);
 //! ```
 //!
 //! # Example using a custom [`RangeBounds`] type
 //! ```
-//! # use std::ops::RangeBounds;
-//! # use std::ops::Bound;
-//! # use range_bounds_map::RangeBoundsMap;
+//! use std::ops::RangeBounds;
+//! use std::ops::Bound;
+//!
+//! use range_bounds_map::RangeBoundsMap;
+//!
 //! #[derive(Debug)]
 //! enum Reservation {
 //!     // Start, End (Inclusive-Inclusive)
@@ -85,8 +88,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!     println!("{name} has reserved {reservation:?}");
 //! }
 //!
-//! assert!(reservations_map.overlaps(&Reservation::Infinite(0)));
-//! assert!(reservations_map.overlaps(&Reservation::Infinite(0)));
+//! assert_eq!(reservations_map.overlaps(&Reservation::Infinite(0)), true);
 //! ```
 //!
 //!

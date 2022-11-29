@@ -23,6 +23,8 @@
 
 - make all functions' trait bounds specific instead of at impl level
 
+- convert all examples not using `from` to use `from`, and tests
+
 - turn overlaps back into a trait to make it public, mabye
 
 - review caveats again

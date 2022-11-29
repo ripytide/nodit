@@ -25,7 +25,8 @@ use crate::range_bounds_map::RangeBoundsMap;
 ///
 /// # Examples
 /// ```
-/// # use range_bounds_map::RangeBoundsSet;
+/// use range_bounds_map::RangeBoundsSet;
+///
 /// let mut visits = RangeBoundsSet::new();
 ///
 /// // Add some ranges
@@ -45,10 +46,12 @@ use crate::range_bounds_map::RangeBoundsMap;
 /// ```
 /// Example using a custom [`RangeBounds`] type:
 /// ```
-/// # use std::ops::Bound;
-/// # use std::ops::RangeBounds;
-/// # use ordered_float::NotNan;
-/// # use range_bounds_map::RangeBoundsSet;
+/// use std::ops::Bound;
+/// use std::ops::RangeBounds;
+/// use ordered_float::NotNan;
+///
+/// use range_bounds_map::RangeBoundsSet;
+///
 /// // An Exlusive-Exlusive range of [`f32`]s not provided by any
 /// // std::ops ranges
 /// // We use [`ordered_float::NotNan`]s as the inner type must be Ord
@@ -98,18 +101,55 @@ where
 	K: RangeBounds<I>,
 	I: Ord + Clone,
 {
+    /// Makes a new, empty `RangeBoundsSet`
+    ///
+    /// # Examples
+    /// ```
+    /// use std::ops::Range;
+    /// use range_bounds_map::RangeBoundsSet;
+    ///
+    /// let range_bounds_set: RangeBoundsSet<u8, Range<u8>> = RangeBoundsSet::new();
+    /// ```
 	pub fn new() -> Self {
 		RangeBoundsSet {
 			map: RangeBoundsMap::new(),
 		}
 	}
 
-	//returns Err(()) if the given range overlaps another range
-	//does not coalesce ranges if they touch
+	/// Adds a new `RangeBounds` to the set.
+    ///
+    /// If the new `RangeBounds` overlaps one or more `RangeBounds`
+    /// already in the set then `Err(())` is returned and the set is
+    /// not updated.
+    ///
+    /// # Examples
+    /// ```
+    /// use range_bounds_map::RangeBoundsSet;
+    ///
+    /// let mut range_bounds_set = RangeBoundsSet::new();
+    ///
+    /// range_bounds_set.insert(5..10);
+    /// ```
 	pub fn insert(&mut self, range_bounds: K) -> Result<(), ()> {
 		self.map.insert(range_bounds, ())
 	}
 
+	/// Returns `true` if the given `RangeBounds` overlaps any of the
+    /// `RangeBounds` in the set.
+    ///
+    /// # Examples
+    /// ```
+    /// use range_bounds_map::RangeBoundsSet;
+    ///
+    /// let mut range_bounds_set = RangeBoundsSet::new();
+    ///
+    /// range_bounds_set.insert(5..10);
+    ///
+    /// assert_eq!(range_bounds_set.overlaps(4..6), false);
+    ///
+    ///
+    /// assert_eq!(range_bounds_set.overlaps(4..6), true);
+    /// ```
 	pub fn overlaps<Q>(&self, search_range_bounds: &Q) -> bool
 	where
 		Q: RangeBounds<I>,
