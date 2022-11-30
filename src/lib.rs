@@ -61,8 +61,12 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! impl RangeBounds<u8> for Reservation {
 //! 	fn start_bound(&self) -> Bound<&u8> {
 //! 		match self {
-//! 			Reservation::Finite(start, _) => Bound::Included(start),
-//! 			Reservation::Infinite(start) => Bound::Excluded(start),
+//! 			Reservation::Finite(start, _) => {
+//! 				Bound::Included(start)
+//! 			}
+//! 			Reservation::Infinite(start) => {
+//! 				Bound::Excluded(start)
+//! 			}
 //! 		}
 //! 	}
 //! 	fn end_bound(&self) -> Bound<&u8> {
@@ -80,15 +84,21 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! ])
 //! .unwrap();
 //!
-//! for (reservation, name) in reservation_map.overlapping(&(16..17)) {
-//! 	println!("{name} has reserved {reservation:?} inside the range 16..17");
+//! for (reservation, name) in reservation_map.overlapping(&(16..17))
+//! {
+//! 	println!(
+//! 		"{name} has reserved {reservation:?} inside the range 16..17"
+//! 	);
 //! }
 //!
 //! for (reservation, name) in reservation_map.iter() {
 //! 	println!("{name} has reserved {reservation:?}");
 //! }
 //!
-//! assert_eq!(reservation_map.overlaps(&Reservation::Infinite(0)), true);
+//! assert_eq!(
+//! 	reservation_map.overlaps(&Reservation::Infinite(0)),
+//! 	true
+//! );
 //! ```
 //!
 //! # How
@@ -161,7 +171,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! - <https://docs.rs/unbounded-interval-tree>
 //!   A data structure based off of a 2007 published paper! It supports any
 //!   RangeBounds as keys too, except it is implemented with a non-balancing
-//!   Box<Node> based tree, however it also supports overlapping
+//!   `Box<Node>` based tree, however it also supports overlapping
 //!   RangeBounds which my library does not.
 //! - <https://docs.rs/rangetree>
 //!   I'm not entirely sure what this library is or isn't, but it looks like

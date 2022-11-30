@@ -103,7 +103,7 @@ use crate::bounds::StartBound;
 /// );
 ///
 /// assert_eq!(
-/// 	map.get_key_value_at_point(&NotNan::new(2.0).unwrap()),
+/// 	map.get_range_bounds_value_at_point(&NotNan::new(2.0).unwrap()),
 /// 	Some((&ExEx::new(0.0, 5.0), &8))
 /// );
 /// ```
@@ -120,18 +120,55 @@ where
 	K: RangeBounds<I>,
 	I: Ord + Clone,
 {
+	/// Makes a new, empty `RangeBoundsMap`.
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Range;
+	///
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map: RangeBoundsMap<u8, Range<u8>, bool> =
+	/// 	RangeBoundsMap::new();
+	/// ```
 	pub fn new() -> Self {
 		RangeBoundsMap {
 			starts: BTreeMap::new(),
 		}
 	}
 
+	/// Returns the number of `RangeBounds` in the map.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let mut range_bounds_map = RangeBoundsMap::new();
+	///
+	/// assert_eq!(range_bounds_map.len(), 0);
+	/// range_bounds_map.insert(0..1, false).unwrap();
+	/// assert_eq!(range_bounds_map.len(), 1);
+	/// ```
 	pub fn len(&self) -> usize {
 		self.starts.len()
 	}
 
-	//returns Err(()) if the given range overlaps another range
-	//does not coalesce ranges if they touch
+	/// Adds a new (`RangeBounds` `Value`) pair to the map.
+	///
+	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
+	/// already in the set then `Err(())` is returned and the map is
+	/// not updated.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let mut range_bounds_map = RangeBoundsMap::new();
+	///
+	/// assert_eq!(range_bounds_map.insert(5..10, 9), Ok(()));
+	/// assert_eq!(range_bounds_map.insert(5..10, 2), Err(()));
+	/// assert_eq!(range_bounds_map.len(), 1);
+	/// ```
 	pub fn insert(&mut self, range_bounds: K, value: V) -> Result<(), ()> {
 		if self.overlaps(&range_bounds) {
 			return Err(());
@@ -148,10 +185,23 @@ where
 		return Ok(());
 	}
 
-	pub fn contains_point(&self, point: &I) -> bool {
-		self.get_at_point(point).is_some()
-	}
-
+	/// Returns `true` if the given `RangeBounds` overlaps any of the
+	/// `RangeBounds` in the map.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let mut range_bounds_map = RangeBoundsMap::new();
+	///
+	/// range_bounds_map.insert(5..10, false);
+	///
+	/// assert_eq!(range_bounds_map.overlaps(&(1..=3)), false);
+	/// assert_eq!(range_bounds_map.overlaps(&(4..5)), false);
+	///
+	/// assert_eq!(range_bounds_map.overlaps(&(4..=5)), true);
+	/// assert_eq!(range_bounds_map.overlaps(&(4..6)), true);
+	/// ```
 	pub fn overlaps<Q>(&self, search_range_bounds: &Q) -> bool
 	where
 		Q: RangeBounds<I>,
@@ -159,6 +209,27 @@ where
 		self.overlapping(search_range_bounds).next().is_some()
 	}
 
+	/// Returns an iterator over every (`RangeBounds`, `Value`) pair
+	/// in the map which overlap the given `search_range_bounds` in
+	/// ascending order.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let mut overlapping = range_bounds_map.overlapping(&(2..8));
+	///
+	/// assert_eq!(overlapping.next(), Some((&(1..4), &false)));
+	/// assert_eq!(overlapping.next(), Some((&(4..8), &true)));
+	/// assert_eq!(overlapping.next(), None);
+	/// ```
 	pub fn overlapping<Q>(
 		&self,
 		search_range_bounds: &Q,
@@ -214,13 +285,71 @@ where
 		);
 	}
 
+	/// Returns a reference to the `Value` corresponding to the
+	/// `RangeBounds` in the set that overlaps the given point, if
+	/// any.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(range_bounds_map.get_at_point(&3), Some(&false));
+	/// assert_eq!(range_bounds_map.get_at_point(&4), Some(&true));
+	/// assert_eq!(range_bounds_map.get_at_point(&101), None);
+	/// ```
 	pub fn get_at_point(&self, point: &I) -> Option<&V> {
-		self.get_key_value_at_point(point).map(|(_, value)| value)
+		self.get_range_bounds_value_at_point(point)
+			.map(|(_, value)| value)
 	}
 
+	/// Returns `true` if the map contains a `RangeBounds` that
+	/// overlaps a given point, and `false` if not.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(range_bounds_map.contains_point(&3), true);
+	/// assert_eq!(range_bounds_map.contains_point(&4), true);
+	/// assert_eq!(range_bounds_map.contains_point(&101), false);
+	/// ```
+	pub fn contains_point(&self, point: &I) -> bool {
+		self.get_at_point(point).is_some()
+	}
+
+	/// Returns a mutable reference to the `Value` corresponding to
+	/// the `RangeBounds` that overlaps the given point, if any.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let mut range_bounds_map =
+	/// 	RangeBoundsMap::try_from([(1..4, false)]).unwrap();
+	///
+	/// if let Some(x) = range_bounds_map.get_at_point_mut(&2) {
+	/// 	*x = true;
+	/// }
+	///
+	/// assert_eq!(range_bounds_map.get_at_point(&1), Some(&true));
+	/// ```
 	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
 		if let Some(overlapping_start_bound) = self
-			.get_key_value_at_point(point)
+			.get_range_bounds_value_at_point(point)
 			.map(|(key, _)| key.start_bound())
 		{
 			return self
@@ -232,7 +361,28 @@ where
 		return None;
 	}
 
-	pub fn get_key_value_at_point(&self, point: &I) -> Option<(&K, &V)> {
+	/// Returns an (`RangeBounds`, `Value`) pair corresponding to the
+	/// `RangeBounds` that overlaps the given point, if any.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(range_bounds_map.get_range_bounds_value_at_point(&3), Some((&(1..4), &false)));
+	/// assert_eq!(range_bounds_map.get_range_bounds_value_at_point(&4), Some((&(4..8), &true)));
+	/// assert_eq!(range_bounds_map.get_range_bounds_value_at_point(&101), None);
+	/// ```
+	pub fn get_range_bounds_value_at_point(
+		&self,
+		point: &I,
+	) -> Option<(&K, &V)> {
 		//a zero-range included-included range is equivalent to a point
 		return self
 			.overlapping(&(
@@ -242,6 +392,27 @@ where
 			.next();
 	}
 
+	/// Returns an iterator over every (`RangeBounds`, `Value`) pair in the map in
+	/// ascending order.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let mut iter = range_bounds_map.iter();
+	///
+	/// assert_eq!(iter.next(), Some((&(1..4), &false)));
+	/// assert_eq!(iter.next(), Some((&(4..8), &true)));
+	/// assert_eq!(iter.next(), Some((&(8..100), &false)));
+	/// assert_eq!(iter.next(), None);
+	/// ```
 	pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
 		self.starts.iter().map(|(_, (key, value))| (key, value))
 	}

@@ -28,7 +28,8 @@ use crate::range_bounds_map::RangeBoundsMap;
 /// use range_bounds_map::RangeBoundsSet;
 ///
 /// // Make a set with some ranges
-/// let visits = RangeBoundsSet::try_from([4..8, 8..18, 20..100]).unwrap();
+/// let visits =
+/// 	RangeBoundsSet::try_from([4..8, 8..18, 20..100]).unwrap();
 ///
 /// // Check if a point is contained in the set
 /// if !visits.contains_point(&0) {
@@ -104,7 +105,8 @@ where
 	///
 	/// use range_bounds_map::RangeBoundsSet;
 	///
-	/// let range_bounds_set: RangeBoundsSet<u8, Range<u8>> = RangeBoundsSet::new();
+	/// let range_bounds_set: RangeBoundsSet<u8, Range<u8>> =
+	/// 	RangeBoundsSet::new();
 	/// ```
 	pub fn new() -> Self {
 		RangeBoundsSet {
@@ -173,7 +175,7 @@ where
 	}
 
 	/// Returns an iterator over every `RangeBounds` in the set which
-	/// overlaps the given `search_range_bounds` in ascending order.
+	/// overlap the given `search_range_bounds` in ascending order.
 	///
 	/// # Examples
 	/// ```
@@ -215,7 +217,7 @@ where
 	/// assert_eq!(range_bounds_set.get_at_point(&101), None);
 	/// ```
 	pub fn get_at_point(&self, point: &I) -> Option<&K> {
-		self.map.get_key_value_at_point(point).map(|(key, _)| key)
+		self.map.get_range_bounds_value_at_point(point).map(|(key, _)| key)
 	}
 
 	/// Returns `true` if the set contains a `RangeBounds` that
@@ -236,7 +238,7 @@ where
 		self.map.contains_point(point)
 	}
 
-	/// Returns an iterator over every `RangeBouns` in the set in
+	/// Returns an iterator over every `RangeBounds` in the set in
 	/// ascending order.
 	///
 	/// # Examples
@@ -246,10 +248,11 @@ where
 	/// let range_bounds_set =
 	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
 	///
-	/// let mut iter = range_bounds_set.overlapping(&(2..8));
+	/// let mut iter = range_bounds_set.iter();
 	///
 	/// assert_eq!(iter.next(), Some(&(1..4)));
 	/// assert_eq!(iter.next(), Some(&(4..8)));
+	/// assert_eq!(iter.next(), Some(&(8..100)));
 	/// assert_eq!(iter.next(), None);
 	/// ```
 	pub fn iter(&self) -> impl Iterator<Item = &K> {
