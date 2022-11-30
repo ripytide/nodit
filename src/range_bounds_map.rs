@@ -26,6 +26,91 @@ use either::Either;
 
 use crate::bounds::StartBound;
 
+/// An ordered map of [`RangeBounds`] based on [`BTreeMap`]
+///
+/// # Examples
+/// ```
+/// use range_bounds_map::RangeBoundsMap;
+///
+/// // Make a map of ranges to booleans
+/// let mut map = RangeBoundsMap::try_from([
+/// 	(4..8, false),
+/// 	(8..18, true),
+/// 	(20..100, false),
+/// ])
+/// .unwrap();
+///
+/// // Change a value in the map
+/// *map.get_at_point_mut(&(7)).unwrap() = true;
+///
+/// // Get a value in the map
+/// if map.contains_point(&99) {
+/// 	println!("Map contains value at 99 :)");
+/// }
+///
+/// // Iterate over the entries in the map
+/// for (range, value) in map.iter() {
+/// 	println!("{range:?}, {value:?}");
+/// }
+/// ```
+/// Example using a custom [`RangeBounds`] type:
+/// ```
+/// use std::ops::{Bound, RangeBounds};
+///
+/// use ordered_float::NotNan;
+/// use range_bounds_map::RangeBoundsMap;
+///
+/// // An Exlusive-Exlusive range of [`f32`]s not provided by any
+/// // std::ops ranges
+/// // We use [`ordered_float::NotNan`]s as the inner type must be Ord
+/// // similar to a normal [`BTreeSet`]
+/// #[derive(Debug, PartialEq)]
+/// struct ExEx {
+/// 	start: NotNan<f32>,
+/// 	end: NotNan<f32>,
+/// }
+/// # impl ExEx {
+/// #    fn new(start: f32, end: f32) -> ExEx {
+/// #        ExEx {
+/// #            start: NotNan::new(start).unwrap(),
+/// #            end: NotNan::new(end).unwrap(),
+/// #        }
+/// #    }
+/// # }
+///
+/// // Implement RangeBounds<f32> on our new type
+/// impl RangeBounds<NotNan<f32>> for ExEx {
+/// 	fn start_bound(&self) -> Bound<&NotNan<f32>> {
+/// 		Bound::Excluded(&self.start)
+/// 	}
+/// 	fn end_bound(&self) -> Bound<&NotNan<f32>> {
+/// 		Bound::Excluded(&self.end)
+/// 	}
+/// }
+///
+/// // Now we can make a [`RangeBoundsMap`] of [`ExEx`]s to `u8`
+/// let mut map = RangeBoundsMap::new();
+///
+/// map.insert(ExEx::new(0.0, 5.0), 8).unwrap();
+/// map.insert(ExEx::new(5.0, 7.5), 32).unwrap();
+///
+/// assert_eq!(map.contains_point(&NotNan::new(5.0).unwrap()), false);
+///
+/// assert_eq!(map.get_at_point(&NotNan::new(9.0).unwrap()), None);
+/// assert_eq!(
+/// 	map.get_at_point(&NotNan::new(7.0).unwrap()),
+/// 	Some(&32)
+/// );
+///
+/// assert_eq!(
+/// 	map.get_key_value_at_point(&NotNan::new(2.0).unwrap()),
+/// 	Some((&ExEx::new(0.0, 5.0), &8))
+/// );
+/// ```
+///
+/// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
+/// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
+#[derive(Debug)]
 pub struct RangeBoundsMap<I, K, V> {
 	starts: BTreeMap<StartBound<I>, (K, V)>,
 }
@@ -41,9 +126,9 @@ where
 		}
 	}
 
-    pub fn len(&self) -> usize {
-        self.starts.len()
-    }
+	pub fn len(&self) -> usize {
+		self.starts.len()
+	}
 
 	//returns Err(()) if the given range overlaps another range
 	//does not coalesce ranges if they touch

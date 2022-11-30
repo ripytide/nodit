@@ -31,21 +31,20 @@ use crate::range_bounds_map::RangeBoundsMap;
 /// let visits = RangeBoundsSet::try_from([4..8, 8..18, 20..100]).unwrap();
 ///
 /// // Check if a point is contained in the set
-/// if visits.contains_point(&0) {
-///     println!("No visit at the beginning ;(");
+/// if !visits.contains_point(&0) {
+/// 	println!("No visit at the beginning ;(");
 /// }
 ///
 /// // Iterate over the ranges overlapping another range
 /// for visit in visits.overlapping(&(2..=8)) {
-///     println!("{visit:?}");
+/// 	println!("{visit:?}");
 /// }
 /// ```
 /// Example using a custom [`RangeBounds`] type:
 /// ```
-/// use std::ops::Bound;
-/// use std::ops::RangeBounds;
-/// use ordered_float::NotNan;
+/// use std::ops::{Bound, RangeBounds};
 ///
+/// use ordered_float::NotNan;
 /// use range_bounds_map::RangeBoundsSet;
 ///
 /// // An Exlusive-Exlusive range of [`f32`]s not provided by any
@@ -53,8 +52,8 @@ use crate::range_bounds_map::RangeBoundsMap;
 /// // We use [`ordered_float::NotNan`]s as the inner type must be Ord
 /// // similar to a normal [`BTreeSet`]
 /// struct ExEx {
-///     start: NotNan<f32>,
-///     end: NotNan<f32>,
+/// 	start: NotNan<f32>,
+/// 	end: NotNan<f32>,
 /// }
 /// # impl ExEx {
 /// #    fn new(start: f32, end: f32) -> ExEx {
@@ -67,12 +66,12 @@ use crate::range_bounds_map::RangeBoundsMap;
 ///
 /// // Implement RangeBounds<f32> on our new type
 /// impl RangeBounds<NotNan<f32>> for ExEx {
-///     fn start_bound(&self) -> Bound<&NotNan<f32>> {
-///         Bound::Excluded(&self.start)
-///     }
-///     fn end_bound(&self) -> Bound<&NotNan<f32>> {
-///         Bound::Excluded(&self.end)
-///     }
+/// 	fn start_bound(&self) -> Bound<&NotNan<f32>> {
+/// 		Bound::Excluded(&self.start)
+/// 	}
+/// 	fn end_bound(&self) -> Bound<&NotNan<f32>> {
+/// 		Bound::Excluded(&self.end)
+/// 	}
 /// }
 ///
 /// // Now we can make a [`RangeBoundsSet`] of [`ExEx`]s
@@ -81,12 +80,12 @@ use crate::range_bounds_map::RangeBoundsMap;
 /// set.insert(ExEx::new(0.0, 5.0)).unwrap();
 /// set.insert(ExEx::new(5.0, 7.5)).unwrap();
 ///
-/// assert_eq!(set.contains_point(&(NotNan::new(5.0).unwrap())), false);
-/// assert_eq!(set.contains_point(&(NotNan::new(7.0).unwrap())), true);
-/// assert_eq!(set.contains_point(&(NotNan::new(7.5).unwrap())), false);
+/// assert_eq!(set.contains_point(&NotNan::new(5.0).unwrap()), false);
+/// assert_eq!(set.contains_point(&NotNan::new(7.0).unwrap()), true);
+/// assert_eq!(set.contains_point(&NotNan::new(7.5).unwrap()), false);
 /// ```
 ///
-/// [`RangeBounds`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
+/// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
 pub struct RangeBoundsSet<I, K> {
 	map: RangeBoundsMap<I, K, ()>,
@@ -102,6 +101,7 @@ where
 	/// # Examples
 	/// ```
 	/// use std::ops::Range;
+	///
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set: RangeBoundsSet<u8, Range<u8>> = RangeBoundsSet::new();
@@ -179,7 +179,8 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsSet;
 	///
-	/// let range_bounds_set = RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
 	///
 	/// let mut overlapping = range_bounds_set.overlapping(&(2..8));
 	///
@@ -206,7 +207,8 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsSet;
 	///
-	/// let range_bounds_set = RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
 	///
 	/// assert_eq!(range_bounds_set.get_at_point(&3), Some(&(1..4)));
 	/// assert_eq!(range_bounds_set.get_at_point(&4), Some(&(4..8)));
@@ -223,7 +225,8 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsSet;
 	///
-	/// let range_bounds_set = RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
 	///
 	/// assert_eq!(range_bounds_set.contains_point(&3), true);
 	/// assert_eq!(range_bounds_set.contains_point(&4), true);
@@ -240,7 +243,8 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsSet;
 	///
-	/// let range_bounds_set = RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
 	///
 	/// let mut iter = range_bounds_set.overlapping(&(2..8));
 	///

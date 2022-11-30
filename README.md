@@ -6,10 +6,6 @@
 
 - add examples for all functions in rust doc comments and test them with cargo doc-test
 
-- add some actual rust example files in an example folder
-
-- convert README to cool format using links to docs
-
 - add github badges including lib.rs
 - make logo
 
@@ -19,13 +15,11 @@
 
 - use it in robot_Sweet_graph for a bit before publishing
 
+- copy docs from set to map and update appropriately
+
 - update lines of code figures on docs
 
 - make all functions' trait bounds specific instead of at impl level
-
-- convert all examples not using `from` to use `from`, and tests
-
-- turn overlaps back into a trait to make it public, mabye
 
 - review caveats again
 

@@ -4,3 +4,6 @@ hard_tabs=true
 imports_granularity="Module"
 group_imports="StdExternalCrate"
 max_width=80
+format_code_in_doc_comments=true
+doc_comment_code_block_width=70
+unstable_features = true

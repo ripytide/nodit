@@ -45,52 +45,51 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! # Example using a custom [`RangeBounds`] type
 //! ```
-//! use std::ops::RangeBounds;
-//! use std::ops::Bound;
+//! use std::ops::{Bound, RangeBounds};
 //!
 //! use range_bounds_map::RangeBoundsMap;
 //!
 //! #[derive(Debug)]
 //! enum Reservation {
-//!     // Start, End (Inclusive-Inclusive)
-//!     Finite(u8, u8),
-//!     // Start (Exclusive)
-//!     Infinite(u8)
+//! 	// Start, End (Inclusive-Inclusive)
+//! 	Finite(u8, u8),
+//! 	// Start (Exclusive)
+//! 	Infinite(u8),
 //! }
 //!
 //! // First, we need to implement RangeBounds
 //! impl RangeBounds<u8> for Reservation {
-//!     fn start_bound(&self) -> Bound<&u8> {
-//!         match self {
-//!             Reservation::Finite(start, _) => Bound::Included(start),
-//!             Reservation::Infinite(start) => Bound::Excluded(start),
-//!         }
-//!     }
-//!     fn end_bound(&self) -> Bound<&u8> {
-//!         match self {
-//!             Reservation::Finite(_, end) => Bound::Included(end),
-//!             Reservation::Infinite(_) => Bound::Unbounded,
-//!         }
-//!     }
+//! 	fn start_bound(&self) -> Bound<&u8> {
+//! 		match self {
+//! 			Reservation::Finite(start, _) => Bound::Included(start),
+//! 			Reservation::Infinite(start) => Bound::Excluded(start),
+//! 		}
+//! 	}
+//! 	fn end_bound(&self) -> Bound<&u8> {
+//! 		match self {
+//! 			Reservation::Finite(_, end) => Bound::Included(end),
+//! 			Reservation::Infinite(_) => Bound::Unbounded,
+//! 		}
+//! 	}
 //! }
 //!
 //! // Next we can create a custom typed RangeBoundsMap
 //! let reservation_map = RangeBoundsMap::try_from([
-//!     (Reservation::Finite(10, 20), "Ferris".to_string()),
-//!     (Reservation::Infinite(20), "Corro".to_string()),
-//! ]).unwrap();
+//! 	(Reservation::Finite(10, 20), "Ferris".to_string()),
+//! 	(Reservation::Infinite(20), "Corro".to_string()),
+//! ])
+//! .unwrap();
 //!
 //! for (reservation, name) in reservation_map.overlapping(&(16..17)) {
-//!     println!("{name} has reserved {reservation:?} inside the range 16..17");
+//! 	println!("{name} has reserved {reservation:?} inside the range 16..17");
 //! }
 //!
 //! for (reservation, name) in reservation_map.iter() {
-//!     println!("{name} has reserved {reservation:?}");
+//! 	println!("{name} has reserved {reservation:?}");
 //! }
 //!
 //! assert_eq!(reservation_map.overlaps(&Reservation::Infinite(0)), true);
 //! ```
-//!
 //!
 //! # How
 //!
@@ -173,7 +172,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 //! [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
-//! [`RangeBounds`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
+//! [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 //! [`start_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.start_bound
 //! [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
 //! [`Range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
