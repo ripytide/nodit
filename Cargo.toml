@@ -1,9 +1,27 @@
 [package]
 name = "range_bounds_map"
 version = "0.0.1"
+authors = ["James Forster"]
 edition = "2021"
+description = """
+This crate provides `RangeBoundsMap` and `RangeBoundsSet`.
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+`RangeBoundsMap` is similar to `BTreeMap` except `RangeBoundsMap`
+uses any type that implements the `RangeBounds` trait as keys, while
+maintaining two invariants:
+- No two keys may overlap
+- A keys' `start_bound()` <= its `end_bound()`
+
+`RangeBoundsSet` is like `RangeBoundsMap` except it
+uses `()` as values, as `BTreeSet` does for `BTreeMap`
+"""
+documentation = "https://docs.rs/range_bounds_map"
+readme = "README.md"
+homepage = "https://github.com/ripytide/range_bounds_map"
+repository = "https://github.com/ripytide/range_bounds_map"
+license = "GPL-3.0-or-later"
+keywords = ["data-structures", "map", "data", "library"]
+categories = ["data-structures"]
 
 [dependencies]
 either = "1.8.0"

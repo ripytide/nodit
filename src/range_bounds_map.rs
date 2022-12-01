@@ -103,7 +103,9 @@ use crate::bounds::StartBound;
 /// );
 ///
 /// assert_eq!(
-/// 	map.get_range_bounds_value_at_point(&NotNan::new(2.0).unwrap()),
+/// 	map.get_range_bounds_value_at_point(
+/// 		&NotNan::new(2.0).unwrap()
+/// 	),
 /// 	Some((&ExEx::new(0.0, 5.0), &8))
 /// );
 /// ```
@@ -237,14 +239,16 @@ where
 	where
 		Q: RangeBounds<I>,
 	{
-		//todo panic on invalid search range
-
 		//optimisation fix this without cloning
 		let start =
 			StartBound::from(search_range_bounds.start_bound().cloned());
 		//optimisation fix this without cloning
 		let end = StartBound::from(search_range_bounds.end_bound().cloned())
 			.as_end_bound();
+
+		if start > end {
+			panic!("Invalid search range bounds!");
+		}
 
 		let start_range_bounds = (
 			//Included is lossless regarding meta-bounds searches
@@ -375,9 +379,18 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(range_bounds_map.get_range_bounds_value_at_point(&3), Some((&(1..4), &false)));
-	/// assert_eq!(range_bounds_map.get_range_bounds_value_at_point(&4), Some((&(4..8), &true)));
-	/// assert_eq!(range_bounds_map.get_range_bounds_value_at_point(&101), None);
+	/// assert_eq!(
+	/// 	range_bounds_map.get_range_bounds_value_at_point(&3),
+	/// 	Some((&(1..4), &false))
+	/// );
+	/// assert_eq!(
+	/// 	range_bounds_map.get_range_bounds_value_at_point(&4),
+	/// 	Some((&(4..8), &true))
+	/// );
+	/// assert_eq!(
+	/// 	range_bounds_map.get_range_bounds_value_at_point(&101),
+	/// 	None
+	/// );
 	/// ```
 	pub fn get_range_bounds_value_at_point(
 		&self,

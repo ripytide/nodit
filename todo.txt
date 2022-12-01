@@ -1,0 +1,17 @@
+- copy lib.rs to the Readme
+
+- add github badges including lib.rs
+- make logo
+
+- update lines of code figures on docs
+
+- use it in robot_Sweet_graph for a bit before publishing
+
+- add issues to github for all the caveats and cloned() optimisations
+- review caveats again
+
+- run cargo fmt
+- run and fix cargo clippy
+- take a look around idiomatic rust for a bit first
+
+- PUBLISH
