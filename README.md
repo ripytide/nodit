@@ -1,5 +1,12 @@
 # range_bounds_map
 
+<p align="center">
+<img src="logo.svg" alt="range_bounds_map_logo" width="350">
+</p>
+
+[![Crates.io](https://img.shields.io/crates/v/range_bounds_set)](https://crates.io/crates/range_bounds_set)
+[![Docs](https://docs.rs/range_bounds_set/badge)](https://docs.rs/range_bounds_set)
+
 This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`].
 
 [`RangeBoundsMap`] is similar to [`BTreeMap`] except [`RangeBoundsMap`]

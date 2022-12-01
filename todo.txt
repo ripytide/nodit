@@ -1,5 +1,3 @@
-- copy lib.rs to the Readme
-
 - add github badges including lib.rs
 - make logo
 
@@ -14,4 +12,9 @@
 - run and fix cargo clippy
 - take a look around idiomatic rust for a bit first
 
+- fill out github meta data
+
 - PUBLISH
+
+- add links to [`RangeBoundsSet`] and map after docs.rs is live with
+  the docs
