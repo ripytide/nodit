@@ -3,8 +3,6 @@
 - add issues to github for all the caveats and cloned() optimisations
 - review caveats again
 
-- implement specific insert error/overlap error
-
 - run cargo fmt
 - run and fix cargo clippy
 - take a look around idiomatic rust for a bit first

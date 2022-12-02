@@ -119,9 +119,9 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! To summarise:
 //!
-//! - No coalescing insert functions, yet
+//! - No coalescing/merge insert functions, yet
 //! - No `gaps()` iterator function, yet
-//! - Missing some functions common to BTreeMap and Set like:
+//! - Missing some functions common to BTreeMap and BTreeSet like:
 //!   - `clear()`
 //!   - `is_subset()`
 //!   - etc... a bunch more
@@ -190,10 +190,11 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 #![feature(is_some_and)]
 #![feature(let_chains)]
+#![allow(clippy::tabs_in_doc_comments)]
+#![allow(clippy::needless_return)]
 pub(crate) mod bounds;
 pub mod range_bounds_map;
 pub mod range_bounds_set;
 
-pub use crate::range_bounds_map::RangeBoundsMap;
-pub use crate::range_bounds_map::InsertError;
+pub use crate::range_bounds_map::{InsertError, RangeBoundsMap};
 pub use crate::range_bounds_set::RangeBoundsSet;

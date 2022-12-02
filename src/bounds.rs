@@ -58,7 +58,7 @@ impl<T> StartBound<T> {
 	/// an [`end_bound()`] in a range search
 	///
 	/// [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
-	pub(crate) fn as_end_bound(self) -> StartBound<T> {
+	pub(crate) fn into_end_bound(self) -> StartBound<T> {
 		match self {
 			//flipping is unnecessary
 			StartBound::Included(point) => StartBound::Included(point),

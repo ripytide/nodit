@@ -111,9 +111,9 @@ Issue (or even open a new one) and I'd be happy to implement it.
 
 To summarise:
 
-- No coalescing insert functions, yet
+- No coalescing/merge insert functions, yet
 - No `gaps()` iterator function, yet
-- Missing some functions common to BTreeMap and Set like:
+- Missing some functions common to BTreeMap and BTreeSet like:
   - `clear()`
   - `is_subset()`
   - etc... a bunch more

@@ -89,6 +89,7 @@ use crate::InsertError;
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
+#[derive(Debug, Default)]
 pub struct RangeBoundsSet<I, K> {
 	map: RangeBoundsMap<I, K, ()>,
 }
@@ -145,8 +146,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::RangeBoundsSet;
-	/// use range_bounds_map::InsertError;
+	/// use range_bounds_map::{InsertError, RangeBoundsSet};
 	///
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///

@@ -112,7 +112,7 @@ use crate::bounds::StartBound;
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct RangeBoundsMap<I, K, V> {
 	starts: BTreeMap<StartBound<I>, (K, V)>,
 }
@@ -188,8 +188,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::RangeBoundsMap;
-	/// use range_bounds_map::InsertError;
+	/// use range_bounds_map::{InsertError, RangeBoundsMap};
 	///
 	/// let mut range_bounds_map = RangeBoundsMap::new();
 	///
@@ -221,7 +220,7 @@ where
 		let start = StartBound::from(range_bounds.start_bound().cloned());
 		//optimisation fix this without cloning
 		let end =
-			StartBound::from(range_bounds.end_bound().cloned()).as_end_bound();
+			StartBound::from(range_bounds.end_bound().cloned()).into_end_bound();
 
 		if start > end {
 			panic!("Invalid search range bounds!");
@@ -297,7 +296,7 @@ where
 			StartBound::from(search_range_bounds.start_bound().cloned());
 		//optimisation fix this without cloning
 		let end = StartBound::from(search_range_bounds.end_bound().cloned())
-			.as_end_bound();
+			.into_end_bound();
 
 		let start_range_bounds = (
 			//Included is lossless regarding meta-bounds searches
