@@ -20,6 +20,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 use std::cmp::Ordering;
 use std::ops::Bound;
 
+use serde::{Deserialize, Serialize};
+
 /// An Ord newtype of [`Bound`] specific to [`start_bound()`].
 ///
 /// This type is used to circumvent [`BTreeMap`]s (and rust collections
@@ -31,7 +33,7 @@ use std::ops::Bound;
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 /// [`comparator`]: https://stackoverflow.com/q/34028324
 /// [`Cursor`]: https://github.com/rust-lang/rfcs/issues/1778
-#[derive(PartialEq, Debug)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub(crate) enum StartBound<T> {
 	/// Mirror of [`Bound::Included`]
 	Included(T),
@@ -65,6 +67,14 @@ impl<T> StartBound<T> {
 			//flip to Reverses
 			StartBound::Excluded(point) => StartBound::ReverseExcluded(point),
 			StartBound::Unbounded => StartBound::ReverseUnbounded,
+			_ => panic!("unsuitable operation"),
+		}
+	}
+
+	pub(crate) fn into_opposite(self) -> StartBound<T> {
+		match self {
+			StartBound::Included(point) => StartBound::Excluded(point),
+			StartBound::Excluded(point) => StartBound::Included(point),
 			_ => panic!("unsuitable operation"),
 		}
 	}

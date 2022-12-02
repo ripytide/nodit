@@ -25,7 +25,7 @@ categories = ["data-structures"]
 
 [dependencies]
 either = "1.8.0"
-ordered-float = "3.4.0"
+serde = {version = "1.0.148", features = ["derive"]}
 
 [dev-dependencies]
 ordered-float = "3.4.0"

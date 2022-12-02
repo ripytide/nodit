@@ -1,3 +1,13 @@
+- make sure all returned iterators are DoubleEndedIterators and the
+  documentation mentions it
+
+- write more tests for more complicated functions
+
+- write docs for everything again
+
+- check every function that takes range_Bounds to make sure they panic
+  on invalid range_bounds
+
 - use it in robot_Sweet_graph for a bit before publishing
 
 - add issues to github for all the caveats and cloned() optimisations
@@ -7,10 +17,9 @@
 - run and fix cargo clippy
 - take a look around idiomatic rust for a bit first
 
-- fill out github meta data
-
 - update lines of code figures on docs
 
 - PUBLISH
 
-- add links to [`RangeBoundsSet`] and map after docs.rs is live with the docs
+- add links to [`RangeBoundsSet`] and map after docs.rs is live with
+  the docs, and generally check for dead links on docs and readme

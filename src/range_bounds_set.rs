@@ -19,6 +19,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::ops::RangeBounds;
 
+use serde::{Deserialize, Serialize};
+
 use crate::range_bounds_map::RangeBoundsMap;
 use crate::InsertError;
 
@@ -89,8 +91,11 @@ use crate::InsertError;
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
-#[derive(Debug, Default)]
-pub struct RangeBoundsSet<I, K> {
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct RangeBoundsSet<I, K>
+where
+	I: PartialOrd,
+{
 	map: RangeBoundsMap<I, K, ()>,
 }
 
