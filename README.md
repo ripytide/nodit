@@ -1,11 +1,11 @@
 # range_bounds_map
 
+[![Crates.io](https://img.shields.io/crates/v/range_bounds_set)](https://crates.io/crates/range_bounds_set)
+[![Docs](https://docs.rs/range_bounds_set/badge)](https://docs.rs/range_bounds_set)
+
 <p align="center">
 <img src="logo.svg" alt="range_bounds_map_logo" width="350">
 </p>
-
-[![Crates.io](https://img.shields.io/crates/v/range_bounds_set)](https://crates.io/crates/range_bounds_set)
-[![Docs](https://docs.rs/range_bounds_set/badge)](https://docs.rs/range_bounds_set)
 
 This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`].
 
@@ -19,7 +19,7 @@ maintaining two invariants:
 [`RangeBoundsSet`] is like [`RangeBoundsMap`] except it
 uses `()` as values, as [`BTreeSet`] does for [`BTreeMap`]
 
-# Example using [`Range`]s
+## Example using [`Range`]s
 
 ```rust
 use range_bounds_map::RangeBoundsMap;
@@ -34,7 +34,7 @@ assert_eq!(range_bounds_map.contains_point(&20), false);
 assert_eq!(range_bounds_map.contains_point(&5), true);
 ```
 
-# Example using a custom [`RangeBounds`] type
+## Example using a custom [`RangeBounds`] type
 
 ```rust
 use std::ops::{Bound, RangeBounds};
@@ -118,9 +118,6 @@ To summarise:
   - `is_subset()`
   - etc... a bunch more
 - Sub-optimal use of unnecessary `cloned()` just to placate the borrow checker
-- The library needs some benchmarks
-- Insert should panic on "bad" Zero RangeBounds like when start_bound >
-  end_bound or Excluded(x)-Excluded(x) Excluded(x)-Included(x) Included(x)-Excluded(x)
 - The data structures are lacking a lot of useful traits, such as:
   - Serde: Serialize and Deserialize
   - FromIterator

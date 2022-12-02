@@ -1,12 +1,9 @@
-- add github badges including lib.rs
-- make logo
-
-- update lines of code figures on docs
-
 - use it in robot_Sweet_graph for a bit before publishing
 
 - add issues to github for all the caveats and cloned() optimisations
 - review caveats again
+
+- implement specific insert error/overlap error
 
 - run cargo fmt
 - run and fix cargo clippy
@@ -14,7 +11,8 @@
 
 - fill out github meta data
 
+- update lines of code figures on docs
+
 - PUBLISH
 
-- add links to [`RangeBoundsSet`] and map after docs.rs is live with
-  the docs
+- add links to [`RangeBoundsSet`] and map after docs.rs is live with the docs

@@ -126,9 +126,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!   - `is_subset()`
 //!   - etc... a bunch more
 //! - Sub-optimal use of unnecessary `cloned()` just to placate the borrow checker
-//! - The library needs some benchmarks
-//! - Insert should panic on "bad" Zero RangeBounds like when start_bound >
-//!   end_bound or Excluded(x)-Excluded(x) Excluded(x)-Included(x) Included(x)-Excluded(x)
 //! - The data structures are lacking a lot of useful traits, such as:
 //!   - Serde: Serialize and Deserialize
 //!   - FromIterator
@@ -198,4 +195,5 @@ pub mod range_bounds_map;
 pub mod range_bounds_set;
 
 pub use crate::range_bounds_map::RangeBoundsMap;
+pub use crate::range_bounds_map::InsertError;
 pub use crate::range_bounds_set::RangeBoundsSet;

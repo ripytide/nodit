@@ -20,6 +20,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 use std::ops::RangeBounds;
 
 use crate::range_bounds_map::RangeBoundsMap;
+use crate::InsertError;
 
 /// An ordered set of [`RangeBounds`] based on [`BTreeSet`]
 ///
@@ -133,20 +134,34 @@ where
 	/// Adds a new `RangeBounds` to the set.
 	///
 	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
-	/// already in the set then `Err(())` is returned and the set is
+	/// already in the set then [`InsertError::OverlapsPreexisting`]
+	/// is returned and the set is not updated.
+	///
+	/// If the new `RangeBounds` is invalid then
+	/// [`InsertError::InvalidRangeBounds`] is returned and the set is
 	/// not updated.
+	/// See the [`InsertError::InvalidRangeBounds`] type
+	/// to see what constitutes as an "invalid" `RangeBounds`.
 	///
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::RangeBoundsSet;
+	/// use range_bounds_map::InsertError;
 	///
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///
 	/// assert_eq!(range_bounds_set.insert(5..10), Ok(()));
-	/// assert_eq!(range_bounds_set.insert(5..10), Err(()));
+	/// assert_eq!(
+	/// 	range_bounds_set.insert(5..10),
+	/// 	Err(InsertError::OverlapsPreexisting)
+	/// );
+	/// assert_eq!(
+	/// 	range_bounds_set.insert(5..1),
+	/// 	Err(InsertError::InvalidRangeBounds)
+	/// );
 	/// assert_eq!(range_bounds_set.len(), 1);
 	/// ```
-	pub fn insert(&mut self, range_bounds: K) -> Result<(), ()> {
+	pub fn insert(&mut self, range_bounds: K) -> Result<(), InsertError> {
 		self.map.insert(range_bounds, ())
 	}
 
@@ -217,7 +232,9 @@ where
 	/// assert_eq!(range_bounds_set.get_at_point(&101), None);
 	/// ```
 	pub fn get_at_point(&self, point: &I) -> Option<&K> {
-		self.map.get_range_bounds_value_at_point(point).map(|(key, _)| key)
+		self.map
+			.get_range_bounds_value_at_point(point)
+			.map(|(key, _)| key)
 	}
 
 	/// Returns `true` if the set contains a `RangeBounds` that
@@ -265,7 +282,7 @@ where
 	K: RangeBounds<I>,
 	I: Ord + Clone,
 {
-	type Error = ();
+	type Error = InsertError;
 	fn try_from(range_bounds: [K; N]) -> Result<Self, Self::Error> {
 		let mut range_bounds_set = RangeBoundsSet::new();
 		for range_bounds in range_bounds {

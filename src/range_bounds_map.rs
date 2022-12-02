@@ -63,7 +63,7 @@ use crate::bounds::StartBound;
 /// // An Exlusive-Exlusive range of [`f32`]s not provided by any
 /// // std::ops ranges
 /// // We use [`ordered_float::NotNan`]s as the inner type must be Ord
-/// // similar to a normal [`BTreeSet`]
+/// // similar to a normal [`BTreeMap`]
 /// #[derive(Debug, PartialEq)]
 /// struct ExEx {
 /// 	start: NotNan<f32>,
@@ -117,6 +117,25 @@ pub struct RangeBoundsMap<I, K, V> {
 	starts: BTreeMap<StartBound<I>, (K, V)>,
 }
 
+/// An error type to represent the possible errors from the
+/// [`RangeBoundsMap::insert()`] function.
+#[derive(PartialEq, Debug)]
+pub enum InsertError {
+	/// A `RangeBounds` is invalid if both its `start_bound()`
+	/// AND `end_bound()` are (`Bound::Included` OR `Bound::Exluded`)
+	/// AND the `start` point is >= than the `end`
+	/// point.
+	///
+	/// The one exception to this rule is if both `start_bound()` AND
+	/// `end_bound()` are `Bound::Included` and the `start` point is
+	/// == to the `end` point then it is considered valid despite
+	/// failing the previous rule.
+	InvalidRangeBounds,
+	/// The error given if you try to insert a `RangeBounds` that
+	/// overlaps one or more `RangeBounds` already in the map.
+	OverlapsPreexisting,
+}
+
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
 	K: RangeBounds<I>,
@@ -158,25 +177,55 @@ where
 	/// Adds a new (`RangeBounds` `Value`) pair to the map.
 	///
 	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
-	/// already in the set then `Err(())` is returned and the map is
+	/// already in the map then [`InsertError::OverlapsPreexisting`]
+	/// is returned and the map is not updated.
+	///
+	/// If the new `RangeBounds` is invalid then
+	/// [`InsertError::InvalidRangeBounds`] is returned and the map is
 	/// not updated.
+	/// See the [`InsertError::InvalidRangeBounds`] type
+	/// to see what constitutes as an "invalid" `RangeBounds`.
 	///
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::InsertError;
 	///
 	/// let mut range_bounds_map = RangeBoundsMap::new();
 	///
 	/// assert_eq!(range_bounds_map.insert(5..10, 9), Ok(()));
-	/// assert_eq!(range_bounds_map.insert(5..10, 2), Err(()));
+	/// assert_eq!(
+	/// 	range_bounds_map.insert(5..10, 2),
+	/// 	Err(InsertError::OverlapsPreexisting)
+	/// );
+	/// assert_eq!(
+	/// 	range_bounds_map.insert(5..1, 8),
+	/// 	Err(InsertError::InvalidRangeBounds)
+	/// );
 	/// assert_eq!(range_bounds_map.len(), 1);
 	/// ```
-	pub fn insert(&mut self, range_bounds: K, value: V) -> Result<(), ()> {
-		if self.overlaps(&range_bounds) {
-			return Err(());
+	pub fn insert(
+		&mut self,
+		range_bounds: K,
+		value: V,
+	) -> Result<(), InsertError> {
+		if !is_valid_range_bounds(&range_bounds) {
+			return Err(InsertError::InvalidRangeBounds);
 		}
 
-		//todo panic on invalid inputs
+		if self.overlaps(&range_bounds) {
+			return Err(InsertError::OverlapsPreexisting);
+		}
+
+		//optimisation fix this without cloning
+		let start = StartBound::from(range_bounds.start_bound().cloned());
+		//optimisation fix this without cloning
+		let end =
+			StartBound::from(range_bounds.end_bound().cloned()).as_end_bound();
+
+		if start > end {
+			panic!("Invalid search range bounds!");
+		}
 
 		self.starts.insert(
 			//optimisation fix this without cloning
@@ -239,16 +288,16 @@ where
 	where
 		Q: RangeBounds<I>,
 	{
+		if !is_valid_range_bounds(search_range_bounds) {
+			panic!("Invalid search range bounds!");
+		}
+
 		//optimisation fix this without cloning
 		let start =
 			StartBound::from(search_range_bounds.start_bound().cloned());
 		//optimisation fix this without cloning
 		let end = StartBound::from(search_range_bounds.end_bound().cloned())
 			.as_end_bound();
-
-		if start > end {
-			panic!("Invalid search range bounds!");
-		}
 
 		let start_range_bounds = (
 			//Included is lossless regarding meta-bounds searches
@@ -257,7 +306,7 @@ where
 			Bound::Included(end),
 		);
 		//this range will hold all the ranges we want except possibly
-		//the first RangeBound in the range
+		//the first RangeBounds in the range
 		let most_range_bounds = self.starts.range(start_range_bounds);
 
 		//then we check for this possibly missing range_bounds
@@ -290,7 +339,7 @@ where
 	}
 
 	/// Returns a reference to the `Value` corresponding to the
-	/// `RangeBounds` in the set that overlaps the given point, if
+	/// `RangeBounds` in the map that overlaps the given point, if
 	/// any.
 	///
 	/// # Examples
@@ -431,12 +480,26 @@ where
 	}
 }
 
+fn is_valid_range_bounds<Q, I>(range_bounds: &Q) -> bool
+where
+	Q: RangeBounds<I>,
+	I: std::cmp::PartialOrd,
+{
+	match (range_bounds.start_bound(), range_bounds.end_bound()) {
+		(Bound::Included(start), Bound::Included(end)) => start <= end,
+		(Bound::Included(start), Bound::Excluded(end)) => start < end,
+		(Bound::Excluded(start), Bound::Included(end)) => start < end,
+		(Bound::Excluded(start), Bound::Excluded(end)) => start < end,
+		_ => true,
+	}
+}
+
 impl<const N: usize, I, K, V> TryFrom<[(K, V); N]> for RangeBoundsMap<I, K, V>
 where
 	K: RangeBounds<I>,
 	I: Ord + Clone,
 {
-	type Error = ();
+	type Error = InsertError;
 	fn try_from(pairs: [(K, V); N]) -> Result<Self, Self::Error> {
 		let mut range_bounds_map = RangeBoundsMap::new();
 		for (range_bounds, value) in pairs {
