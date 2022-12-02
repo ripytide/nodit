@@ -196,5 +196,5 @@ pub(crate) mod bounds;
 pub mod range_bounds_map;
 pub mod range_bounds_set;
 
-pub use crate::range_bounds_map::{InsertError, RangeBoundsMap};
+pub use crate::range_bounds_map::{CutError, InsertError, RangeBoundsMap};
 pub use crate::range_bounds_set::RangeBoundsSet;

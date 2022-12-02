@@ -142,6 +142,7 @@ pub enum InsertError {
 
 /// An error type to represent the possible errors from the
 /// [`RangeBoundsMap::cut()`] function.
+#[derive(PartialEq, Debug)]
 pub enum CutError {
 	/// When cutting out a `RangeBounds` from another `RangeBounds`
 	/// you may need to change the base `RangeBounds`' start and end
@@ -493,8 +494,27 @@ where
 		self.starts.iter().map(|(_, (key, value))| (key, value))
 	}
 
-	///```
-	/// panic!()
+	/// Removes every (`RangeBounds`, `Value`) pair in the map which
+	/// overlaps the given `search_range_bounds` and returns them in
+	/// an iterator.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let mut range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let mut overlapping =
+	/// 	range_bounds_map.remove_overlapping(&(2..8));
+	///
+	/// assert_eq!(overlapping.next(), Some((1..4, false)));
+	/// assert_eq!(overlapping.next(), Some((4..8, true)));
+	/// assert_eq!(overlapping.next(), None);
 	/// ```
 	pub fn remove_overlapping<Q>(
 		&mut self,
@@ -526,8 +546,29 @@ where
 	/// If the remaining `RangeBounds` left after the cut are not able
 	/// to be converted into the `K` type with `TryFrom<(Bound,
 	/// Bound)>` then a `CutError` will be returned.
+	///
+	/// # Examples
 	/// ```
-	/// panic!();
+	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::CutError;
+	///
+	/// let mut base = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let after_cut =
+	/// 	RangeBoundsMap::try_from([(1..2, false), (40..100, false)])
+	/// 		.unwrap();
+	///
+	/// assert_eq!(base.cut(&(2..40)), Ok(()));
+	/// assert_eq!(base, after_cut);
+	/// assert_eq!(
+	/// 	base.cut(&(60..=80)),
+	/// 	Err(CutError::NonConvertibleRangeBoundsProduced)
+	/// );
 	/// ```
 	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), CutError>
 	where
