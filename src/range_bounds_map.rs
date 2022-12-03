@@ -590,6 +590,8 @@ where
 
 		let first_last = (overlapping.next(), overlapping.next_back());
 
+        // optimisation don't clone the value when only changing the
+        // RangeBounds via CutResult::Single()
 		let mut attempt_insert =
 			|(start_bound, end_bound), value| -> Result<(), CutError> {
 				match K::try_from_bounds(start_bound, end_bound)

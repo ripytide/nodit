@@ -118,8 +118,9 @@ To summarise:
   - `is_subset()`
   - etc... a bunch more
 - Sub-optimal use of unnecessary `cloned()` just to placate the borrow checker
+- Use TryFrom<(Bound, Bound)> instead of [`TryFromBounds`] (relys on
+  upstream to impl)
 - The data structures are lacking a lot of useful traits, such as:
-  - Serde: Serialize and Deserialize
   - FromIterator
   - IntoIterator
   - Probably a bunch more
@@ -178,3 +179,4 @@ topic area:
 [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
 [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
+[`Ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
