@@ -236,9 +236,7 @@ where
 	/// assert_eq!(range_bounds_set.get_at_point(&101), None);
 	/// ```
 	pub fn get_at_point(&self, point: &I) -> Option<&K> {
-		self.map
-			.get_entry_at_point(point)
-			.map(|(key, _)| key)
+		self.map.get_entry_at_point(point).map(|(key, _)| key)
 	}
 
 	/// Returns `true` if the set contains a `RangeBounds` that

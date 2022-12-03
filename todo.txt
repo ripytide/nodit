@@ -26,6 +26,8 @@
 - refactor to undo into_StartBound -> StartBound method ->
   from_StartBound and replace with a similar TraitExt for Bound
 
+- refactor opposuite for bound use too
+
 - update lines of code figures on docs
 
 - PUBLISH

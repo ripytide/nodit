@@ -106,9 +106,7 @@ use crate::TryFromBounds;
 /// );
 ///
 /// assert_eq!(
-/// 	map.get_entry_at_point(
-/// 		&NotNan::new(2.0).unwrap()
-/// 	),
+/// 	map.get_entry_at_point(&NotNan::new(2.0).unwrap()),
 /// 	Some((&ExEx::new(0.0, 5.0), &8))
 /// );
 /// ```
@@ -374,8 +372,7 @@ where
 	/// assert_eq!(range_bounds_map.get_at_point(&101), None);
 	/// ```
 	pub fn get_at_point(&self, point: &I) -> Option<&V> {
-		self.get_entry_at_point(point)
-			.map(|(_, value)| value)
+		self.get_entry_at_point(point).map(|(_, value)| value)
 	}
 
 	/// Returns `true` if the map contains a `RangeBounds` that
@@ -452,15 +449,9 @@ where
 	/// 	range_bounds_map.get_entry_at_point(&4),
 	/// 	Some((&(4..8), &true))
 	/// );
-	/// assert_eq!(
-	/// 	range_bounds_map.get_entry_at_point(&101),
-	/// 	None
-	/// );
+	/// assert_eq!(range_bounds_map.get_entry_at_point(&101), None);
 	/// ```
-	pub fn get_entry_at_point(
-		&self,
-		point: &I,
-	) -> Option<(&K, &V)> {
+	pub fn get_entry_at_point(&self, point: &I) -> Option<(&K, &V)> {
 		//a zero-range included-included range is equivalent to a point
 		return self
 			.overlapping(&(
@@ -646,9 +637,9 @@ where
 	/// maximally-sized gaps in the map that are also within the given
 	/// `outer_range_bounds`.
 	///
-    /// To get all possible gaps just call `gaps()` with an unbounded
-    /// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
-    /// Bound::Unbounded)`.
+	/// To get all possible gaps just call `gaps()` with an unbounded
+	/// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
+	/// Bound::Unbounded)`.
 	///
 	/// # Examples
 	/// ```
@@ -691,17 +682,22 @@ where
 			.overlapping(outer_range_bounds)
 			.map(|(key, _)| (key.start_bound(), key.end_bound()));
 
+        // We have to opposite these ahead of time as we actually want
+        // the bounds included not excluded like with other bounds in
+        // artificials
 		let artificial_start = (
-			outer_range_bounds.start_bound(),
-			outer_range_bounds.start_bound(),
+            Bound::from(StartBound::from(outer_range_bounds.start_bound()).into_opposite()),
+            Bound::from(StartBound::from(outer_range_bounds.start_bound()).into_opposite()),
 		);
 		let artificial_end = (
-			outer_range_bounds.end_bound(),
-			outer_range_bounds.end_bound(),
+            Bound::from(StartBound::from(outer_range_bounds.end_bound()).into_opposite()),
+            Bound::from(StartBound::from(outer_range_bounds.end_bound()).into_opposite()),
 		);
 		let artificials = once(artificial_start)
 			.chain(inners)
 			.chain(once(artificial_end));
+
+        eprintln!("\nnew:");
 
 		return artificials
 			.tuple_windows()
@@ -716,12 +712,36 @@ where
 			.filter(is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>);
 	}
 
-	pub fn contains_range_bounds<Q>(&mut self, range_bounds: &Q) -> bool
+	/// Returns `true` if the map covers every point in the given
+	/// `RangeBounds`, and `false` if it doesn't.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..3, false),
+	/// 	(5..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(range_bounds_map.contains_range_bounds(&(1..3)), true);
+	/// assert_eq!(
+	/// 	range_bounds_map.contains_range_bounds(&(2..6)),
+	/// 	false
+	/// );
+	/// assert_eq!(
+	/// 	range_bounds_map.contains_range_bounds(&(6..50)),
+	/// 	true
+	/// );
+	/// ```
+	pub fn contains_range_bounds<Q>(&self, range_bounds: &Q) -> bool
 	where
 		Q: RangeBounds<I>,
 	{
 		// Soooo clean and mathematical 🥰!
-		self.gaps(range_bounds).next().is_some()
+		self.gaps(range_bounds).next().is_none()
 	}
 }
 
@@ -757,22 +777,6 @@ enum CutResult<I> {
 	Nothing,
 	Single((Bound<I>, Bound<I>)),
 	Double((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
-}
-
-impl<I> CutResult<I> {
-	fn contains(&self, point: &I) -> bool
-	where
-		I: PartialOrd,
-	{
-		match self {
-			CutResult::Nothing => false,
-			CutResult::Single(range_bounds) => range_bounds.contains(point),
-			CutResult::Double(first_range_bounds, second_range_bounds) => {
-				first_range_bounds.contains(point)
-					|| second_range_bounds.contains(point)
-			}
-		}
-	}
 }
 
 fn cut_range_bounds<I, B, C>(
@@ -875,24 +879,6 @@ where
 	}
 }
 
-fn contains_range_bounds<I, A, B>(
-	base_range_bounds: &A,
-	query_range_bounds: &B,
-) -> bool
-where
-	A: RangeBounds<I>,
-	B: RangeBounds<I>,
-	I: PartialOrd,
-{
-	let start_after = StartBound::from(query_range_bounds.start_bound())
-		>= StartBound::from(base_range_bounds.start_bound());
-	let end_before = StartBound::from(query_range_bounds.end_bound())
-		.into_end_bound()
-		<= StartBound::from(base_range_bounds.end_bound()).into_end_bound();
-
-	return start_after && end_before;
-}
-
 #[cfg(test)]
 mod tests {
 	use std::ops::{Bound, Range, RangeBounds};
@@ -925,38 +911,6 @@ mod tests {
 					dbg!(range_bounds1, range_bounds2);
 					dbg!(mathematical_definition_of_overlap, our_answer);
 					panic!("Discrepency in .overlaps() detected!");
-				}
-			}
-		}
-	}
-
-	#[test]
-	fn mass_contains_range_bounds_test() {
-		for base_range_bounds in all_valid_test_bounds() {
-			for query_range_bounds in all_valid_test_bounds() {
-				let our_answer = contains_range_bounds(
-					&base_range_bounds,
-					&query_range_bounds,
-				);
-
-				let mathematical_definition_of_contains_range_bounds =
-					NUMBERS_DOMAIN.iter().all(|x| {
-						if query_range_bounds.contains(x) {
-							base_range_bounds.contains(x)
-						} else {
-							true
-						}
-					});
-
-				if our_answer
-					!= mathematical_definition_of_contains_range_bounds
-				{
-					dbg!(base_range_bounds, query_range_bounds);
-					dbg!(
-						mathematical_definition_of_contains_range_bounds,
-						our_answer
-					);
-					panic!("Discrepency in .contains_range_bounds() detected!");
 				}
 			}
 		}
@@ -1043,6 +997,21 @@ mod tests {
 		}
 	}
 
+	impl<I> CutResult<I> {
+		fn contains(&self, point: &I) -> bool
+		where
+			I: PartialOrd,
+		{
+			match self {
+				CutResult::Nothing => false,
+				CutResult::Single(range_bounds) => range_bounds.contains(point),
+				CutResult::Double(first_range_bounds, second_range_bounds) => {
+					first_range_bounds.contains(point)
+						|| second_range_bounds.contains(point)
+				}
+			}
+		}
+	}
 	#[test]
 	fn mass_cut_range_bounds_tests() {
 		for base in all_valid_test_bounds() {
