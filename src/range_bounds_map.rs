@@ -792,6 +792,24 @@ where
 	}
 }
 
+fn contains_range_bounds<I, A, B>(
+	base_range_bounds: &A,
+	query_range_bounds: &B,
+) -> bool
+where
+	A: RangeBounds<I>,
+	B: RangeBounds<I>,
+	I: PartialOrd,
+{
+	let start_after = StartBound::from(query_range_bounds.start_bound())
+		>= StartBound::from(base_range_bounds.start_bound());
+	let end_before = StartBound::from(query_range_bounds.end_bound())
+		.into_end_bound()
+		<= StartBound::from(base_range_bounds.end_bound()).into_end_bound();
+
+	return start_after && end_before;
+}
+
 #[cfg(test)]
 mod tests {
 	use std::ops::{Bound, Range, RangeBounds};
@@ -824,6 +842,33 @@ mod tests {
 					dbg!(range_bounds1, range_bounds2);
 					dbg!(mathematical_definition_of_overlap, our_answer);
 					panic!("Discrepency in .overlaps() detected!");
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn mass_contains_range_bounds_test() {
+		for base_range_bounds in all_valid_test_bounds() {
+			for query_range_bounds in all_valid_test_bounds() {
+				let our_answer = contains_range_bounds(
+					&base_range_bounds,
+					&query_range_bounds,
+				);
+
+				let mathematical_definition_of_contains_range_bounds =
+					NUMBERS_DOMAIN.iter().all(|x| {
+						if query_range_bounds.contains(x) {
+							base_range_bounds.contains(x)
+						} else {
+							true
+						}
+					});
+
+				if our_answer != mathematical_definition_of_contains_range_bounds {
+					dbg!(base_range_bounds, query_range_bounds);
+					dbg!(mathematical_definition_of_contains_range_bounds, our_answer);
+					panic!("Discrepency in .contains_range_bounds() detected!");
 				}
 			}
 		}
