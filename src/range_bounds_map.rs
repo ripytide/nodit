@@ -106,7 +106,7 @@ use crate::TryFromBounds;
 /// );
 ///
 /// assert_eq!(
-/// 	map.get_range_bounds_value_at_point(
+/// 	map.get_entry_at_point(
 /// 		&NotNan::new(2.0).unwrap()
 /// 	),
 /// 	Some((&ExEx::new(0.0, 5.0), &8))
@@ -374,7 +374,7 @@ where
 	/// assert_eq!(range_bounds_map.get_at_point(&101), None);
 	/// ```
 	pub fn get_at_point(&self, point: &I) -> Option<&V> {
-		self.get_range_bounds_value_at_point(point)
+		self.get_entry_at_point(point)
 			.map(|(_, value)| value)
 	}
 
@@ -418,7 +418,7 @@ where
 	/// ```
 	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
 		if let Some(overlapping_start_bound) = self
-			.get_range_bounds_value_at_point(point)
+			.get_entry_at_point(point)
 			.map(|(key, _)| key.start_bound())
 		{
 			return self
@@ -445,19 +445,19 @@ where
 	/// .unwrap();
 	///
 	/// assert_eq!(
-	/// 	range_bounds_map.get_range_bounds_value_at_point(&3),
+	/// 	range_bounds_map.get_entry_at_point(&3),
 	/// 	Some((&(1..4), &false))
 	/// );
 	/// assert_eq!(
-	/// 	range_bounds_map.get_range_bounds_value_at_point(&4),
+	/// 	range_bounds_map.get_entry_at_point(&4),
 	/// 	Some((&(4..8), &true))
 	/// );
 	/// assert_eq!(
-	/// 	range_bounds_map.get_range_bounds_value_at_point(&101),
+	/// 	range_bounds_map.get_entry_at_point(&101),
 	/// 	None
 	/// );
 	/// ```
-	pub fn get_range_bounds_value_at_point(
+	pub fn get_entry_at_point(
 		&self,
 		point: &I,
 	) -> Option<(&K, &V)> {
@@ -646,9 +646,9 @@ where
 	/// maximally-sized gaps in the map that are also within the given
 	/// `outer_range_bounds`.
 	///
-	/// To get all possible gaps just call `gaps()` with an
-	/// `outer_range_bounds` of `..` or `(Bound::Unbounded,
-	/// Bound::Unbounded)`.
+    /// To get all possible gaps just call `gaps()` with an unbounded
+    /// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
+    /// Bound::Unbounded)`.
 	///
 	/// # Examples
 	/// ```
@@ -699,8 +699,9 @@ where
 			outer_range_bounds.end_bound(),
 			outer_range_bounds.end_bound(),
 		);
-		let artificials =
-			once(artificial_start).chain(inners).chain(once(artificial_end));
+		let artificials = once(artificial_start)
+			.chain(inners)
+			.chain(once(artificial_end));
 
 		return artificials
 			.tuple_windows()

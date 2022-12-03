@@ -18,39 +18,39 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 //! This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`].
-//! 
+//!
 //! [`RangeBoundsMap`] is similar to [`BTreeMap`] except [`RangeBoundsMap`]
 //! uses any type that implements the [`RangeBounds`] trait as keys, while
 //! maintaining two invariants:
-//! 
+//!
 //! - No two keys may overlap
 //! - A keys' [`start_bound()`] <= its [`end_bound()`]
-//! 
+//!
 //! [`RangeBoundsSet`] is like [`RangeBoundsMap`] except it
 //! uses `()` as values, as [`BTreeSet`] does for [`BTreeMap`]
-//! 
+//!
 //! ## Example using [`Range`]s
-//! 
+//!
 //! ```rust
 //! use range_bounds_map::RangeBoundsMap;
-//! 
+//!
 //! let mut range_bounds_map = RangeBoundsMap::new();
-//! 
+//!
 //! range_bounds_map.insert(0..5, true);
 //! range_bounds_map.insert(5..10, false);
-//! 
+//!
 //! assert_eq!(range_bounds_map.overlaps(&(-2..12)), true);
 //! assert_eq!(range_bounds_map.contains_point(&20), false);
 //! assert_eq!(range_bounds_map.contains_point(&5), true);
 //! ```
-//! 
+//!
 //! ## Example using a custom [`RangeBounds`] type
-//! 
+//!
 //! ```rust
 //! use std::ops::{Bound, RangeBounds};
-//! 
+//!
 //! use range_bounds_map::RangeBoundsMap;
-//! 
+//!
 //! #[derive(Debug)]
 //! enum Reservation {
 //! 	// Start, End (Inclusive-Inclusive)
@@ -58,7 +58,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! 	// Start (Exclusive)
 //! 	Infinite(u8),
 //! }
-//! 
+//!
 //! // First, we need to implement RangeBounds
 //! impl RangeBounds<u8> for Reservation {
 //! 	fn start_bound(&self) -> Bound<&u8> {
@@ -78,49 +78,49 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! 		}
 //! 	}
 //! }
-//! 
+//!
 //! // Next we can create a custom typed RangeBoundsMap
 //! let reservation_map = RangeBoundsMap::try_from([
 //! 	(Reservation::Finite(10, 20), "Ferris".to_string()),
 //! 	(Reservation::Infinite(20), "Corro".to_string()),
 //! ])
 //! .unwrap();
-//! 
+//!
 //! for (reservation, name) in reservation_map.overlapping(&(16..17))
 //! {
 //! 	println!(
 //! 		"{name} has reserved {reservation:?} inside the range 16..17"
 //! 	);
 //! }
-//! 
+//!
 //! for (reservation, name) in reservation_map.iter() {
 //! 	println!("{name} has reserved {reservation:?}");
 //! }
-//! 
+//!
 //! assert_eq!(
 //! 	reservation_map.overlaps(&Reservation::Infinite(0)),
 //! 	true
 //! );
 //! ```
-//! 
+//!
 //! # How
-//! 
+//!
 //! Most of the [`RangeBounds`]-specific methods on [`RangeBoundsMap`]
 //! utilize the [`RangeBoundsMap::overlapping()`] method which
 //! internally uses [`BTreeMap`]'s [`range()`] function. To allow
 //! using [`range()`] for this purpose a newtype wrapper is wrapped
 //! around the [`start_bound()`]s so that we can apply our custom [`Ord`]
 //! implementation onto all the [`start_bound()`]s.
-//! 
+//!
 //! # Improvements/Caveats
-//! 
+//!
 //! There are a few issues I can think of with this implementation,
 //! each of them are documented as GitHub Issues. If you would like
 //! any of these features added, drop a comment in a respective GitHub
 //! Issue (or even open a new one) and I'd be happy to implement it.
-//! 
+//!
 //! To summarise:
-//! 
+//!
 //! - No coalescing/merge insert functions, yet
 //! - No `gaps()` iterator function, yet
 //! - Missing some functions common to BTreeMap and BTreeSet like:
@@ -134,9 +134,9 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!   - FromIterator
 //!   - IntoIterator
 //!   - Probably a bunch more
-//! 
+//!
 //! # Credit
-//! 
+//!
 //! I originally came up with the `StartBound`: [`Ord`] bodge on my
 //! own, however, I later stumbled across [`rangemap`] which also used
 //! a `StartBound`: [`Ord`] bodge. [`rangemap`] then became my main
@@ -149,12 +149,12 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! simpler to just write it all from scratch. Which ended up working
 //! really well with some simplifications I made which ended up
 //! resulting in much less code (~600 lines over `rangemap`'s ~2700)
-//! 
+//!
 //! # Similar Crates
-//! 
+//!
 //! Here are some relevant crates I found whilst searching around the
 //! topic area:
-//! 
+//!
 //! - <https://docs.rs/rangemap>
 //!   Very similar to this crate but can only use [`Range`]s and
 //!   [`RangeInclusive`]s as keys in it's `map` and `set` structs (separately).
@@ -178,7 +178,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!   a custom red-black tree/BTree implementation used specifically for a
 //!   Range Tree. Interesting but also quite old (5 years) and uses
 //!   unsafe.
-//! 
+//!
 //! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 //! [`btreeset`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
 //! [`rangebounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html

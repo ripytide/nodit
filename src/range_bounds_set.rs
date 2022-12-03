@@ -237,7 +237,7 @@ where
 	/// ```
 	pub fn get_at_point(&self, point: &I) -> Option<&K> {
 		self.map
-			.get_range_bounds_value_at_point(point)
+			.get_entry_at_point(point)
 			.map(|(key, _)| key)
 	}
 
