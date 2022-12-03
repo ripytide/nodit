@@ -21,9 +21,17 @@
 - run and fix cargo clippy
 - take a look around idiomatic rust for a bit first
 
+- review method parameter names for all public functions
+
+- refactor to undo into_StartBound -> StartBound method ->
+  from_StartBound and replace with a similar TraitExt for Bound
+
 - update lines of code figures on docs
 
 - PUBLISH
 
 - add links to [`RangeBoundsSet`] and map after docs.rs is live with
   the docs, and generally check for dead links on docs and readme
+
+- tell people in issues of other rangemap libraries about my library
+  stonks advertising

@@ -75,6 +75,7 @@ impl<T> StartBound<T> {
 		match self {
 			StartBound::Included(point) => StartBound::Excluded(point),
 			StartBound::Excluded(point) => StartBound::Included(point),
+			StartBound::Unbounded => StartBound::Unbounded,
 			_ => panic!("unsuitable operation"),
 		}
 	}

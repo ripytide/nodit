@@ -23,6 +23,7 @@ use std::iter::once;
 use std::ops::{Bound, RangeBounds};
 
 use either::Either;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use crate::bounds::StartBound;
@@ -640,6 +641,46 @@ where
 
 		return Ok(());
 	}
+
+	pub fn gaps<'a, Q>(
+		&'a mut self,
+		outer_range_bounds: &'a Q,
+	) -> impl Iterator<Item = impl RangeBounds<I> + 'a>
+	where
+		Q: RangeBounds<I>,
+	{
+		// I'm in love with how clean/mindblowing this entire function is
+		let inners = self
+			.overlapping(outer_range_bounds)
+			.map(|(key, _)| (key.start_bound(), key.end_bound()));
+
+		let tuple_outer = (
+			outer_range_bounds.start_bound(),
+			outer_range_bounds.end_bound(),
+		);
+		let artificials =
+			once(tuple_outer).chain(inners).chain(once(tuple_outer));
+
+		return artificials
+			.tuple_windows()
+			.map(|((_, first_end), (second_start, _))| {
+				(
+					// Flip the ends of the inside RangeBounds between
+                    // adjacent RangeBounds in the map
+					Bound::from(StartBound::from(first_end).into_opposite()),
+					Bound::from(StartBound::from(second_start).into_opposite()),
+				)
+			})
+			.filter(is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>);
+	}
+
+	pub fn contains_range_bounds<Q>(&mut self, range_bounds: &Q) -> bool
+	where
+		Q: RangeBounds<I>,
+	{
+        // Soooo clean and mathematical 🥰!
+		self.gaps(range_bounds).next().is_some()
+	}
 }
 
 impl<const N: usize, I, K, V> TryFrom<[(K, V); N]> for RangeBoundsMap<I, K, V>
@@ -865,9 +906,14 @@ mod tests {
 						}
 					});
 
-				if our_answer != mathematical_definition_of_contains_range_bounds {
+				if our_answer
+					!= mathematical_definition_of_contains_range_bounds
+				{
 					dbg!(base_range_bounds, query_range_bounds);
-					dbg!(mathematical_definition_of_contains_range_bounds, our_answer);
+					dbg!(
+						mathematical_definition_of_contains_range_bounds,
+						our_answer
+					);
 					panic!("Discrepency in .contains_range_bounds() detected!");
 				}
 			}
