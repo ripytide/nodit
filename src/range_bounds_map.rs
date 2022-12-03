@@ -26,6 +26,7 @@ use either::Either;
 use serde::{Deserialize, Serialize};
 
 use crate::bounds::StartBound;
+use crate::TryFromBounds;
 
 /// An ordered map of [`RangeBounds`] based on [`BTreeMap`]
 ///
@@ -276,7 +277,7 @@ where
 	}
 
 	/// Returns an iterator over every (`RangeBounds`, `Value`) pair
-	/// in the map which overlap the given `search_range_bounds` in
+	/// in the map which overlap the given `range_bounds` in
 	/// ascending order.
 	///
 	/// # Examples
@@ -298,20 +299,19 @@ where
 	/// ```
 	pub fn overlapping<Q>(
 		&self,
-		search_range_bounds: &Q,
+		range_bounds: &Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &V)>
 	where
 		Q: RangeBounds<I>,
 	{
-		if !is_valid_range_bounds(search_range_bounds) {
+		if !is_valid_range_bounds(range_bounds) {
 			panic!("Invalid search range bounds!");
 		}
 
 		//optimisation fix this without cloning
-		let start =
-			StartBound::from(search_range_bounds.start_bound().cloned());
+		let start = StartBound::from(range_bounds.start_bound().cloned());
 		//optimisation fix this without cloning
-		let end = StartBound::from(search_range_bounds.end_bound().cloned())
+		let end = StartBound::from(range_bounds.end_bound().cloned())
 			.into_end_bound();
 
 		let start_range_bounds = (
@@ -334,12 +334,12 @@ where
 						Bound::Unbounded,
 						Bound::Excluded(StartBound::from(
 							//optimisation fix this without cloning
-							search_range_bounds.start_bound().cloned(),
+							range_bounds.start_bound().cloned(),
 						)),
 					))
 					.next_back()
 		{
-			if overlaps(possible_missing_range_bounds, search_range_bounds) {
+			if overlaps(possible_missing_range_bounds, range_bounds) {
 				return Either::Left(
 					once(missing_entry)
 						.chain(most_range_bounds)
@@ -495,7 +495,7 @@ where
 	}
 
 	/// Removes every (`RangeBounds`, `Value`) pair in the map which
-	/// overlaps the given `search_range_bounds` and returns them in
+	/// overlaps the given `range_bounds` and returns them in
 	/// an iterator.
 	///
 	/// # Examples
@@ -509,12 +509,16 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut overlapping =
+	/// let mut removed =
 	/// 	range_bounds_map.remove_overlapping(&(2..8));
 	///
-	/// assert_eq!(overlapping.next(), Some((1..4, false)));
-	/// assert_eq!(overlapping.next(), Some((4..8, true)));
-	/// assert_eq!(overlapping.next(), None);
+	/// assert_eq!(removed.next(), Some((1..4, false)));
+	/// assert_eq!(removed.next(), Some((4..8, true)));
+	/// assert_eq!(removed.next(), None);
+	///
+	/// let mut remaining = range_bounds_map.iter();
+	/// assert_eq!(remaining.next(), Some((&(8..100), &false)));
+	/// assert_eq!(remaining.next(), None);
 	/// ```
 	pub fn remove_overlapping<Q>(
 		&mut self,
@@ -542,15 +546,18 @@ where
 	}
 
 	/// Cuts a given `RangeBounds` out of the map.
+    /// 
+    /// `V` must implement `Clone` as if you try to cut out the center
+    /// of a `RangeBounds` in the map it will split into two different
+    /// (`RangeBounds`, `Value`) pairs using `Clone`.
 	///
 	/// If the remaining `RangeBounds` left after the cut are not able
-	/// to be converted into the `K` type with `TryFrom<(Bound,
-	/// Bound)>` then a `CutError` will be returned.
+	/// to be converted into the `K` type with the [`TryFromBounds`]
+	/// trait then a `CutError` will be returned.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::RangeBoundsMap;
-	/// use range_bounds_map::CutError;
+	/// use range_bounds_map::{CutError, RangeBoundsMap};
 	///
 	/// let mut base = RangeBoundsMap::try_from([
 	/// 	(1..4, false),
@@ -573,7 +580,7 @@ where
 	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), CutError>
 	where
 		Q: RangeBounds<I>,
-		K: TryFrom<(Bound<I>, Bound<I>)>,
+		K: TryFromBounds<I>,
 		V: Clone,
 	{
 		// only the first and last range_bounds in overlapping stand a
@@ -584,17 +591,18 @@ where
 
 		let first_last = (overlapping.next(), overlapping.next_back());
 
-		let mut attempt_insert = |section, value| -> Result<(), CutError> {
-			match K::try_from(section)
-				.map_err(|_| CutError::NonConvertibleRangeBoundsProduced)
-			{
-				Ok(key) => {
-					self.insert(key, value).unwrap();
-					return Ok(());
+		let mut attempt_insert =
+			|(start_bound, end_bound), value| -> Result<(), CutError> {
+				match K::try_from_bounds(start_bound, end_bound)
+					.ok_or(CutError::NonConvertibleRangeBoundsProduced)
+				{
+					Ok(key) => {
+						self.insert(key, value).unwrap();
+						return Ok(());
+					}
+					Err(cut_error) => return Err(cut_error),
 				}
-				Err(cut_error) => return Err(cut_error),
-			}
-		};
+			};
 
 		match first_last {
 			(Some(first), Some(last)) => {
@@ -649,10 +657,27 @@ where
 	}
 }
 
+#[derive(Debug)]
 enum CutResult<I> {
 	Nothing,
 	Single((Bound<I>, Bound<I>)),
 	Double((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
+}
+
+impl<I> CutResult<I> {
+	fn contains(&self, point: &I) -> bool
+	where
+		I: PartialOrd,
+	{
+		match self {
+			CutResult::Nothing => false,
+			CutResult::Single(range_bounds) => range_bounds.contains(point),
+			CutResult::Double(first_range_bounds, second_range_bounds) => {
+				first_range_bounds.contains(point)
+					|| second_range_bounds.contains(point)
+			}
+		}
+	}
 }
 
 fn cut_range_bounds<I, B, C>(
@@ -665,7 +690,12 @@ where
 	I: PartialOrd + Clone,
 {
 	if !overlaps(base_range_bounds, cut_range_bounds) {
-		return CutResult::Nothing;
+		// if they don't overlap just return the original
+		// base_range_bounds
+		return CutResult::Single((
+			base_range_bounds.start_bound().cloned(),
+			base_range_bounds.end_bound().cloned(),
+		));
 	}
 
 	let (base_start_bound, base_end_bound) = (
@@ -690,9 +720,9 @@ where
 	{
 		false => None,
 		true => Some((
-			base_start_bound.cloned(),
-			Bound::from(StartBound::from(cut_start_bound).into_opposite())
+			Bound::from(StartBound::from(cut_end_bound).into_opposite())
 				.cloned(),
+			base_end_bound.cloned(),
 		)),
 	};
 
@@ -700,7 +730,7 @@ where
 		(Some(left), Some(right)) => CutResult::Double(left, right),
 		(Some(left), None) => CutResult::Single(left),
 		(None, Some(right)) => CutResult::Single(right),
-		(None, None) => unreachable!(),
+		(None, None) => CutResult::Nothing,
 	}
 }
 
@@ -754,7 +784,7 @@ where
 mod tests {
 	use std::ops::{Bound, Range, RangeBounds};
 
-	use super::overlaps;
+	use super::*;
 	use crate::bounds::StartBound;
 	use crate::RangeBoundsSet;
 
@@ -863,6 +893,39 @@ mod tests {
 					panic!(
 						"Discrepency in .overlapping() with two inside ranges detected!"
 					);
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn mass_cut_range_bounds_tests() {
+		for base in all_valid_test_bounds() {
+			for cut in all_valid_test_bounds() {
+				let cut_result = cut_range_bounds(&base, &cut);
+
+				// The definition of a cut is: A && NOT B
+				for x in NUMBERS_DOMAIN {
+					let result_contains = cut_result.contains(x);
+					let base_contains = base.contains(x);
+					let cut_contains = cut.contains(x);
+
+					let invariant =
+						result_contains == (base_contains && !cut_contains);
+
+					if !invariant {
+						dbg!(result_contains);
+						dbg!(base_contains);
+						dbg!(cut_contains);
+
+						dbg!(base);
+						dbg!(cut);
+						dbg!(cut_result);
+
+						dbg!(x);
+
+						panic!("Invariant Broken!");
+					}
 				}
 			}
 		}

@@ -21,8 +21,7 @@ use std::ops::RangeBounds;
 
 use serde::{Deserialize, Serialize};
 
-use crate::range_bounds_map::RangeBoundsMap;
-use crate::InsertError;
+use crate::{InsertError, RangeBoundsMap};
 
 /// An ordered set of [`RangeBounds`] based on [`BTreeSet`]
 ///

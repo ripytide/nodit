@@ -195,6 +195,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 pub(crate) mod bounds;
 pub mod range_bounds_map;
 pub mod range_bounds_set;
+pub mod try_from_bounds;
 
 pub use crate::range_bounds_map::{CutError, InsertError, RangeBoundsMap};
 pub use crate::range_bounds_set::RangeBoundsSet;
+pub use crate::try_from_bounds::TryFromBounds;

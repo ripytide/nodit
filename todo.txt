@@ -1,6 +1,8 @@
 - make sure all returned iterators are DoubleEndedIterators and the
   documentation mentions it
 
+- add caveat for TryFrom on ranges
+
 - write more tests for more complicated functions
 
 - write docs for everything again
