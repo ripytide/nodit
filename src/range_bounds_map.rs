@@ -642,10 +642,47 @@ where
 		return Ok(());
 	}
 
+	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
+	/// maximally-sized gaps in the map that are also within the given
+	/// `outer_range_bounds`.
+	///
+	/// To get all possible gaps just call `gaps()` with an
+	/// `outer_range_bounds` of `..` or `(Bound::Unbounded,
+	/// Bound::Unbounded)`.
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Bound;
+	///
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..3, false),
+	/// 	(5..7, true),
+	/// 	(9..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let mut gaps = range_bounds_map.gaps(&(2..));
+	///
+	/// assert_eq!(
+	/// 	gaps.next(),
+	/// 	Some((Bound::Included(&3), Bound::Excluded(&5)))
+	/// );
+	/// assert_eq!(
+	/// 	gaps.next(),
+	/// 	Some((Bound::Included(&7), Bound::Excluded(&9)))
+	/// );
+	/// assert_eq!(
+	/// 	gaps.next(),
+	/// 	Some((Bound::Included(&100), Bound::Unbounded))
+	/// );
+	/// assert_eq!(gaps.next(), None);
+	/// ```
 	pub fn gaps<'a, Q>(
-		&'a mut self,
+		&'a self,
 		outer_range_bounds: &'a Q,
-	) -> impl Iterator<Item = impl RangeBounds<I> + 'a>
+	) -> impl Iterator<Item = (Bound<&I>, Bound<&I>)>
 	where
 		Q: RangeBounds<I>,
 	{
@@ -654,19 +691,23 @@ where
 			.overlapping(outer_range_bounds)
 			.map(|(key, _)| (key.start_bound(), key.end_bound()));
 
-		let tuple_outer = (
+		let artificial_start = (
 			outer_range_bounds.start_bound(),
+			outer_range_bounds.start_bound(),
+		);
+		let artificial_end = (
+			outer_range_bounds.end_bound(),
 			outer_range_bounds.end_bound(),
 		);
 		let artificials =
-			once(tuple_outer).chain(inners).chain(once(tuple_outer));
+			once(artificial_start).chain(inners).chain(once(artificial_end));
 
 		return artificials
 			.tuple_windows()
 			.map(|((_, first_end), (second_start, _))| {
 				(
 					// Flip the ends of the inside RangeBounds between
-                    // adjacent RangeBounds in the map
+					// adjacent RangeBounds in the map
 					Bound::from(StartBound::from(first_end).into_opposite()),
 					Bound::from(StartBound::from(second_start).into_opposite()),
 				)
@@ -678,7 +719,7 @@ where
 	where
 		Q: RangeBounds<I>,
 	{
-        // Soooo clean and mathematical 🥰!
+		// Soooo clean and mathematical 🥰!
 		self.gaps(range_bounds).next().is_some()
 	}
 }
