@@ -21,7 +21,7 @@ use std::ops::RangeBounds;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{InsertError, RangeBoundsMap};
+use crate::{CutError, InsertError, RangeBoundsMap, TryFromBounds};
 
 /// An ordered set of [`RangeBounds`] based on [`BTreeSet`]
 ///
@@ -278,6 +278,69 @@ where
 	/// ```
 	pub fn iter(&self) -> impl Iterator<Item = &K> {
 		self.map.iter().map(|(key, _)| key)
+	}
+
+	/// Removes every `RangeBounds` in the set which overlaps the
+	/// given `range_bounds` and returns them in an iterator.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	///
+	/// let mut removed = range_bounds_set.remove_overlapping(&(2..8));
+	///
+	/// assert_eq!(removed.next(), Some(1..4));
+	/// assert_eq!(removed.next(), Some(4..8));
+	/// assert_eq!(removed.next(), None);
+	///
+	/// let mut remaining = range_bounds_set.iter();
+	/// assert_eq!(remaining.next(), Some(&(8..100)));
+	/// assert_eq!(remaining.next(), None);
+	/// ```
+	pub fn remove_overlapping<Q>(
+		&mut self,
+		range_bounds: &Q,
+	) -> impl DoubleEndedIterator<Item = K>
+	where
+		Q: RangeBounds<I>,
+	{
+		self.map
+			.remove_overlapping(range_bounds)
+			.map(|(key, _)| key)
+	}
+
+	/// Cuts a given `RangeBounds` out of the set.
+	///
+	/// If the remaining `RangeBounds` left after the cut are not able
+	/// to be converted into the `K` type with the [`TryFromBounds`]
+	/// trait then a [`CutError`] will be returned.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{CutError, RangeBoundsSet};
+	///
+	/// let mut base =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	///
+	/// let after_cut =
+	/// 	RangeBoundsSet::try_from([1..2, 40..100]).unwrap();
+	///
+	/// assert_eq!(base.cut(&(2..40)), Ok(()));
+	/// assert_eq!(base, after_cut);
+	/// assert_eq!(
+	/// 	base.cut(&(60..=80)),
+	/// 	Err(CutError::NonConvertibleRangeBoundsProduced)
+	/// );
+	/// ```
+	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), CutError>
+	where
+		Q: RangeBounds<I>,
+		K: TryFromBounds<I>,
+	{
+		self.map.cut(range_bounds)
 	}
 }
 

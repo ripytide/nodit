@@ -509,8 +509,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut removed =
-	/// 	range_bounds_map.remove_overlapping(&(2..8));
+	/// let mut removed = range_bounds_map.remove_overlapping(&(2..8));
 	///
 	/// assert_eq!(removed.next(), Some((1..4, false)));
 	/// assert_eq!(removed.next(), Some((4..8, true)));
@@ -546,14 +545,14 @@ where
 	}
 
 	/// Cuts a given `RangeBounds` out of the map.
-    /// 
-    /// `V` must implement `Clone` as if you try to cut out the center
-    /// of a `RangeBounds` in the map it will split into two different
-    /// (`RangeBounds`, `Value`) pairs using `Clone`.
+	///
+	/// `V` must implement `Clone` as if you try to cut out the center
+	/// of a `RangeBounds` in the map it will split into two different
+	/// (`RangeBounds`, `Value`) pairs using `Clone`.
 	///
 	/// If the remaining `RangeBounds` left after the cut are not able
 	/// to be converted into the `K` type with the [`TryFromBounds`]
-	/// trait then a `CutError` will be returned.
+	/// trait then a [`CutError`] will be returned.
 	///
 	/// # Examples
 	/// ```
