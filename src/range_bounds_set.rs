@@ -90,7 +90,7 @@ use crate::{CutError, InsertError, RangeBoundsMap, TryFromBounds};
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RangeBoundsSet<I, K>
 where
 	I: PartialOrd,
@@ -341,6 +341,17 @@ where
 		K: TryFromBounds<I>,
 	{
 		self.map.cut(range_bounds)
+	}
+}
+
+impl<I, K> Default for RangeBoundsSet<I, K>
+where
+	I: PartialOrd,
+{
+	fn default() -> Self {
+		RangeBoundsSet {
+			map: RangeBoundsMap::default(),
+		}
 	}
 }
 

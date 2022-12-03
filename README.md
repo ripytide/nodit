@@ -138,7 +138,7 @@ in which I changed [`rangemap`]'s [`RangeMap`] to use
 [`RangeBounds`]s as keys before I realized it might be easier and
 simpler to just write it all from scratch. Which ended up working
 really well with some simplifications I made which ended up
-resulting in much less code (~600 lines over `rangemap`'s ~2700)
+resulting in much less code (~600 lines over [`rangemap`]'s ~2700)
 
 # Similar Crates
 
@@ -179,4 +179,4 @@ topic area:
 [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
 [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
-[`Ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
+[`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html

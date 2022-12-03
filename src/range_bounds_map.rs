@@ -114,7 +114,7 @@ use crate::TryFromBounds;
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RangeBoundsMap<I, K, V>
 where
 	I: PartialOrd,
@@ -590,8 +590,8 @@ where
 
 		let first_last = (overlapping.next(), overlapping.next_back());
 
-        // optimisation don't clone the value when only changing the
-        // RangeBounds via CutResult::Single()
+		// optimisation don't clone the value when only changing the
+		// RangeBounds via CutResult::Single()
 		let mut attempt_insert =
 			|(start_bound, end_bound), value| -> Result<(), CutError> {
 				match K::try_from_bounds(start_bound, end_bound)
@@ -655,6 +655,17 @@ where
 		}
 
 		return Ok(range_bounds_map);
+	}
+}
+
+impl<I, K, V> Default for RangeBoundsMap<I, K, V>
+where
+	I: PartialOrd,
+{
+	fn default() -> Self {
+		RangeBoundsMap {
+			starts: BTreeMap::default(),
+		}
 	}
 }
 
