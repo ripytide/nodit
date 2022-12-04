@@ -1,5 +1,5 @@
-- make sure all returned iterators are DoubleEndedIterators and the
-  documentation mentions it
+- check documentation to remove mentions of insert without the naming
+  modifier
 
 - write more tests for more complicated functions
 
@@ -8,19 +8,15 @@
 - add issues to github for all the caveats
 - review caveats again
 
-- copy readme to lib.rs docs again
-
-- run and fix cargo clippy
 - take a look around idiomatic rust for a bit first
-
 - review method parameter names for all public functions
 
-- refactor to undo into_StartBound -> StartBound method ->
-  from_StartBound and replace with a similar TraitExt for Bound
-
-- update lines of code figures on docs
-
 - use it in robot_Sweet_graph for a bit before publishing
+
+#frequent
+- update lines of code figures on docs
+- copy readme to lib.rs docs again
+- run and fix cargo clippy
 
 - PUBLISH
 

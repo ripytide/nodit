@@ -36,8 +36,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! let mut range_bounds_map = RangeBoundsMap::new();
 //!
-//! range_bounds_map.insert(0..5, true);
-//! range_bounds_map.insert(5..10, false);
+//! range_bounds_map.insert_platonic(0..5, true);
+//! range_bounds_map.insert_platonic(5..10, false);
 //!
 //! assert_eq!(range_bounds_map.overlaps(&(-2..12)), true);
 //! assert_eq!(range_bounds_map.contains_point(&20), false);
@@ -200,6 +200,8 @@ pub mod range_bounds_map;
 pub mod range_bounds_set;
 pub mod try_from_bounds;
 
-pub use crate::range_bounds_map::{CutError, InsertError, RangeBoundsMap};
+pub use crate::range_bounds_map::{
+	CutError, InsertPlatonicError, RangeBoundsMap,
+};
 pub use crate::range_bounds_set::RangeBoundsSet;
 pub use crate::try_from_bounds::TryFromBounds;

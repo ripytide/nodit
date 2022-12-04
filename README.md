@@ -117,6 +117,7 @@ To summarise:
   - `is_subset()`
   - etc... a bunch more
 - Sub-optimal use of unnecessary `cloned()` just to placate the borrow checker
+- Optimisation comments scattered
 - Can't use TryFrom<(Bound, Bound)> instead of [`TryFromBounds`] (relys on
   upstream to impl)
 - The data structures are lacking a lot of useful traits, such as:

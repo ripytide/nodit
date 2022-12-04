@@ -21,7 +21,7 @@ use std::ops::{Bound, RangeBounds};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{CutError, InsertError, RangeBoundsMap, TryFromBounds};
+use crate::{CutError, InsertPlatonicError, RangeBoundsMap, TryFromBounds};
 
 /// An ordered set of [`RangeBounds`] based on [`BTreeSet`]
 ///
@@ -80,8 +80,8 @@ use crate::{CutError, InsertError, RangeBoundsMap, TryFromBounds};
 /// // Now we can make a [`RangeBoundsSet`] of [`ExEx`]s
 /// let mut set = RangeBoundsSet::new();
 ///
-/// set.insert(ExEx::new(0.0, 5.0)).unwrap();
-/// set.insert(ExEx::new(5.0, 7.5)).unwrap();
+/// set.insert_platonic(ExEx::new(0.0, 5.0)).unwrap();
+/// set.insert_platonic(ExEx::new(5.0, 7.5)).unwrap();
 ///
 /// assert_eq!(set.contains_point(&NotNan::new(5.0).unwrap()), false);
 /// assert_eq!(set.contains_point(&NotNan::new(7.0).unwrap()), true);
@@ -129,44 +129,38 @@ where
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///
 	/// assert_eq!(range_bounds_set.len(), 0);
-	/// range_bounds_set.insert(0..1).unwrap();
+	/// range_bounds_set.insert_platonic(0..1).unwrap();
 	/// assert_eq!(range_bounds_set.len(), 1);
 	/// ```
 	pub fn len(&self) -> usize {
 		self.map.len()
 	}
 
-	/// Adds a new `RangeBounds` to the set.
+	/// Adds a new `RangeBounds` to the set without modifying other
+	/// `RangeBounds`.
 	///
 	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
-	/// already in the set then [`InsertError::OverlapsPreexisting`]
+	/// already in the set then [`InsertPlatonicError`]
 	/// is returned and the set is not updated.
-	///
-	/// If the new `RangeBounds` is invalid then
-	/// [`InsertError::InvalidRangeBounds`] is returned and the set is
-	/// not updated.
-	/// See the [`InsertError::InvalidRangeBounds`] type
-	/// to see what constitutes as an "invalid" `RangeBounds`.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::{InsertError, RangeBoundsSet};
+	/// use range_bounds_map::{InsertPlatonicError, RangeBoundsSet};
 	///
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///
-	/// assert_eq!(range_bounds_set.insert(5..10), Ok(()));
+	/// assert_eq!(range_bounds_set.insert_platonic(5..10), Ok(()));
 	/// assert_eq!(
-	/// 	range_bounds_set.insert(5..10),
-	/// 	Err(InsertError::OverlapsPreexisting)
-	/// );
-	/// assert_eq!(
-	/// 	range_bounds_set.insert(5..1),
-	/// 	Err(InsertError::InvalidRangeBounds)
+	/// 	range_bounds_set.insert_platonic(5..10),
+	/// 	Err(InsertPlatonicError)
 	/// );
 	/// assert_eq!(range_bounds_set.len(), 1);
 	/// ```
-	pub fn insert(&mut self, range_bounds: K) -> Result<(), InsertError> {
-		self.map.insert(range_bounds, ())
+	pub fn insert_platonic(
+		&mut self,
+		range_bounds: K,
+	) -> Result<(), InsertPlatonicError> {
+		self.map.insert_platonic(range_bounds, ())
 	}
 
 	/// Returns `true` if the given `RangeBounds` overlaps any of the
@@ -178,7 +172,7 @@ where
 	///
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///
-	/// range_bounds_set.insert(5..10);
+	/// range_bounds_set.insert_platonic(5..10);
 	///
 	/// assert_eq!(range_bounds_set.overlaps(&(1..=3)), false);
 	/// assert_eq!(range_bounds_set.overlaps(&(4..5)), false);
@@ -330,7 +324,7 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert_eq!(
 	/// 	base.cut(&(60..=80)),
-	/// 	Err(CutError::NonConvertibleRangeBoundsProduced)
+	/// 	Err(CutError)
 	/// );
 	/// ```
 	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), CutError>
@@ -428,11 +422,11 @@ where
 	K: RangeBounds<I>,
 	I: Ord + Clone,
 {
-	type Error = InsertError;
+	type Error = InsertPlatonicError;
 	fn try_from(range_bounds: [K; N]) -> Result<Self, Self::Error> {
 		let mut range_bounds_set = RangeBoundsSet::new();
 		for range_bounds in range_bounds {
-			range_bounds_set.insert(range_bounds)?;
+			range_bounds_set.insert_platonic(range_bounds)?;
 		}
 
 		return Ok(range_bounds_set);

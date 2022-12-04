@@ -94,8 +94,8 @@ use crate::TryFromBounds;
 /// // Now we can make a [`RangeBoundsMap`] of [`ExEx`]s to `u8`
 /// let mut map = RangeBoundsMap::new();
 ///
-/// map.insert(ExEx::new(0.0, 5.0), 8).unwrap();
-/// map.insert(ExEx::new(5.0, 7.5), 32).unwrap();
+/// map.insert_platonic(ExEx::new(0.0, 5.0), 8).unwrap();
+/// map.insert_platonic(ExEx::new(5.0, 7.5), 32).unwrap();
 ///
 /// assert_eq!(map.contains_point(&NotNan::new(5.0).unwrap()), false);
 ///
@@ -121,36 +121,21 @@ where
 	starts: BTreeMap<StartBound<I>, (K, V)>,
 }
 
-/// An error type to represent the possible errors from the
-/// [`RangeBoundsMap::insert()`] function.
+/// An error type to returned from the [`RangeBoundsMap::insert_platonic()`] function.
+///
+/// Its returned if you you try to insert a `RangeBounds` that
+/// overlaps another `RangeBounds`.
 #[derive(PartialEq, Debug)]
-pub enum InsertError {
-	/// A `RangeBounds` is invalid if both its `start_bound()`
-	/// AND `end_bound()` are (`Bound::Included` OR `Bound::Exluded`)
-	/// AND the `start` point is >= than the `end`
-	/// point.
-	///
-	/// The one exception to this rule is if both `start_bound()` AND
-	/// `end_bound()` are `Bound::Included` and the `start` point is
-	/// == to the `end` point then it is considered valid despite
-	/// failing the previous rule.
-	InvalidRangeBounds,
-	/// The error given if you try to insert a `RangeBounds` that
-	/// overlaps one or more `RangeBounds` already in the map.
-	OverlapsPreexisting,
-}
+pub struct InsertPlatonicError;
 
-/// An error type to represent the possible errors from the
-/// [`RangeBoundsMap::cut()`] function.
+/// An error type to returned from the [`RangeBoundsMap::cut()`].
+///
+/// Its returned if when cutting out a `RangeBounds` from a map you
+/// need to change the inner `RangeBounds`'s start and end `Bound`s to
+/// different `Bound`s that the underlying `K`: `RangeBounds` type
+/// can't handle.
 #[derive(PartialEq, Debug)]
-pub enum CutError {
-	/// When cutting out a `RangeBounds` from another `RangeBounds`
-	/// you may need to change the base `RangeBounds`' start and end
-	/// `Bound`s, when these need to change values that the underlying
-	/// `K`: `RangeBounds` type can't handle then this error is
-	/// returned.
-	NonConvertibleRangeBoundsProduced,
-}
+pub struct CutError;
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
@@ -183,53 +168,40 @@ where
 	/// let mut range_bounds_map = RangeBoundsMap::new();
 	///
 	/// assert_eq!(range_bounds_map.len(), 0);
-	/// range_bounds_map.insert(0..1, false).unwrap();
+	/// range_bounds_map.insert_platonic(0..1, false).unwrap();
 	/// assert_eq!(range_bounds_map.len(), 1);
 	/// ```
 	pub fn len(&self) -> usize {
 		self.starts.len()
 	}
 
-	/// Adds a new (`RangeBounds` `Value`) pair to the map.
+	/// Adds a new (`RangeBounds` `Value`) pair to the map without
+	/// modifying other entries.
 	///
 	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
-	/// already in the map then [`InsertError::OverlapsPreexisting`]
+	/// already in the map then [`InsertPlatonicError`]
 	/// is returned and the map is not updated.
-	///
-	/// If the new `RangeBounds` is invalid then
-	/// [`InsertError::InvalidRangeBounds`] is returned and the map is
-	/// not updated.
-	/// See the [`InsertError::InvalidRangeBounds`] type
-	/// to see what constitutes as an "invalid" `RangeBounds`.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::{InsertError, RangeBoundsMap};
+	/// use range_bounds_map::{InsertPlatonicError, RangeBoundsMap};
 	///
 	/// let mut range_bounds_map = RangeBoundsMap::new();
 	///
-	/// assert_eq!(range_bounds_map.insert(5..10, 9), Ok(()));
+	/// assert_eq!(range_bounds_map.insert_platonic(5..10, 9), Ok(()));
 	/// assert_eq!(
-	/// 	range_bounds_map.insert(5..10, 2),
-	/// 	Err(InsertError::OverlapsPreexisting)
-	/// );
-	/// assert_eq!(
-	/// 	range_bounds_map.insert(5..1, 8),
-	/// 	Err(InsertError::InvalidRangeBounds)
+	/// 	range_bounds_map.insert_platonic(5..10, 2),
+	/// 	Err(InsertPlatonicError)
 	/// );
 	/// assert_eq!(range_bounds_map.len(), 1);
 	/// ```
-	pub fn insert(
+	pub fn insert_platonic(
 		&mut self,
 		range_bounds: K,
 		value: V,
-	) -> Result<(), InsertError> {
-		if !is_valid_range_bounds(&range_bounds) {
-			return Err(InsertError::InvalidRangeBounds);
-		}
-
+	) -> Result<(), InsertPlatonicError> {
 		if self.overlaps(&range_bounds) {
-			return Err(InsertError::OverlapsPreexisting);
+			return Err(InsertPlatonicError);
 		}
 
 		//optimisation fix this without cloning
@@ -260,7 +232,7 @@ where
 	///
 	/// let mut range_bounds_map = RangeBoundsMap::new();
 	///
-	/// range_bounds_map.insert(5..10, false);
+	/// range_bounds_map.insert_platonic(5..10, false);
 	///
 	/// assert_eq!(range_bounds_map.overlaps(&(1..=3)), false);
 	/// assert_eq!(range_bounds_map.overlaps(&(4..5)), false);
@@ -565,7 +537,7 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert_eq!(
 	/// 	base.cut(&(60..=80)),
-	/// 	Err(CutError::NonConvertibleRangeBoundsProduced)
+	/// 	Err(CutError)
 	/// );
 	/// ```
 	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), CutError>
@@ -584,32 +556,31 @@ where
 
 		// optimisation don't clone the value when only changing the
 		// RangeBounds via CutResult::Single()
-		let mut attempt_insert =
-			|(start_bound, end_bound), value| -> Result<(), CutError> {
-				match K::try_from_bounds(start_bound, end_bound)
-					.ok_or(CutError::NonConvertibleRangeBoundsProduced)
-				{
-					Ok(key) => {
-						self.insert(key, value).unwrap();
-						return Ok(());
-					}
-					Err(cut_error) => return Err(cut_error),
+		let mut attempt_insert_platonic = |(start_bound, end_bound),
+		                                   value|
+		 -> Result<(), CutError> {
+			match K::try_from_bounds(start_bound, end_bound).ok_or(CutError) {
+				Ok(key) => {
+					self.insert_platonic(key, value).unwrap();
+					return Ok(());
 				}
-			};
+				Err(cut_error) => return Err(cut_error),
+			}
+		};
 
 		match first_last {
 			(Some(first), Some(last)) => {
 				match cut_range_bounds(&first.0, range_bounds) {
 					CutResult::Nothing => {}
 					CutResult::Single(left_section) => {
-						attempt_insert(left_section, first.1)?;
+						attempt_insert_platonic(left_section, first.1)?;
 					}
 					CutResult::Double(_, _) => unreachable!(),
 				}
 				match cut_range_bounds(&last.0, range_bounds) {
 					CutResult::Nothing => {}
 					CutResult::Single(right_section) => {
-						attempt_insert(right_section, last.1)?;
+						attempt_insert_platonic(right_section, last.1)?;
 					}
 					CutResult::Double(_, _) => unreachable!(),
 				}
@@ -618,11 +589,11 @@ where
 				match cut_range_bounds(&first.0, range_bounds) {
 					CutResult::Nothing => {}
 					CutResult::Single(section) => {
-						attempt_insert(section, first.1)?;
+						attempt_insert_platonic(section, first.1)?;
 					}
 					CutResult::Double(left_section, right_section) => {
-						attempt_insert(left_section, first.1.clone())?;
-						attempt_insert(right_section, first.1)?;
+						attempt_insert_platonic(left_section, first.1.clone())?;
+						attempt_insert_platonic(right_section, first.1)?;
 					}
 				}
 			}
@@ -745,11 +716,11 @@ where
 	K: RangeBounds<I>,
 	I: Ord + Clone,
 {
-	type Error = InsertError;
+	type Error = InsertPlatonicError;
 	fn try_from(pairs: [(K, V); N]) -> Result<Self, Self::Error> {
 		let mut range_bounds_map = RangeBoundsMap::new();
 		for (range_bounds, value) in pairs {
-			range_bounds_map.insert(range_bounds, value)?;
+			range_bounds_map.insert_platonic(range_bounds, value)?;
 		}
 
 		return Ok(range_bounds_map);
@@ -845,6 +816,7 @@ where
 	B: RangeBounds<I>,
 	I: PartialOrd,
 {
+	// optimisation, do this with much less operations
 	let a_start = a.start_bound();
 	let a_end = a.end_bound();
 
@@ -933,7 +905,7 @@ mod tests {
 		for overlap_range in all_valid_test_bounds() {
 			for inside_range in all_valid_test_bounds() {
 				let mut range_bounds_set = RangeBoundsSet::new();
-				range_bounds_set.insert(inside_range).unwrap();
+				range_bounds_set.insert_platonic(inside_range).unwrap();
 
 				let mut expected_overlapping = Vec::new();
 				if overlaps(&overlap_range, &inside_range) {
@@ -961,8 +933,8 @@ mod tests {
 				all_non_overlapping_test_bound_pairs()
 			{
 				let mut range_bounds_set = RangeBoundsSet::new();
-				range_bounds_set.insert(inside_range1).unwrap();
-				range_bounds_set.insert(inside_range2).unwrap();
+				range_bounds_set.insert_platonic(inside_range1).unwrap();
+				range_bounds_set.insert_platonic(inside_range2).unwrap();
 
 				let mut expected_overlapping = Vec::new();
 				if overlaps(&overlap_range, &inside_range1) {
