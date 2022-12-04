@@ -682,22 +682,34 @@ where
 			.overlapping(outer_range_bounds)
 			.map(|(key, _)| (key.start_bound(), key.end_bound()));
 
-        // We have to opposite these ahead of time as we actually want
-        // the bounds included not excluded like with other bounds in
-        // artificials
+		// We have to opposite these ahead of time as we actually want
+		// the bounds included not excluded like with other bounds in
+		// artificials
 		let artificial_start = (
-            Bound::from(StartBound::from(outer_range_bounds.start_bound()).into_opposite()),
-            Bound::from(StartBound::from(outer_range_bounds.start_bound()).into_opposite()),
+			Bound::from(
+				StartBound::from(outer_range_bounds.start_bound())
+					.into_opposite(),
+			),
+			Bound::from(
+				StartBound::from(outer_range_bounds.start_bound())
+					.into_opposite(),
+			),
 		);
 		let artificial_end = (
-            Bound::from(StartBound::from(outer_range_bounds.end_bound()).into_opposite()),
-            Bound::from(StartBound::from(outer_range_bounds.end_bound()).into_opposite()),
+			Bound::from(
+				StartBound::from(outer_range_bounds.end_bound())
+					.into_opposite(),
+			),
+			Bound::from(
+				StartBound::from(outer_range_bounds.end_bound())
+					.into_opposite(),
+			),
 		);
 		let artificials = once(artificial_start)
 			.chain(inners)
 			.chain(once(artificial_end));
 
-        eprintln!("\nnew:");
+		eprintln!("\nnew:");
 
 		return artificials
 			.tuple_windows()

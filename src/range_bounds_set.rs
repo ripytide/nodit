@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::ops::RangeBounds;
+use std::ops::{Bound, RangeBounds};
 
 use serde::{Deserialize, Serialize};
 
@@ -339,6 +339,76 @@ where
 		K: TryFromBounds<I>,
 	{
 		self.map.cut(range_bounds)
+	}
+
+	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
+	/// maximally-sized gaps in the set that are also within the given
+	/// `outer_range_bounds`.
+	///
+	/// To get all possible gaps just call `gaps()` with an unbounded
+	/// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
+	/// Bound::Unbounded)`.
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Bound;
+	///
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..3, 5..7, 9..100]).unwrap();
+	///
+	/// let mut gaps = range_bounds_set.gaps(&(2..));
+	///
+	/// assert_eq!(
+	/// 	gaps.next(),
+	/// 	Some((Bound::Included(&3), Bound::Excluded(&5)))
+	/// );
+	/// assert_eq!(
+	/// 	gaps.next(),
+	/// 	Some((Bound::Included(&7), Bound::Excluded(&9)))
+	/// );
+	/// assert_eq!(
+	/// 	gaps.next(),
+	/// 	Some((Bound::Included(&100), Bound::Unbounded))
+	/// );
+	/// assert_eq!(gaps.next(), None);
+	/// ```
+	pub fn gaps<'a, Q>(
+		&'a self,
+		outer_range_bounds: &'a Q,
+	) -> impl Iterator<Item = (Bound<&I>, Bound<&I>)>
+	where
+		Q: RangeBounds<I>,
+	{
+		self.map.gaps(outer_range_bounds)
+	}
+
+	/// Returns `true` if the set covers every point in the given
+	/// `RangeBounds`, and `false` if it doesn't.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..3, 5..8, 8..100]).unwrap();
+	///
+	/// assert_eq!(range_bounds_set.contains_range_bounds(&(1..3)), true);
+	/// assert_eq!(
+	/// 	range_bounds_set.contains_range_bounds(&(2..6)),
+	/// 	false
+	/// );
+	/// assert_eq!(
+	/// 	range_bounds_set.contains_range_bounds(&(6..50)),
+	/// 	true
+	/// );
+	/// ```
+	pub fn contains_range_bounds<Q>(&self, range_bounds: &Q) -> bool
+	where
+		Q: RangeBounds<I>,
+	{
+		self.map.contains_range_bounds(range_bounds)
 	}
 }
 
