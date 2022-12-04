@@ -112,13 +112,12 @@ Issue (or even open a new one) and I'd be happy to implement it.
 To summarise:
 
 - No coalescing/merge insert functions, yet
-- No `gaps()` iterator function, yet
 - Missing some functions common to BTreeMap and BTreeSet like:
   - `clear()`
   - `is_subset()`
   - etc... a bunch more
 - Sub-optimal use of unnecessary `cloned()` just to placate the borrow checker
-- Use TryFrom<(Bound, Bound)> instead of [`TryFromBounds`] (relys on
+- Can't use TryFrom<(Bound, Bound)> instead of [`TryFromBounds`] (relys on
   upstream to impl)
 - The data structures are lacking a lot of useful traits, such as:
   - FromIterator

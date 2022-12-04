@@ -1,23 +1,15 @@
 - make sure all returned iterators are DoubleEndedIterators and the
   documentation mentions it
 
-- add caveat for TryFrom on ranges
-
 - write more tests for more complicated functions
 
 - write docs for everything again
 
-- check every function that takes range_Bounds to make sure they panic
-  on invalid range_bounds
-
-- use it in robot_Sweet_graph for a bit before publishing
-
-- add issues to github for all the caveats and cloned() optimisations
+- add issues to github for all the caveats
 - review caveats again
 
 - copy readme to lib.rs docs again
 
-- run cargo fmt
 - run and fix cargo clippy
 - take a look around idiomatic rust for a bit first
 
@@ -26,9 +18,9 @@
 - refactor to undo into_StartBound -> StartBound method ->
   from_StartBound and replace with a similar TraitExt for Bound
 
-- refactor opposuite for bound use too
-
 - update lines of code figures on docs
+
+- use it in robot_Sweet_graph for a bit before publishing
 
 - PUBLISH
 

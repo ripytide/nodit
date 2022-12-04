@@ -70,15 +70,6 @@ impl<T> StartBound<T> {
 			_ => panic!("unsuitable operation"),
 		}
 	}
-
-	pub(crate) fn into_opposite(self) -> StartBound<T> {
-		match self {
-			StartBound::Included(point) => StartBound::Excluded(point),
-			StartBound::Excluded(point) => StartBound::Included(point),
-			StartBound::Unbounded => StartBound::Unbounded,
-			_ => panic!("unsuitable operation"),
-		}
-	}
 }
 
 impl<T> Eq for StartBound<T> where T: PartialEq {}

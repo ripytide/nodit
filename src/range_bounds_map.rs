@@ -686,24 +686,12 @@ where
 		// the bounds included not excluded like with other bounds in
 		// artificials
 		let artificial_start = (
-			Bound::from(
-				StartBound::from(outer_range_bounds.start_bound())
-					.into_opposite(),
-			),
-			Bound::from(
-				StartBound::from(outer_range_bounds.start_bound())
-					.into_opposite(),
-			),
+			flip_bound(outer_range_bounds.start_bound()),
+			flip_bound(outer_range_bounds.start_bound()),
 		);
 		let artificial_end = (
-			Bound::from(
-				StartBound::from(outer_range_bounds.end_bound())
-					.into_opposite(),
-			),
-			Bound::from(
-				StartBound::from(outer_range_bounds.end_bound())
-					.into_opposite(),
-			),
+			flip_bound(outer_range_bounds.end_bound()),
+			flip_bound(outer_range_bounds.end_bound()),
 		);
 		let artificials = once(artificial_start)
 			.chain(inners)
@@ -714,12 +702,7 @@ where
 		return artificials
 			.tuple_windows()
 			.map(|((_, first_end), (second_start, _))| {
-				(
-					// Flip the ends of the inside RangeBounds between
-					// adjacent RangeBounds in the map
-					Bound::from(StartBound::from(first_end).into_opposite()),
-					Bound::from(StartBound::from(second_start).into_opposite()),
-				)
+				(flip_bound(first_end), flip_bound(second_start))
 			})
 			.filter(is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>);
 	}
@@ -822,19 +805,16 @@ where
 		false => None,
 		true => Some((
 			base_start_bound.cloned(),
-			Bound::from(StartBound::from(cut_start_bound).into_opposite())
-				.cloned(),
+			flip_bound(cut_start_bound).cloned(),
 		)),
 	};
 	let right_section = match StartBound::from(cut_end_bound).into_end_bound()
 		< StartBound::from(base_end_bound).into_end_bound()
 	{
 		false => None,
-		true => Some((
-			Bound::from(StartBound::from(cut_end_bound).into_opposite())
-				.cloned(),
-			base_end_bound.cloned(),
-		)),
+		true => {
+			Some((flip_bound(cut_end_bound).cloned(), base_end_bound.cloned()))
+		}
 	};
 
 	match (left_section, right_section) {
@@ -888,6 +868,14 @@ where
 		(Bound::Unbounded, _) => true,
 
 		(_, Bound::Unbounded) => unreachable!(),
+	}
+}
+
+fn flip_bound<I>(bound: Bound<&I>) -> Bound<&I> {
+	match bound {
+		Bound::Included(point) => Bound::Excluded(point),
+		Bound::Excluded(point) => Bound::Included(point),
+		Bound::Unbounded => Bound::Unbounded,
 	}
 }
 
