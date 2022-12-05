@@ -1100,7 +1100,8 @@ where
 	/// `RangeBounds`.
 	///
 	/// This is equivalent to using [`RangeBoundsMap::cut()`]
-	/// followed by [`RangeBoundsMap::insert_platonic()`].
+	/// followed by [`RangeBoundsMap::insert_platonic()`]. Hence the
+	/// same `V: Clone` trait bound applies.
 	///
 	/// If the remaining `RangeBounds` left after the cut are not able
 	/// to be created with the [`TryFromBounds`] trait then a
@@ -1124,8 +1125,15 @@ where
 		&mut self,
 		range_bounds: K,
 		value: V,
-	) -> Result<(), TryFromBoundsError> {
-		todo!()
+	) -> Result<(), TryFromBoundsError>
+	where
+		V: Clone,
+		K: TryFromBounds<I>,
+	{
+		self.cut(&range_bounds)?;
+		self.insert_platonic(range_bounds, value).unwrap();
+
+		return Ok(());
 	}
 }
 
