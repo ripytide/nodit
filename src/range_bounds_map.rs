@@ -1304,212 +1304,238 @@ fn flip_bound<I>(bound: Bound<&I>) -> Bound<&I> {
 	}
 }
 
-//#[cfg(test)]
-//mod tests {
-//use std::ops::{Bound, Range, RangeBounds};
+#[cfg(test)]
+mod tests {
+	use std::ops::{Bound, Range, RangeBounds};
 
-//use super::*;
-//use crate::bounds::StartBound;
-//use crate::RangeBoundsSet;
+	use super::*;
+	use crate::bounds::StartBound;
 
-//type TestBounds = (Bound<u8>, Bound<u8>);
+	type TestBounds = (Bound<u8>, Bound<u8>);
 
-////only every other number to allow mathematical_overlapping_definition
-////to test between bounds in finite using smaller intervalled finite
-//pub(crate) const NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
-////go a bit around on either side to compensate for Unbounded
-//pub(crate) const NUMBERS_DOMAIN: &'static [u8] =
-//&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+	//only every other number to allow mathematical_overlapping_definition
+	//to test between bounds in finite using smaller intervalled finite
+	pub(crate) const NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
+	//go a bit around on either side to compensate for Unbounded
+	pub(crate) const NUMBERS_DOMAIN: &'static [u8] =
+		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-//#[test]
-//fn mass_overlaps_test() {
-//for range_bounds1 in all_valid_test_bounds() {
-//for range_bounds2 in all_valid_test_bounds() {
-//let our_answer = overlaps(&range_bounds1, &range_bounds2);
+	#[test]
+	fn mass_overlaps_test() {
+		for range_bounds1 in all_valid_test_bounds() {
+			for range_bounds2 in all_valid_test_bounds() {
+				let our_answer = overlaps(&range_bounds1, &range_bounds2);
 
-//let mathematical_definition_of_overlap =
-//NUMBERS_DOMAIN.iter().any(|x| {
-//range_bounds1.contains(x) && range_bounds2.contains(x)
-//});
+				let mathematical_definition_of_overlap =
+					NUMBERS_DOMAIN.iter().any(|x| {
+						range_bounds1.contains(x) && range_bounds2.contains(x)
+					});
 
-//if our_answer != mathematical_definition_of_overlap {
-//dbg!(range_bounds1, range_bounds2);
-//dbg!(mathematical_definition_of_overlap, our_answer);
-//panic!("Discrepency in .overlaps() detected!");
-//}
+				if our_answer != mathematical_definition_of_overlap {
+					dbg!(range_bounds1, range_bounds2);
+					dbg!(mathematical_definition_of_overlap, our_answer);
+					panic!("Discrepency in .overlaps() detected!");
+				}
+			}
+		}
+	}
 
-//#[test]
-//fn mass_overlapping_test() {
-////case zero
-//for overlap_range in all_valid_test_bounds() {
-////you can't overlap nothing
-//assert!(
-//RangeBoundsSet::<u8, Range<u8>>::new()
-//.overlapping(&overlap_range)
-//.next()
-//.is_none()
-//);
-//}
+	#[test]
+	fn mass_overlapping_test() {
+		//case zero
+		for overlap_range in all_valid_test_bounds() {
+			//you can't overlap nothing
+			assert!(
+				RangeBoundsMap::<u8, Range<u8>, ()>::new()
+					.overlapping(&overlap_range)
+					.next()
+					.is_none()
+			);
+		}
 
-////case one
-//for overlap_range in all_valid_test_bounds() {
-//for inside_range in all_valid_test_bounds() {
-//let mut range_bounds_set = RangeBoundsSet::new();
-//range_bounds_set.insert_platonic(inside_range).unwrap();
+		//case one
+		for overlap_range in all_valid_test_bounds() {
+			for inside_range in all_valid_test_bounds() {
+				let mut range_bounds_set = RangeBoundsMap::new();
+				range_bounds_set.insert_platonic(inside_range, ()).unwrap();
 
-//let mut expected_overlapping = Vec::new();
-//if overlaps(&overlap_range, &inside_range) {
-//expected_overlapping.push(inside_range);
-//}
+				let mut expected_overlapping = Vec::new();
+				if overlaps(&overlap_range, &inside_range) {
+					expected_overlapping.push(inside_range);
+				}
 
-//let overlapping = range_bounds_set
-//.overlapping(&overlap_range)
-//.copied()
-//.collect::<Vec<_>>();
+				let overlapping = range_bounds_set
+					.overlapping(&overlap_range)
+					.map(|(key, _)| key)
+					.copied()
+					.collect::<Vec<_>>();
 
-//if overlapping != expected_overlapping {
-//dbg!(overlap_range, inside_range);
-//dbg!(overlapping, expected_overlapping);
-//panic!(
-//"Discrepency in .overlapping() with single inside range detected!"
-//);
-//}
+				if overlapping != expected_overlapping {
+					dbg!(overlap_range, inside_range);
+					dbg!(overlapping, expected_overlapping);
+					panic!(
+						"Discrepency in .overlapping() with single inside range detected!"
+					);
+				}
+			}
+		}
 
-////case two
-//for overlap_range in all_valid_test_bounds() {
-//for (inside_range1, inside_range2) in
-//all_non_overlapping_test_bound_pairs()
-//{
-//let mut range_bounds_set = RangeBoundsSet::new();
-//range_bounds_set.insert_platonic(inside_range1).unwrap();
-//range_bounds_set.insert_platonic(inside_range2).unwrap();
+		//case two
+		for overlap_range in all_valid_test_bounds() {
+			for (inside_range1, inside_range2) in
+				all_non_overlapping_test_bound_pairs()
+			{
+				let mut range_bounds_set = RangeBoundsMap::new();
+				range_bounds_set.insert_platonic(inside_range1, ()).unwrap();
+				range_bounds_set.insert_platonic(inside_range2, ()).unwrap();
 
-//let mut expected_overlapping = Vec::new();
-//if overlaps(&overlap_range, &inside_range1) {
-//expected_overlapping.push(inside_range1);
-//}
-//if overlaps(&overlap_range, &inside_range2) {
-//expected_overlapping.push(inside_range2);
-//}
-////make our expected_overlapping the correct order
-//if expected_overlapping.len() > 1 {
-//if StartBound::from(expected_overlapping[0].start_bound())
-//> StartBound::from(
-//expected_overlapping[1].start_bound(),
-//) {
-//expected_overlapping.swap(0, 1);
-//}
+				let mut expected_overlapping = Vec::new();
+				if overlaps(&overlap_range, &inside_range1) {
+					expected_overlapping.push(inside_range1);
+				}
+				if overlaps(&overlap_range, &inside_range2) {
+					expected_overlapping.push(inside_range2);
+				}
+				//make our expected_overlapping the correct order
+				if expected_overlapping.len() > 1 {
+					if StartBound::from(expected_overlapping[0].start_bound())
+						> StartBound::from(
+							expected_overlapping[1].start_bound(),
+						) {
+						expected_overlapping.swap(0, 1);
+					}
+				}
 
-//let overlapping = range_bounds_set
-//.overlapping(&overlap_range)
-//.copied()
-//.collect::<Vec<_>>();
+				let overlapping = range_bounds_set
+					.overlapping(&overlap_range)
+					.map(|(key, _)| key)
+					.copied()
+					.collect::<Vec<_>>();
 
-//if overlapping != expected_overlapping {
-//dbg!(overlap_range, inside_range1, inside_range2);
-//dbg!(overlapping, expected_overlapping);
-//panic!(
-//"Discrepency in .overlapping() with two inside ranges detected!"
-//);
-//}
+				if overlapping != expected_overlapping {
+					dbg!(overlap_range, inside_range1, inside_range2);
+					dbg!(overlapping, expected_overlapping);
+					panic!(
+						"Discrepency in .overlapping() with two inside ranges detected!"
+					);
+				}
+			}
+		}
+	}
 
-//impl<I> CutResult<I> {
-//fn contains(&self, point: &I) -> bool
-//where
-//I: PartialOrd,
-//{
-//match self {
-//CutResult::Nothing => false,
-//CutResult::Single(range_bounds) => range_bounds.contains(point),
-//CutResult::Double(first_range_bounds, second_range_bounds) => {
-//first_range_bounds.contains(point)
-//|| second_range_bounds.contains(point)
-//}
-//#[test]
-//fn mass_cut_range_bounds_tests() {
-//for base in all_valid_test_bounds() {
-//for cut in all_valid_test_bounds() {
-//let cut_result = cut_range_bounds(&base, &cut);
+	impl<I> CutResult<I> {
+		fn contains(&self, point: &I) -> bool
+		where
+			I: PartialOrd,
+		{
+			match self {
+				CutResult::Nothing => false,
+				CutResult::Single(range_bounds) => range_bounds.contains(point),
+				CutResult::Double(first_range_bounds, second_range_bounds) => {
+					first_range_bounds.contains(point)
+						|| second_range_bounds.contains(point)
+				}
+			}
+		}
+	}
+	#[test]
+	fn mass_cut_range_bounds_tests() {
+		for base in all_valid_test_bounds() {
+			for cut in all_valid_test_bounds() {
+				let cut_result = cut_range_bounds(&base, &cut);
 
-//// The definition of a cut is: A && NOT B
-//for x in NUMBERS_DOMAIN {
-//let result_contains = cut_result.contains(x);
-//let base_contains = base.contains(x);
-//let cut_contains = cut.contains(x);
+				// The definition of a cut is: A && NOT B
+				for x in NUMBERS_DOMAIN {
+					let result_contains = cut_result.contains(x);
+					let base_contains = base.contains(x);
+					let cut_contains = cut.contains(x);
 
-//let invariant =
-//result_contains == (base_contains && !cut_contains);
+					let invariant =
+						result_contains == (base_contains && !cut_contains);
 
-//if !invariant {
-//dbg!(result_contains);
-//dbg!(base_contains);
-//dbg!(cut_contains);
+					if !invariant {
+						dbg!(result_contains);
+						dbg!(base_contains);
+						dbg!(cut_contains);
 
-//dbg!(base);
-//dbg!(cut);
-//dbg!(cut_result);
+						dbg!(base);
+						dbg!(cut);
+						dbg!(cut_result);
 
-//dbg!(x);
+						dbg!(x);
 
-//panic!("Invariant Broken!");
-//}
+						panic!("Invariant Broken!");
+					}
+				}
+			}
+		}
+	}
 
-//fn all_non_overlapping_test_bound_pairs() -> Vec<(TestBounds, TestBounds)> {
-//let mut output = Vec::new();
-//for test_bounds1 in all_valid_test_bounds() {
-//for test_bounds2 in all_valid_test_bounds() {
-//if !overlaps(&test_bounds1, &test_bounds2) {
-//output.push((test_bounds1, test_bounds2));
-//}
+	fn all_non_overlapping_test_bound_pairs() -> Vec<(TestBounds, TestBounds)> {
+		let mut output = Vec::new();
+		for test_bounds1 in all_valid_test_bounds() {
+			for test_bounds2 in all_valid_test_bounds() {
+				if !overlaps(&test_bounds1, &test_bounds2) {
+					output.push((test_bounds1, test_bounds2));
+				}
+			}
+		}
 
-//return output;
-//}
+		return output;
+	}
 
-//fn all_valid_test_bounds() -> Vec<TestBounds> {
-//let mut output = Vec::new();
+	fn all_valid_test_bounds() -> Vec<TestBounds> {
+		let mut output = Vec::new();
 
-////bounded-bounded
-//output.append(&mut all_finite_bounded_pairs());
-////bounded-unbounded
-//for start_bound in all_finite_bounded() {
-//output.push((start_bound, Bound::Unbounded));
-//}
-////unbounded-bounded
-//for end_bound in all_finite_bounded() {
-//output.push((Bound::Unbounded, end_bound));
-//}
-////unbounded-unbounded
-//output.push((Bound::Unbounded, Bound::Unbounded));
+		//bounded-bounded
+		output.append(&mut all_finite_bounded_pairs());
+		//bounded-unbounded
+		for start_bound in all_finite_bounded() {
+			output.push((start_bound, Bound::Unbounded));
+		}
+		//unbounded-bounded
+		for end_bound in all_finite_bounded() {
+			output.push((Bound::Unbounded, end_bound));
+		}
+		//unbounded-unbounded
+		output.push((Bound::Unbounded, Bound::Unbounded));
 
-//return output;
-//}
+		return output;
+	}
 
-//fn all_finite_bounded_pairs() -> Vec<(Bound<u8>, Bound<u8>)> {
-//let mut output = Vec::new();
-//for i in NUMBERS {
-//for j in NUMBERS {
-//for i_ex in [false, true] {
-//for j_ex in [false, true] {
-//if j > i || (j == i && !i_ex && !j_ex) {
-//output.push((
-//finite_bound(*i, i_ex),
-//finite_bound(*j, j_ex),
-//));
-//}
-//return output;
-//}
+	fn all_finite_bounded_pairs() -> Vec<(Bound<u8>, Bound<u8>)> {
+		let mut output = Vec::new();
+		for i in NUMBERS {
+			for j in NUMBERS {
+				for i_ex in [false, true] {
+					for j_ex in [false, true] {
+						if j > i || (j == i && !i_ex && !j_ex) {
+							output.push((
+								finite_bound(*i, i_ex),
+								finite_bound(*j, j_ex),
+							));
+						}
+					}
+				}
+			}
+		}
+		return output;
+	}
 
-//fn all_finite_bounded() -> Vec<Bound<u8>> {
-//let mut output = Vec::new();
-//for i in NUMBERS {
-//for j in 0..=1 {
-//output.push(finite_bound(*i, j == 1));
-//}
-//return output;
-//}
+	fn all_finite_bounded() -> Vec<Bound<u8>> {
+		let mut output = Vec::new();
+		for i in NUMBERS {
+			for j in 0..=1 {
+				output.push(finite_bound(*i, j == 1));
+			}
+		}
+		return output;
+	}
 
-//fn finite_bound(x: u8, included: bool) -> Bound<u8> {
-//match included {
-//false => Bound::Included(x),
-//true => Bound::Excluded(x),
-//}
+	fn finite_bound(x: u8, included: bool) -> Bound<u8> {
+		match included {
+			false => Bound::Included(x),
+			true => Bound::Excluded(x),
+		}
+	}
+}
