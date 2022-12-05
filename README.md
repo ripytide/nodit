@@ -19,6 +19,20 @@ maintaining two invariants:
 [`RangeBoundsSet`] is like [`RangeBoundsMap`] except it
 uses `()` as values, as [`BTreeSet`] does for [`BTreeMap`]
 
+## Key Definitions:
+
+### Overlap
+
+Two `RangeBounds` are "overlapping" if there exists a point that is
+contained within both `RangeBounds`.
+
+### Touching
+
+Two `RangeBounds` are "touching" if they do not overlap but
+there exists no value between them. For example, `2..4` and
+`4..6` are touching but `2..4` and `6..8` are not, neither are
+`2..6` and `4..8`.
+
 ## Example using [`Range`]s
 
 ```rust
@@ -111,6 +125,9 @@ Issue (or even open a new one) and I'd be happy to implement it.
 
 To summarise:
 
+- Some overly strict Trait-Bounds on some functions due to `impl`
+  level `Trait-Bounds` rather than specific `function` level
+  `Trait-Bounds`
 - No coalescing/merge insert functions, yet
 - Missing some functions common to BTreeMap and BTreeSet like:
   - `clear()`

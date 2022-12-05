@@ -1,6 +1,9 @@
 - check documentation to remove mentions of insert without the naming
   modifier
 
+- remove test is_valid_range_bounds and use the same one the module
+  uses
+
 - write more tests for more complicated functions
 
 - write docs for everything again
