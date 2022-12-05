@@ -149,7 +149,7 @@ pub struct OverlapError;
 /// ```
 /// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 ///
-/// let range_bounds_map =
+/// let mut range_bounds_map =
 /// 	RangeBoundsMap::try_from([(2..8, true)]).unwrap();
 ///
 /// assert_eq!(
@@ -385,7 +385,7 @@ where
 	///
 	/// assert_eq!(
 	/// 	overlapping.collect::<Vec<_>>(),
-	/// 	[(&(1..4), &false), (&(4..8), &true), (&(8..100), &false)]
+	/// 	[(&(1..4), &false), (&(4..8), &true)]
 	/// );
 	/// ```
 	pub fn overlapping<Q>(
@@ -602,7 +602,7 @@ where
 	///
 	/// assert_eq!(
 	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
-	/// 	[(&(1..4), false), (&(4..8), true)]
+	/// 	[(&(8..100), &false)]
 	/// );
 	/// ```
 	pub fn remove_overlapping<Q>(

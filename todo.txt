@@ -1,24 +1,14 @@
-- check documentation to remove mentions of insert without the naming
-  modifier
-
-- remove test is_valid_range_bounds and use the same one the module
-  uses
+- remove test is_valid_range_bounds and use the same one the module uses
 
 - write more tests for more complicated functions
+- test for atomnicity, if it fails it shouldn't affect the map
 
-- write docs for everything again
+- write docs for undocced things
 
 - add issues to github for all the caveats
 - review caveats again
 
-- remove all unwraps from examples
-
-- refactor tests with a bunch of next()s into using collect for
-  assert_eq
-
 - copy map to set again
-
-- test for atomnicity, if it fails it shouldn't affect the map
 
 - write something somewhere about wrapper types for RangeBoundsMap
   that can simplify function signatures due to known invariants. For
