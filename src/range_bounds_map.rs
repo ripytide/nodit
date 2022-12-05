@@ -128,6 +128,123 @@ pub struct OverlapError;
 
 /// An error type to represent a failed [`TryFromBounds`] within a
 /// method.
+///
+/// There are several methods that return this error, and some of the
+/// causes of this error can be very subtle, so here are some examples
+/// showing all the reasons this error might be returned.
+///
+/// # Example with [`RangeBoundsMap::cut()`]
+///
+/// The first way you may recieve [`TryFromBoundsError`] is from
+/// [`RangeBoundsMap::cut()`].
+///
+/// In this example we try to cut `4..=6` out of a `RangeBoundsMap`
+/// that contains `2..8`. If this was successful then the
+/// `RangeBoundsMap` would hold `2..4` and `(Bound::Exclusive(6),
+/// Bound::Exclusive(8))`. However, since the `RangeBounds` type of
+/// this `RangeBoundsMap` is `Range<{integer}>` the latter of the two
+/// new `RangeBounds` is "unrepresentable", and hence will fail to be
+/// created via [`TryFromBounds`].
+///
+/// ```
+/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+///
+/// let range_bounds_map =
+/// 	RangeBoundsMap::try_from([(2..8, true)]).unwrap();
+///
+/// assert_eq!(
+/// 	range_bounds_map.cut(&(4..=6)),
+/// 	Err(TryFromBoundsError)
+/// );
+/// ```
+///
+/// # Example with `insert_coalesce_*` functions.
+///
+/// The second and final way you may recieve a [`TryFromBoundsError`]
+/// is via coalescing methods such as
+/// [`RangeBoundsMap::insert_coalesce_touching`].
+///
+/// In the first example it was fairly easy to create an invalid
+/// `RangeBounds` by cutting with a different `RangeBounds` than the
+/// underlying `RangeBoundsMap`'s `RangeBounds` type. However, the
+/// `insert_coalesce_*` functions all take `range_bounds: K` as an
+/// argument so it is not possible to create an invalid `K` type
+/// directly. However upon "coalescing" of two `RangeBounds` (even if
+/// both of them are type `K`), you can create a `RangeBounds` that *cannot* be
+/// of type `K`.
+///
+/// In this example we use a `RangeBounds` type that can be either
+/// Inclusive-Inclusive OR Exlusive-Exlusive. We then try to use
+/// [`RangeBoundsMap::insert_coalesce_touching()`] to "coalesce" an
+/// Inclusive-Inclusive and a Exlusive-Exlusive `MultiRange`. This
+/// will however fail as the resulting "coalesced" `RangeBounds` would
+/// have to be Inclusive-Exlusive which `MultiRange` does not support.
+///
+/// ```
+/// use std::ops::{Bound, RangeBounds};
+///
+/// use range_bounds_map::{
+/// 	OverlapOrTryFromBoundsError, RangeBoundsMap, TryFromBounds,
+/// 	TryFromBoundsError,
+/// };
+///
+/// enum MultiRange {
+/// 	Inclusive(u8, u8),
+/// 	Exclusive(u8, u8),
+/// }
+///
+/// impl RangeBounds<u8> for MultiRange {
+/// 	fn start_bound(&self) -> Bound<&u8> {
+/// 		match self {
+/// 			MultiRange::Inclusive(start, _) => {
+/// 				Bound::Included(start)
+/// 			}
+/// 			MultiRange::Exclusive(start, _) => {
+/// 				Bound::Excluded(start)
+/// 			}
+/// 		}
+/// 	}
+/// 	fn end_bound(&self) -> Bound<&u8> {
+/// 		match self {
+/// 			MultiRange::Inclusive(_, end) => Bound::Included(end),
+/// 			MultiRange::Exclusive(_, end) => Bound::Excluded(end),
+/// 		}
+/// 	}
+/// }
+///
+/// impl TryFromBounds<u8> for MultiRange {
+/// 	fn try_from_bounds(
+/// 		start_bound: Bound<u8>,
+/// 		end_bound: Bound<u8>,
+/// 	) -> Option<Self> {
+/// 		match (start_bound, end_bound) {
+/// 			(Bound::Included(start), Bound::Included(end)) => {
+/// 				Some(MultiRange::Inclusive(start, end))
+/// 			}
+/// 			(Bound::Excluded(start), Bound::Excluded(end)) => {
+/// 				Some(MultiRange::Exclusive(start, end))
+/// 			}
+/// 			_ => None,
+/// 		}
+/// 	}
+/// }
+///
+/// let mut range_bounds_map = RangeBoundsMap::try_from([(
+/// 	MultiRange::Inclusive(2, 4),
+/// 	true,
+/// )])
+/// .unwrap();
+///
+/// assert_eq!(
+/// 	range_bounds_map.insert_coalesce_touching(
+/// 		MultiRange::Exclusive(4, 6),
+/// 		false
+/// 	),
+/// 	Err(OverlapOrTryFromBoundsError::TryFromBounds(
+/// 		TryFromBoundsError
+/// 	))
+/// );
+/// ```
 #[derive(PartialEq, Debug)]
 pub struct TryFromBoundsError;
 
@@ -266,9 +383,10 @@ where
 	///
 	/// let mut overlapping = range_bounds_map.overlapping(&(2..8));
 	///
-	/// assert_eq!(overlapping.next(), Some((&(1..4), &false)));
-	/// assert_eq!(overlapping.next(), Some((&(4..8), &true)));
-	/// assert_eq!(overlapping.next(), None);
+	/// assert_eq!(
+	/// 	overlapping.collect::<Vec<_>>(),
+	/// 	[(&(1..4), &false), (&(4..8), &true), (&(8..100), &false)]
+	/// );
 	/// ```
 	pub fn overlapping<Q>(
 		&self,
@@ -477,13 +595,15 @@ where
 	///
 	/// let mut removed = range_bounds_map.remove_overlapping(&(2..8));
 	///
-	/// assert_eq!(removed.next(), Some((1..4, false)));
-	/// assert_eq!(removed.next(), Some((4..8, true)));
-	/// assert_eq!(removed.next(), None);
+	/// assert_eq!(
+	/// 	removed.collect::<Vec<_>>(),
+	/// 	[(1..4, false), (4..8, true)]
+	/// );
 	///
-	/// let mut remaining = range_bounds_map.iter();
-	/// assert_eq!(remaining.next(), Some((&(8..100), &false)));
-	/// assert_eq!(remaining.next(), None);
+	/// assert_eq!(
+	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
+	/// 	[(&(1..4), false), (&(4..8), true)]
+	/// );
 	/// ```
 	pub fn remove_overlapping<Q>(
 		&mut self,
@@ -630,18 +750,13 @@ where
 	/// let mut gaps = range_bounds_map.gaps(&(2..));
 	///
 	/// assert_eq!(
-	/// 	gaps.next(),
-	/// 	Some((Bound::Included(&3), Bound::Excluded(&5)))
+	/// 	gaps.collect::<Vec<_>>(),
+	/// 	[
+	/// 		(Bound::Included(&3), Bound::Excluded(&5)),
+	/// 		(Bound::Included(&7), Bound::Excluded(&9)),
+	/// 		(Bound::Included(&100), Bound::Unbounded)
+	/// 	]
 	/// );
-	/// assert_eq!(
-	/// 	gaps.next(),
-	/// 	Some((Bound::Included(&7), Bound::Excluded(&9)))
-	/// );
-	/// assert_eq!(
-	/// 	gaps.next(),
-	/// 	Some((Bound::Included(&100), Bound::Unbounded))
-	/// );
-	/// assert_eq!(gaps.next(), None);
 	/// ```
 	pub fn gaps<'a, Q>(
 		&'a self,
@@ -753,9 +868,10 @@ where
 	/// 	Ok(())
 	/// );
 	///
-	/// assert_eq!(range_bounds_map.next(), Some((&(1..6), &true)));
-	/// assert_eq!(range_bounds_map.next(), Some((&(10..16), &false)));
-	/// assert_eq!(range_bounds_map.next(), None);
+	/// assert_eq!(
+	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
+	/// 	[(&(1..6), &true), (&(10..16), &false),]
+	/// );
 	/// ```
 	pub fn insert_coalesce_touching(
 		&mut self,
@@ -801,10 +917,10 @@ where
 	/// 	Ok(())
 	/// );
 	///
-	/// assert_eq!(range_bounds_map.next(), Some((&(-4..1), &true)));
-	/// assert_eq!(range_bounds_map.next(), Some((&(1..8), &true)));
-	/// assert_eq!(range_bounds_map.next(), Some((&(10..16), &false)));
-	/// assert_eq!(range_bounds_map.next(), None);
+	/// assert_eq!(
+	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
+	/// 	[(&(-4..1), &true), (&(1..8), &true), (&(10..16), &false)]
+	/// );
 	/// ```
 	pub fn insert_coalesce_overlapping(
 		&mut self,
@@ -850,9 +966,10 @@ where
 	/// 	Ok(())
 	/// );
 	///
-	/// assert_eq!(range_bounds_map.next(), Some((&(-4..8), &true)));
-	/// assert_eq!(range_bounds_map.next(), Some((&(10..16), &false)));
-	/// assert_eq!(range_bounds_map.next(), None);
+	/// assert_eq!(
+	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
+	/// 	[(&(-4..8), &true), (&(10..16), &false)]
+	/// );
 	/// ```
 	pub fn insert_coalesce_touching_or_overlapping(
 		&mut self,
@@ -882,10 +999,10 @@ where
 	///
 	/// assert_eq!(range_bounds_map.overwrite(4..6, true), Ok(()));
 	///
-	/// assert_eq!(range_bounds_map.next(), Some((&(2..4), &false)));
-	/// assert_eq!(range_bounds_map.next(), Some((&(4..6), &true)));
-	/// assert_eq!(range_bounds_map.next(), Some((&(6..8), &false)));
-	/// assert_eq!(range_bounds_map.next(), None);
+	/// assert_eq!(
+	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
+	/// 	[(&(2..4), &false), (&(4..6), &true), (&(6..8), &false)]
+	/// );
 	/// ```
 	pub fn overwrite(
 		&mut self,

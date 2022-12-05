@@ -18,11 +18,7 @@
 
 - copy map to set again
 
-- add a copy-paste notes to functions returning a TryFromBoundsError
-  to foward them to:
-- add a centralized section showing examples for TryFromBoundsErrors
-  for the functions that can give them, possibly on the
-  TryFromBoundsError page in the docs.
+- test for atomnicity, if it fails it shouldn't affect the map
 
 - write something somewhere about wrapper types for RangeBoundsMap
   that can simplify function signatures due to known invariants. For
