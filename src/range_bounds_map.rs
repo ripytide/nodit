@@ -189,6 +189,7 @@ pub struct OverlapError;
 /// 	TryFromBoundsError,
 /// };
 ///
+/// #[derive(Debug, PartialEq)]
 /// enum MultiRange {
 /// 	Inclusive(u8, u8),
 /// 	Exclusive(u8, u8),
@@ -827,9 +828,13 @@ where
 	/// The `Value` of the coalesced `RangeBounds` is set to the given
 	/// `Value`.
 	///
+	/// If successful then a reference to the newly inserted
+	/// `RangeBounds` is returned.
+	///
 	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
 	/// already in the map rather than just touching then an
 	/// [`OverlapError`] is returned and the map is not updated.
+	/// `RangeBounds` is returned.
 	///
 	/// If the coalesced `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
@@ -847,7 +852,7 @@ where
 	/// // Touching
 	/// assert_eq!(
 	/// 	range_bounds_map.insert_coalesce_touching(4..6, true),
-	/// 	Ok(())
+	/// 	Ok(&(1..6))
 	/// );
 	///
 	/// // Overlapping
@@ -859,7 +864,7 @@ where
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
 	/// 	range_bounds_map.insert_coalesce_touching(10..16, false),
-	/// 	Ok(())
+	/// 	Ok(&(10..16))
 	/// );
 	///
 	/// assert_eq!(
@@ -871,7 +876,7 @@ where
 		&mut self,
 		range_bounds: K,
 		value: V,
-	) -> Result<(), OverlapOrTryFromBoundsError>
+	) -> Result<&K, OverlapOrTryFromBoundsError>
 	where
 		K: TryFromBounds<I>,
 	{
@@ -915,16 +920,17 @@ where
 			None => range_bounds.end_bound().cloned(),
 		};
 
-		let new_range_bounds = K::try_from_bounds(start_bound, end_bound)
-			.ok_or(OverlapOrTryFromBoundsError::TryFromBounds(
-				TryFromBoundsError,
-			))?;
+		let new_range_bounds =
+			K::try_from_bounds(start_bound.clone(), end_bound).ok_or(
+				OverlapOrTryFromBoundsError::TryFromBounds(TryFromBoundsError),
+			)?;
 
 		self.starts.insert(
 			StartBound::from(new_range_bounds.start_bound().cloned()),
 			(new_range_bounds, value),
 		);
-		return Ok(());
+
+		return Ok(&self.starts.get(&StartBound::from(start_bound)).unwrap().0);
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
@@ -933,6 +939,9 @@ where
 	///
 	/// The `Value` of the coalesced `RangeBounds` is set to the given
 	/// `Value`.
+	///
+	/// If successful then a reference to the newly inserted
+	/// `RangeBounds` is returned.
 	///
 	/// If the coalesced `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
@@ -948,19 +957,19 @@ where
 	/// // Touching
 	/// assert_eq!(
 	/// 	range_bounds_map.insert_coalesce_overlapping(-4..1, true),
-	/// 	Ok(())
+	/// 	Ok(&(-4..1))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	range_bounds_map.insert_coalesce_overlapping(2..8, true),
-	/// 	Ok(())
+	/// 	Ok(&(1..8))
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
 	/// 	range_bounds_map.insert_coalesce_overlapping(10..16, false),
-	/// 	Ok(())
+	/// 	Ok(&(10..16))
 	/// );
 	///
 	/// assert_eq!(
@@ -972,7 +981,7 @@ where
 		&mut self,
 		range_bounds: K,
 		value: V,
-	) -> Result<(), TryFromBoundsError>
+	) -> Result<&K, TryFromBoundsError>
 	where
 		K: TryFromBounds<I>,
 	{
@@ -994,7 +1003,7 @@ where
 		};
 
 		let new_range_bounds = K::try_from_bounds(
-			Bound::from(start_bound),
+			Bound::from(start_bound.clone()),
 			Bound::from(end_bound),
 		)
 		.ok_or(TryFromBoundsError)?;
@@ -1004,7 +1013,7 @@ where
 			(new_range_bounds, value),
 		);
 
-		return Ok(());
+		return Ok(&self.starts.get(&start_bound).unwrap().0);
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
@@ -1013,6 +1022,9 @@ where
 	///
 	/// The `Value` of the coalesced `RangeBounds` is set to the given
 	/// `Value`.
+	///
+	/// If successful then a reference to the newly inserted
+	/// `RangeBounds` is returned.
 	///
 	/// If the coalesced `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
@@ -1029,21 +1041,21 @@ where
 	/// assert_eq!(
 	/// 	range_bounds_map
 	/// 		.insert_coalesce_touching_or_overlapping(-4..1, true),
-	/// 	Ok(())
+	/// 	Ok(&(-4..4))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	range_bounds_map
 	/// 		.insert_coalesce_touching_or_overlapping(2..8, true),
-	/// 	Ok(())
+	/// 	Ok(&(-4..8))
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
 	/// 	range_bounds_map
 	/// 		.insert_coalesce_touching_or_overlapping(10..16, false),
-	/// 	Ok(())
+	/// 	Ok(&(10..16))
 	/// );
 	///
 	/// assert_eq!(
@@ -1055,8 +1067,32 @@ where
 		&mut self,
 		range_bounds: K,
 		value: V,
-	) -> Result<(), TryFromBoundsError> {
-		todo!()
+	) -> Result<&K, TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		//optimisation do this from first principles rather than cheating
+		let new_start_bound = self
+			.insert_coalesce_overlapping(range_bounds, value)?
+			.start_bound()
+			.cloned();
+
+		let (new_start_bounds, value) = self
+			.starts
+			.remove(&StartBound::from(new_start_bound))
+			.unwrap();
+
+		let new_start_bound = self
+			.insert_coalesce_touching(new_start_bounds, value)
+			.map_err(|_| TryFromBoundsError)?
+			.start_bound()
+			.cloned();
+
+		return Ok(&self
+			.starts
+			.get(&StartBound::from(new_start_bound))
+			.unwrap()
+			.0);
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
