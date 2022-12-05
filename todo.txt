@@ -1,5 +1,9 @@
 - remove test is_valid_range_bounds and use the same one the module uses
 
+- write more mass tests for touches()
+
+- change all the tests to use map not set
+
 - write more tests for more complicated functions
 - test for atomnicity, if it fails it shouldn't affect the map
 

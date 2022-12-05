@@ -19,6 +19,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 use std::iter::once;
 use std::ops::{Bound, RangeBounds};
 
@@ -323,9 +324,7 @@ where
 			return Err(OverlapError);
 		}
 
-		//optimisation fix this without cloning
 		let start = StartBound::from(range_bounds.start_bound().cloned());
-		//optimisation fix this without cloning
 		let end = StartBound::from(range_bounds.end_bound().cloned())
 			.into_end_bound();
 
@@ -334,7 +333,6 @@ where
 		}
 
 		self.starts.insert(
-			//optimisation fix this without cloning
 			StartBound::from(range_bounds.start_bound().cloned()),
 			(range_bounds, value),
 		);
@@ -399,9 +397,7 @@ where
 			panic!("Invalid search range bounds!");
 		}
 
-		//optimisation fix this without cloning
 		let start = StartBound::from(range_bounds.start_bound().cloned());
-		//optimisation fix this without cloning
 		let end = StartBound::from(range_bounds.end_bound().cloned())
 			.into_end_bound();
 
@@ -417,14 +413,13 @@ where
 
 		//then we check for this possibly missing range_bounds
 		if let Some(missing_entry @ (_, (possible_missing_range_bounds, _))) =
-			//Excluded is lossless regarding meta-bounds searches
-			//because we don't want equal bounds as they would have be
-			//covered in the previous step and we don't want duplicates
+			//Excluded is lossy regarding meta-bounds searches because
+			//we don't want equal bounds as they would have be covered
+			//in the previous step and we don't want duplicates
 			self.starts
 					.range((
 						Bound::Unbounded,
 						Bound::Excluded(StartBound::from(
-							//optimisation fix this without cloning
 							range_bounds.start_bound().cloned(),
 						)),
 					))
@@ -512,7 +507,6 @@ where
 		{
 			return self
 				.starts
-				//optimisation fix this without cloning
 				.get_mut(&StartBound::from(overlapping_start_bound.cloned()))
 				.map(|(_, value)| value);
 		}
@@ -877,8 +871,60 @@ where
 		&mut self,
 		range_bounds: K,
 		value: V,
-	) -> Result<(), OverlapOrTryFromBoundsError> {
-		todo!()
+	) -> Result<(), OverlapOrTryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		if self.overlaps(&range_bounds) {
+			return Err(OverlapOrTryFromBoundsError::Overlap(OverlapError));
+		}
+
+		let (left_touching, right_touching) = (
+			self.starts
+				.range((
+					Bound::Unbounded,
+					Bound::Excluded(StartBound::from(
+						range_bounds.start_bound().cloned(),
+					)),
+				))
+				.next_back()
+				.filter(|x| touches(&range_bounds, &x.1.0))
+				.map(|x| x.0.clone()),
+			self.starts
+				.range((
+					Bound::Excluded(StartBound::from(
+						range_bounds.start_bound().cloned(),
+					)),
+					Bound::Unbounded,
+				))
+				.next()
+				.filter(|x| touches(&range_bounds, &x.1.0))
+				.map(|x| x.0.clone()),
+		);
+
+		let start_bound = match left_touching {
+			Some(left) => {
+				self.starts.remove(&left).unwrap().0.start_bound().cloned()
+			}
+			None => range_bounds.start_bound().cloned(),
+		};
+		let end_bound = match right_touching {
+			Some(right) => {
+				self.starts.remove(&right).unwrap().0.end_bound().cloned()
+			}
+			None => range_bounds.end_bound().cloned(),
+		};
+
+		let new_range_bounds = K::try_from_bounds(start_bound, end_bound)
+			.ok_or(OverlapOrTryFromBoundsError::TryFromBounds(
+				TryFromBoundsError,
+			))?;
+
+		self.starts.insert(
+			StartBound::from(new_range_bounds.start_bound().cloned()),
+			(new_range_bounds, value),
+		);
+		return Ok(());
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
@@ -901,19 +947,19 @@ where
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_touching(-4..1, true),
+	/// 	range_bounds_map.insert_coalesce_overlapping(-4..1, true),
 	/// 	Ok(())
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_touching(2..8, true),
+	/// 	range_bounds_map.insert_coalesce_overlapping(2..8, true),
 	/// 	Ok(())
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_touching(10..16, false),
+	/// 	range_bounds_map.insert_coalesce_overlapping(10..16, false),
 	/// 	Ok(())
 	/// );
 	///
@@ -926,8 +972,39 @@ where
 		&mut self,
 		range_bounds: K,
 		value: V,
-	) -> Result<(), TryFromBoundsError> {
-		todo!()
+	) -> Result<(), TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		let mut overlapping = self.remove_overlapping(&range_bounds).peekable();
+
+		let start_bound = match overlapping.peek() {
+			Some((first, _)) => std::cmp::min(
+				StartBound::from(first.start_bound().cloned()),
+				StartBound::from(range_bounds.start_bound().cloned()),
+			),
+			None => StartBound::from(range_bounds.start_bound().cloned()),
+		};
+		let end_bound = match overlapping.next_back() {
+			Some((last, _)) => std::cmp::max(
+				StartBound::from(last.end_bound().cloned()),
+				StartBound::from(range_bounds.end_bound().cloned()),
+			),
+			None => StartBound::from(range_bounds.end_bound().cloned()),
+		};
+
+		let new_range_bounds = K::try_from_bounds(
+			Bound::from(start_bound),
+			Bound::from(end_bound),
+		)
+		.ok_or(TryFromBoundsError)?;
+
+		self.starts.insert(
+			StartBound::from(new_range_bounds.start_bound().cloned()),
+			(new_range_bounds, value),
+		);
+
+		return Ok(());
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
@@ -950,19 +1027,22 @@ where
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_touching(-4..1, true),
+	/// 	range_bounds_map
+	/// 		.insert_coalesce_touching_or_overlapping(-4..1, true),
 	/// 	Ok(())
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_touching(2..8, true),
+	/// 	range_bounds_map
+	/// 		.insert_coalesce_touching_or_overlapping(2..8, true),
 	/// 	Ok(())
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_touching(10..16, false),
+	/// 	range_bounds_map
+	/// 		.insert_coalesce_touching_or_overlapping(10..16, false),
 	/// 	Ok(())
 	/// );
 	///
@@ -1142,6 +1222,33 @@ where
 		(Bound::Unbounded, _) => true,
 
 		(_, Bound::Unbounded) => unreachable!(),
+	}
+}
+
+fn touches<I, A, B>(a: &A, b: &B) -> bool
+where
+	A: RangeBounds<I>,
+	B: RangeBounds<I>,
+	I: PartialOrd,
+{
+	// optimisation, do this with much less operations
+	let a_start = a.start_bound();
+	let a_end = a.end_bound();
+
+	let b_start = b.start_bound();
+	let b_end = b.end_bound();
+
+	let (left_end, right_start) =
+		match StartBound::from(a_start).cmp(&StartBound::from(b_start)) {
+			Ordering::Less => (a_end, b_start),
+			Ordering::Greater => (b_end, a_start),
+			Ordering::Equal => return false,
+		};
+
+	match (left_end, right_start) {
+		(Bound::Included(end), Bound::Excluded(start)) => end == start,
+		(Bound::Excluded(end), Bound::Included(start)) => end == start,
+		_ => false,
 	}
 }
 
