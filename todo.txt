@@ -1,37 +1,31 @@
-- remove test is_valid_range_bounds and use the same one the module uses
-
-- write more mass tests for touches()
-
-- change all the tests to use map not set
-
-- write more tests for more complicated functions
+# testing
+- apply labels to crate and test #[untested]'s
 - test for atomnicity, if it fails it shouldn't affect the map
 
-- write docs for undocced things
-
-- add issues to github for all the caveats
-- review caveats again
-
-- copy map to set again
-
+# docs
 - write something somewhere about wrapper types for RangeBoundsMap
   that can simplify function signatures due to known invariants. For
   example a wrapper for using K=std::ops::Range which simplifies a LOT
+  probaly in caveats + github issue
+- write docs for undocced things
 
-- take a look around idiomatic rust for a bit first
-- review method parameter names for all public functions
-
+# time based
 - use it in robot_Sweet_graph for a bit before publishing
 
-#frequent
-- update lines of code figures on docs
+# final checks
+- copy map to set again
 - copy readme to lib.rs docs again
+- take a look around idiomatic rust for a bit first
+- review method parameter names for all public functions
+- update lines of code figures on docs
+- add issues to github for all the caveats
+- review caveats again
 - run and fix cargo clippy
 
 - PUBLISH
 
+# after publish tasks
 - add links to [`RangeBoundsSet`] and map after docs.rs is live with
   the docs, and generally check for dead links on docs and readme
-
 - tell people in issues of other rangemap libraries about my library
   stonks advertising
