@@ -11,6 +11,23 @@
 - add issues to github for all the caveats
 - review caveats again
 
+- remove all unwraps from examples
+
+- refactor tests with a bunch of next()s into using collect for
+  assert_eq
+
+- copy map to set again
+
+- add a copy-paste notes to functions returning a TryFromBoundsError
+  to foward them to:
+- add a centralized section showing examples for TryFromBoundsErrors
+  for the functions that can give them, possibly on the
+  TryFromBoundsError page in the docs.
+
+- write something somewhere about wrapper types for RangeBoundsMap
+  that can simplify function signatures due to known invariants. For
+  example a wrapper for using K=std::ops::Range which simplifies a LOT
+
 - take a look around idiomatic rust for a bit first
 - review method parameter names for all public functions
 

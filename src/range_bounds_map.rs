@@ -522,7 +522,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::{CutError, RangeBoundsMap};
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
 	/// let mut base = RangeBoundsMap::try_from([
 	/// 	(1..4, false),
@@ -537,7 +537,7 @@ where
 	///
 	/// assert_eq!(base.cut(&(2..40)), Ok(()));
 	/// assert_eq!(base, after_cut);
-	/// assert_eq!(base.cut(&(60..=80)), Err(CutError));
+	/// assert_eq!(base.cut(&(60..=80)), Err(TryFromBoundsError));
 	/// ```
 	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), TryFromBoundsError>
 	where
@@ -715,6 +715,9 @@ where
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
 	/// coalesces into other `RangeBounds` in the map which touch it.
 	///
+	/// The `Value` of the coalesced `RangeBounds` is set to the given
+	/// `Value`.
+	///
 	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
 	/// already in the map rather than just touching then an
 	/// [`OverlapError`] is returned and the map is not updated.
@@ -726,12 +729,33 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::{
-	/// 	OverlapOrTryFromBoundsError, RangeBoundsMap,
+	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
 	/// };
 	///
-	/// let mut range_bounds_map = RangeBoundsMap::new();
-    ///
-	/// todo!()
+	/// let mut range_bounds_map =
+	/// 	RangeBoundsMap::try_from([(1..4, false)]).unwrap();
+	///
+	/// // Touching
+	/// assert_eq!(
+	/// 	range_bounds_map.insert_coalesce_touching(4..6, true),
+	/// 	Ok(())
+	/// );
+	///
+	/// // Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_map.insert_coalesce_touching(4..8, false),
+	/// 	Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+	/// );
+	///
+	/// // Neither Touching or Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_map.insert_coalesce_touching(10..16, false),
+	/// 	Ok(())
+	/// );
+	///
+	/// assert_eq!(range_bounds_map.next(), Some((&(1..6), &true)));
+	/// assert_eq!(range_bounds_map.next(), Some((&(10..16), &false)));
+	/// assert_eq!(range_bounds_map.next(), None);
 	/// ```
 	pub fn insert_coalesce_touching(
 		&mut self,
@@ -745,16 +769,42 @@ where
 	/// coalesces into other `RangeBounds` in the map which overlap
 	/// it.
 	///
+	/// The `Value` of the coalesced `RangeBounds` is set to the given
+	/// `Value`.
+	///
 	/// If the coalesced `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let mut range_bounds_map = RangeBoundsMap::new();
-	/// todo!()
+	/// let mut range_bounds_map =
+	/// 	RangeBoundsMap::try_from([(1..4, false)]).unwrap();
+	///
+	/// // Touching
+	/// assert_eq!(
+	/// 	range_bounds_map.insert_coalesce_touching(-4..1, true),
+	/// 	Ok(())
+	/// );
+	///
+	/// // Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_map.insert_coalesce_touching(2..8, true),
+	/// 	Ok(())
+	/// );
+	///
+	/// // Neither Touching or Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_map.insert_coalesce_touching(10..16, false),
+	/// 	Ok(())
+	/// );
+	///
+	/// assert_eq!(range_bounds_map.next(), Some((&(-4..1), &true)));
+	/// assert_eq!(range_bounds_map.next(), Some((&(1..8), &true)));
+	/// assert_eq!(range_bounds_map.next(), Some((&(10..16), &false)));
+	/// assert_eq!(range_bounds_map.next(), None);
 	/// ```
 	pub fn insert_coalesce_overlapping(
 		&mut self,
@@ -768,16 +818,41 @@ where
 	/// coalesces into other `RangeBounds` in the map which touch or
 	/// overlap it.
 	///
+	/// The `Value` of the coalesced `RangeBounds` is set to the given
+	/// `Value`.
+	///
 	/// If the coalesced `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let mut range_bounds_map = RangeBoundsMap::new();
-	/// todo!()
+	/// let mut range_bounds_map =
+	/// 	RangeBoundsMap::try_from([(1..4, false)]).unwrap();
+	///
+	/// // Touching
+	/// assert_eq!(
+	/// 	range_bounds_map.insert_coalesce_touching(-4..1, true),
+	/// 	Ok(())
+	/// );
+	///
+	/// // Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_map.insert_coalesce_touching(2..8, true),
+	/// 	Ok(())
+	/// );
+	///
+	/// // Neither Touching or Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_map.insert_coalesce_touching(10..16, false),
+	/// 	Ok(())
+	/// );
+	///
+	/// assert_eq!(range_bounds_map.next(), Some((&(-4..8), &true)));
+	/// assert_eq!(range_bounds_map.next(), Some((&(10..16), &false)));
+	/// assert_eq!(range_bounds_map.next(), None);
 	/// ```
 	pub fn insert_coalesce_touching_or_overlapping(
 		&mut self,
@@ -800,10 +875,17 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let mut range_bounds_map = RangeBoundsMap::new();
-	/// todo!()
+	/// let mut range_bounds_map =
+	/// 	RangeBoundsMap::try_from([(2..8, false)]).unwrap();
+	///
+	/// assert_eq!(range_bounds_map.overwrite(4..6, true), Ok(()));
+	///
+	/// assert_eq!(range_bounds_map.next(), Some((&(2..4), &false)));
+	/// assert_eq!(range_bounds_map.next(), Some((&(4..6), &true)));
+	/// assert_eq!(range_bounds_map.next(), Some((&(6..8), &false)));
+	/// assert_eq!(range_bounds_map.next(), None);
 	/// ```
 	pub fn overwrite(
 		&mut self,
