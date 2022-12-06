@@ -20,6 +20,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 use std::cmp::Ordering;
 use std::ops::Bound;
 
+use labels::{parent_tested, tested, trivial};
 use serde::{Deserialize, Serialize};
 
 /// An Ord newtype of [`Bound`] specific to [`start_bound()`].
@@ -60,6 +61,7 @@ impl<T> StartBound<T> {
 	/// an [`end_bound()`] in a range search
 	///
 	/// [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
+	#[trivial]
 	pub(crate) fn into_end_bound(self) -> StartBound<T> {
 		match self {
 			//flipping is unnecessary
@@ -83,6 +85,7 @@ impl<T> PartialOrd for StartBound<T>
 where
 	T: PartialOrd,
 {
+    #[tested]
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		match (self, other) {
 			(StartBound::Included(start1), StartBound::Included(start2)) => start1.partial_cmp(start2),
@@ -120,6 +123,7 @@ where
 
 //if they are equal say the item with priority is larger
 //where false means left has priority and true means right
+#[parent_tested]
 fn partial_cmp_with_priority<T>(
 	left: &T,
 	right: &T,
@@ -143,12 +147,14 @@ impl<T> Ord for StartBound<T>
 where
 	T: PartialOrd,
 {
+	#[trivial]
 	fn cmp(&self, other: &Self) -> Ordering {
 		self.partial_cmp(other).unwrap()
 	}
 }
 
 impl<T> From<Bound<T>> for StartBound<T> {
+	#[trivial]
 	fn from(bound: Bound<T>) -> Self {
 		match bound {
 			Bound::Included(point) => StartBound::Included(point),
@@ -158,6 +164,7 @@ impl<T> From<Bound<T>> for StartBound<T> {
 	}
 }
 impl<T> From<StartBound<T>> for Bound<T> {
+	#[trivial]
 	fn from(start_bound: StartBound<T>) -> Bound<T> {
 		match start_bound {
 			StartBound::Included(point) => Bound::Included(point),

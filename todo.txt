@@ -1,6 +1,10 @@
 # testing
-- apply labels to crate and test #[untested]'s
-- test for atomnicity, if it fails it shouldn't affect the map
+- test #[untested]'s
+- add tests for TryFromBounds fails for those that produce them with
+  atomnicity tests
+
+# features
+- RangeMap, RangeSet, RangeInclusiveMap...
 
 # docs
 - write something somewhere about wrapper types for RangeBoundsMap
@@ -13,6 +17,7 @@
 - use it in robot_Sweet_graph for a bit before publishing
 
 # final checks
+- check toml meta-data, github meta-data and readme opener
 - copy map to set again
 - copy readme to lib.rs docs again
 - take a look around idiomatic rust for a bit first

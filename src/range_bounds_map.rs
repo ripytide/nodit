@@ -25,6 +25,7 @@ use std::ops::{Bound, RangeBounds};
 
 use either::Either;
 use itertools::Itertools;
+use labels::{tested, trivial, untested};
 use serde::{Deserialize, Serialize};
 
 use crate::bounds::StartBound;
@@ -274,6 +275,7 @@ where
 	/// let range_bounds_map: RangeBoundsMap<u8, Range<u8>, bool> =
 	/// 	RangeBoundsMap::new();
 	/// ```
+	#[trivial]
 	pub fn new() -> Self {
 		RangeBoundsMap {
 			starts: BTreeMap::new(),
@@ -292,6 +294,7 @@ where
 	/// range_bounds_map.insert_platonic(0..1, false).unwrap();
 	/// assert_eq!(range_bounds_map.len(), 1);
 	/// ```
+	#[trivial]
 	pub fn len(&self) -> usize {
 		self.starts.len()
 	}
@@ -316,6 +319,7 @@ where
 	/// );
 	/// assert_eq!(range_bounds_map.len(), 1);
 	/// ```
+	#[tested]
 	pub fn insert_platonic(
 		&mut self,
 		range_bounds: K,
@@ -358,6 +362,7 @@ where
 	/// assert_eq!(range_bounds_map.overlaps(&(4..=5)), true);
 	/// assert_eq!(range_bounds_map.overlaps(&(4..6)), true);
 	/// ```
+	#[trivial]
 	pub fn overlaps<Q>(&self, search_range_bounds: &Q) -> bool
 	where
 		Q: RangeBounds<I>,
@@ -387,6 +392,7 @@ where
 	/// 	[(&(1..4), &false), (&(4..8), &true)]
 	/// );
 	/// ```
+	#[tested]
 	pub fn overlapping<Q>(
 		&self,
 		range_bounds: &Q,
@@ -459,6 +465,7 @@ where
 	/// assert_eq!(range_bounds_map.get_at_point(&4), Some(&true));
 	/// assert_eq!(range_bounds_map.get_at_point(&101), None);
 	/// ```
+	#[trivial]
 	pub fn get_at_point(&self, point: &I) -> Option<&V> {
 		self.get_entry_at_point(point).map(|(_, value)| value)
 	}
@@ -481,6 +488,7 @@ where
 	/// assert_eq!(range_bounds_map.contains_point(&4), true);
 	/// assert_eq!(range_bounds_map.contains_point(&101), false);
 	/// ```
+	#[trivial]
 	pub fn contains_point(&self, point: &I) -> bool {
 		self.get_at_point(point).is_some()
 	}
@@ -501,6 +509,7 @@ where
 	///
 	/// assert_eq!(range_bounds_map.get_at_point(&1), Some(&true));
 	/// ```
+	#[tested]
 	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
 		if let Some(overlapping_start_bound) = self
 			.get_entry_at_point(point)
@@ -538,6 +547,7 @@ where
 	/// );
 	/// assert_eq!(range_bounds_map.get_entry_at_point(&101), None);
 	/// ```
+	#[trivial]
 	pub fn get_entry_at_point(&self, point: &I) -> Option<(&K, &V)> {
 		//a zero-range included-included range is equivalent to a point
 		return self
@@ -569,6 +579,7 @@ where
 	/// assert_eq!(iter.next(), Some((&(8..100), &false)));
 	/// assert_eq!(iter.next(), None);
 	/// ```
+	#[trivial]
 	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
 		self.starts.iter().map(|(_, (key, value))| (key, value))
 	}
@@ -600,6 +611,7 @@ where
 	/// 	[(&(8..100), &false)]
 	/// );
 	/// ```
+	#[tested]
 	pub fn remove_overlapping<Q>(
 		&mut self,
 		range_bounds: &Q,
@@ -654,6 +666,7 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert_eq!(base.cut(&(60..=80)), Err(TryFromBoundsError));
 	/// ```
+	#[tested]
 	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), TryFromBoundsError>
 	where
 		Q: RangeBounds<I>,
@@ -753,6 +766,7 @@ where
 	/// 	]
 	/// );
 	/// ```
+	#[tested]
 	pub fn gaps<'a, Q>(
 		&'a self,
 		outer_range_bounds: &'a Q,
@@ -779,8 +793,6 @@ where
 		let artificials = once(artificial_start)
 			.chain(inners)
 			.chain(once(artificial_end));
-
-		eprintln!("\nnew:");
 
 		return artificials
 			.tuple_windows()
@@ -814,6 +826,7 @@ where
 	/// 	true
 	/// );
 	/// ```
+	#[trivial]
 	pub fn contains_range_bounds<Q>(&self, range_bounds: &Q) -> bool
 	where
 		Q: RangeBounds<I>,
@@ -872,6 +885,7 @@ where
 	/// 	[(&(1..6), &true), (&(10..16), &false),]
 	/// );
 	/// ```
+	#[tested]
 	pub fn insert_coalesce_touching(
 		&mut self,
 		range_bounds: K,
@@ -977,6 +991,7 @@ where
 	/// 	[(&(-4..1), &true), (&(1..8), &true), (&(10..16), &false)]
 	/// );
 	/// ```
+	#[tested]
 	pub fn insert_coalesce_overlapping(
 		&mut self,
 		range_bounds: K,
@@ -1063,6 +1078,7 @@ where
 	/// 	[(&(-4..8), &true), (&(10..16), &false)]
 	/// );
 	/// ```
+	#[tested]
 	pub fn insert_coalesce_touching_or_overlapping(
 		&mut self,
 		range_bounds: K,
@@ -1121,6 +1137,7 @@ where
 	/// 	[(&(2..4), &false), (&(4..6), &true), (&(6..8), &false)]
 	/// );
 	/// ```
+	#[trivial]
 	pub fn overwrite(
 		&mut self,
 		range_bounds: K,
@@ -1143,7 +1160,24 @@ where
 	I: Ord + Clone,
 {
 	type Error = OverlapError;
+	#[trivial]
 	fn try_from(pairs: [(K, V); N]) -> Result<Self, Self::Error> {
+		let mut range_bounds_map = RangeBoundsMap::new();
+		for (range_bounds, value) in pairs {
+			range_bounds_map.insert_platonic(range_bounds, value)?;
+		}
+
+		return Ok(range_bounds_map);
+	}
+}
+impl<I, K, V> TryFrom<Vec<(K, V)>> for RangeBoundsMap<I, K, V>
+where
+	K: RangeBounds<I>,
+	I: Ord + Clone,
+{
+	type Error = OverlapError;
+	#[trivial]
+	fn try_from(pairs: Vec<(K, V)>) -> Result<Self, Self::Error> {
 		let mut range_bounds_map = RangeBoundsMap::new();
 		for (range_bounds, value) in pairs {
 			range_bounds_map.insert_platonic(range_bounds, value)?;
@@ -1157,6 +1191,7 @@ impl<I, K, V> Default for RangeBoundsMap<I, K, V>
 where
 	I: PartialOrd,
 {
+	#[trivial]
 	fn default() -> Self {
 		RangeBoundsMap {
 			starts: BTreeMap::default(),
@@ -1171,6 +1206,7 @@ enum CutResult<I> {
 	Double((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
 }
 
+#[tested]
 fn cut_range_bounds<I, B, C>(
 	base_range_bounds: &B,
 	cut_range_bounds: &C,
@@ -1222,6 +1258,7 @@ where
 	}
 }
 
+#[trivial]
 fn is_valid_range_bounds<Q, I>(range_bounds: &Q) -> bool
 where
 	Q: RangeBounds<I>,
@@ -1236,6 +1273,7 @@ where
 	}
 }
 
+#[tested]
 fn overlaps<I, A, B>(a: &A, b: &B) -> bool
 where
 	A: RangeBounds<I>,
@@ -1269,6 +1307,7 @@ where
 	}
 }
 
+#[untested]
 fn touches<I, A, B>(a: &A, b: &B) -> bool
 where
 	A: RangeBounds<I>,
@@ -1296,6 +1335,7 @@ where
 	}
 }
 
+#[trivial]
 fn flip_bound<I>(bound: Bound<&I>) -> Bound<&I> {
 	match bound {
 		Bound::Included(point) => Bound::Excluded(point),
@@ -1307,6 +1347,8 @@ fn flip_bound<I>(bound: Bound<&I>) -> Bound<&I> {
 #[cfg(test)]
 mod tests {
 	use std::ops::{Bound, Range, RangeBounds};
+
+	use pretty_assertions::assert_eq;
 
 	use super::*;
 	use crate::bounds::StartBound;
@@ -1320,28 +1362,44 @@ mod tests {
 	pub(crate) const NUMBERS_DOMAIN: &'static [u8] =
 		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
+	#[rustfmt::skip]
 	#[test]
-	fn mass_overlaps_test() {
-		for range_bounds1 in all_valid_test_bounds() {
-			for range_bounds2 in all_valid_test_bounds() {
-				let our_answer = overlaps(&range_bounds1, &range_bounds2);
-
-				let mathematical_definition_of_overlap =
-					NUMBERS_DOMAIN.iter().any(|x| {
-						range_bounds1.contains(x) && range_bounds2.contains(x)
-					});
-
-				if our_answer != mathematical_definition_of_overlap {
-					dbg!(range_bounds1, range_bounds2);
-					dbg!(mathematical_definition_of_overlap, our_answer);
-					panic!("Discrepency in .overlaps() detected!");
-				}
+	fn insert_platonic_tests() {
+		assert_insert_platonic::<0>(basic(), (ii(0, 4), false), Err(OverlapError), None);
+		assert_insert_platonic::<0>(basic(), (ii(5, 6), false), Err(OverlapError), None);
+        assert_insert_platonic(basic(), (ee(6, 7), false), Ok(()), Some([
+			(ui(4), false),
+			(ee(5, 6), true),
+			(ii(6, 6), false),
+            (ee(6, 7), false),
+        ]));
+        assert_insert_platonic::<0>(basic(), (ii(4, 5), true), Err(OverlapError), None);
+        assert_insert_platonic(basic(), (ei(4, 5), true), Ok(()), Some([
+			(ui(4), false),
+			(ei(4, 5), true),
+			(ee(5, 6), true),
+			(ii(6, 6), false),
+            (ee(6, 7), false),
+        ]));
+	}
+	fn assert_insert_platonic<const N: usize>(
+		mut before: RangeBoundsMap<u8, TestBounds, bool>,
+		to_insert: (TestBounds, bool),
+		result: Result<(), OverlapError>,
+		after: Option<[(TestBounds, bool); N]>,
+	) {
+		let clone = before.clone();
+		assert_eq!(before.insert_platonic(to_insert.0, to_insert.1), result);
+		match after {
+			Some(after) => {
+				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
 			}
+			None => assert_eq!(before, clone),
 		}
 	}
 
 	#[test]
-	fn mass_overlapping_test() {
+	fn overlapping_tests() {
 		//case zero
 		for overlap_range in all_valid_test_bounds() {
 			//you can't overlap nothing
@@ -1423,23 +1481,291 @@ mod tests {
 		}
 	}
 
-	impl<I> CutResult<I> {
-		fn contains(&self, point: &I) -> bool
-		where
-			I: PartialOrd,
-		{
-			match self {
-				CutResult::Nothing => false,
-				CutResult::Single(range_bounds) => range_bounds.contains(point),
-				CutResult::Double(first_range_bounds, second_range_bounds) => {
-					first_range_bounds.contains(point)
-						|| second_range_bounds.contains(point)
+	#[rustfmt::skip]
+	#[test]
+	fn remove_overlapping_tests() {
+		assert_remove_overlapping::<0, 0>(basic(), ii(5, 5), [], None);
+		assert_remove_overlapping(basic(), uu(), [
+            (ui(4), false),
+			(ee(5, 7), true),
+            (ii(7, 7), false),
+			(ie(14, 16), true),
+        ], Some([]));
+		assert_remove_overlapping(basic(), ii(6, 7), [
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+        ], Some([
+            (ui(4), false), (ie(14, 16), true)
+        ]));
+		assert_remove_overlapping(basic(), iu(6), [
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+			(ie(14, 16), true),
+        ], Some([
+			(ui(4), false),
+        ]));
+	}
+	fn assert_remove_overlapping<const N: usize, const Y: usize>(
+		mut before: RangeBoundsMap<u8, TestBounds, bool>,
+		to_remove: TestBounds,
+		result: [(TestBounds, bool); N],
+		after: Option<[(TestBounds, bool); Y]>,
+	) {
+		let clone = before.clone();
+		assert_eq!(before.remove_overlapping(&to_remove).collect_vec(), result);
+		match after {
+			Some(after) => {
+				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+			}
+			None => assert_eq!(before, clone),
+		}
+	}
+
+	#[rustfmt::skip]
+	#[test]
+	fn cut_tests() {
+		assert_cut::<0>(basic(), ii(50, 60), Ok(()), None);
+		assert_cut(basic(), uu(), Ok(()), Some([]));
+		assert_cut(basic(), ui(6), Ok(()), Some([
+			(ee(6, 7), true),
+            (ii(7, 7), false),
+			(ie(14, 16), true),
+        ]));
+		assert_cut(basic(), iu(6), Ok(()), Some([
+            (ui(4), false),
+			(ee(5, 6), true),
+        ]));
+	}
+	fn assert_cut<const N: usize>(
+		mut before: RangeBoundsMap<u8, TestBounds, bool>,
+		to_cut: TestBounds,
+		result: Result<(), TryFromBoundsError>,
+		after: Option<[(TestBounds, bool); N]>,
+	) {
+		let clone = before.clone();
+		assert_eq!(before.cut(&to_cut), result);
+		match after {
+			Some(after) => {
+				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+			}
+			None => assert_eq!(before, clone),
+		}
+	}
+
+	fn basic() -> RangeBoundsMap<u8, TestBounds, bool> {
+		RangeBoundsMap::try_from([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+			(ie(14, 16), true),
+		])
+		.unwrap()
+	}
+
+	#[test]
+	fn gaps_tests() {
+		assert_gaps(basic(), ii(50, 60), [ii(50, 60)]);
+		assert_gaps(basic(), iu(50), [iu(50)]);
+		assert_gaps(basic(), ee(3, 16), [ei(4, 5), ee(7, 14)]);
+		assert_gaps(basic(), ei(3, 16), [ei(4, 5), ee(7, 14), ii(16, 16)]);
+		assert_gaps(basic(), ue(5), [ee(4, 5)]);
+		assert_gaps(basic(), ui(3), []);
+		assert_gaps(basic(), ii(5, 5), [ii(5, 5)]);
+		assert_gaps(basic(), ii(6, 6), []);
+		assert_gaps(basic(), ii(7, 7), []);
+		assert_gaps(basic(), ii(8, 8), [ii(8, 8)]);
+	}
+	fn assert_gaps<const N: usize>(
+		range_bounds_map: RangeBoundsMap<u8, TestBounds, bool>,
+		outer_range_bounds: TestBounds,
+		result: [TestBounds; N],
+	) {
+		assert_eq!(
+			range_bounds_map
+				.gaps(&outer_range_bounds)
+				.map(|(start, end)| (start.cloned(), end.cloned()))
+				.collect_vec(),
+			result
+		);
+	}
+
+	#[rustfmt::skip]
+	#[test]
+	fn insert_coalesce_touching_tests() {
+		assert_insert_coalesce_touching::<0>(basic(), (ii(0, 4), false), Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)), None);
+        assert_insert_coalesce_touching::<4>(basic(), (ee(7, 10), false), Ok(&ee(7, 10)), Some([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ie(7, 10), false),
+            (ie(14, 16), true),
+        ]));
+        assert_insert_coalesce_touching::<4>(basic(), (ee(7, 11), true), Ok(&ie(7, 11)), Some([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ie(7, 11), true),
+            (ie(14, 16), true),
+        ]));
+        assert_insert_coalesce_touching::<5>(basic(), (ee(13, 14), true), Ok(&ee(13, 14)), Some([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ie(7, 7), false),
+            (ee(13, 14), true),
+            (ie(14, 16), true),
+        ]));
+        assert_insert_coalesce_touching::<4>(basic(), (ei(13, 14), false), Ok(&ee(13, 16)), Some([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ie(7, 7), false),
+            (ee(13, 16), false),
+        ]));
+        assert_insert_coalesce_touching::<3>(basic(), (ii(7, 13), false), Ok(&ie(7, 16)), Some([
+			(ui(4), false),
+			(ee(5, 7), true),
+            (ie(7, 16), false),
+        ]));
+	}
+	fn assert_insert_coalesce_touching<const N: usize>(
+		mut before: RangeBoundsMap<u8, TestBounds, bool>,
+		to_insert: (TestBounds, bool),
+		result: Result<&TestBounds, OverlapOrTryFromBoundsError>,
+		after: Option<[(TestBounds, bool); N]>,
+	) {
+		let clone = before.clone();
+		assert_eq!(
+			before.insert_coalesce_touching(to_insert.0, to_insert.1),
+			result
+		);
+		match after {
+			Some(after) => {
+				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+			}
+			None => assert_eq!(before, clone),
+		}
+	}
+
+	#[rustfmt::skip]
+	#[test]
+	fn insert_coalesce_overlapping_tests() {
+        assert_insert_coalesce_overlapping::<4>(basic(), (ii(0, 2), true), Ok(&(ui(4))), Some([
+			(ui(4), true),
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+			(ie(14, 16), true),
+        ]));
+        assert_insert_coalesce_overlapping::<4>(basic(), (ie(14, 16), false), Ok(&ie(14, 16)), Some([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ie(7, 10), false),
+            (ie(14, 16), false),
+        ]));
+        assert_insert_coalesce_overlapping::<3>(basic(), (ii(7, 11), false), Ok(&ei(5, 11)), Some([
+			(ui(4), false),
+			(ei(5, 11), false),
+            (ie(14, 16), true),
+        ]));
+        assert_insert_coalesce_overlapping::<4>(basic(), (ii(15, 18), true), Ok(&ii(14, 18)), Some([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ie(7, 7), false),
+            (ii(14, 18), true),
+        ]));
+        assert_insert_coalesce_overlapping::<1>(basic(), (uu(), false), Ok(&uu()), Some([
+            (uu(), false),
+        ]));
+	}
+	fn assert_insert_coalesce_overlapping<const N: usize>(
+		mut before: RangeBoundsMap<u8, TestBounds, bool>,
+		to_insert: (TestBounds, bool),
+		result: Result<&TestBounds, TryFromBoundsError>,
+		after: Option<[(TestBounds, bool); N]>,
+	) {
+		let clone = before.clone();
+		assert_eq!(
+			before.insert_coalesce_overlapping(to_insert.0, to_insert.1),
+			result
+		);
+		match after {
+			Some(after) => {
+				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+			}
+			None => assert_eq!(before, clone),
+		}
+	}
+
+	#[rustfmt::skip]
+	#[test]
+	fn insert_coalesce_touching_or_overlapping_tests() {
+        assert_insert_coalesce_touching_or_overlapping::<4>(basic(), (ii(0, 2), true), Ok(&(ui(4))), Some([
+			(ui(4), true),
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+			(ie(14, 16), true),
+        ]));
+        assert_insert_coalesce_touching_or_overlapping::<4>(basic(), (ie(14, 16), false), Ok(&ie(14, 16)), Some([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ie(7, 10), false),
+            (ie(14, 16), false),
+        ]));
+        assert_insert_coalesce_touching_or_overlapping::<4>(basic(), (ii(15, 18), true), Ok(&ii(14, 18)), Some([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ie(7, 7), false),
+            (ii(14, 18), true),
+        ]));
+        assert_insert_coalesce_touching_or_overlapping::<1>(basic(), (uu(), false), Ok(&uu()), Some([
+            (uu(), false),
+        ]));
+        //the only difference from the insert_coalesce_overlapping
+        assert_insert_coalesce_touching_or_overlapping::<2>(basic(), (ii(7, 11), false), Ok(&ee(5, 16)), Some([
+			(ui(4), false),
+            (ee(5, 16), false),
+        ]));
+	}
+	fn assert_insert_coalesce_touching_or_overlapping<const N: usize>(
+		mut before: RangeBoundsMap<u8, TestBounds, bool>,
+		to_insert: (TestBounds, bool),
+		result: Result<&TestBounds, TryFromBoundsError>,
+		after: Option<[(TestBounds, bool); N]>,
+	) {
+		let clone = before.clone();
+		assert_eq!(
+			before.insert_coalesce_touching_or_overlapping(
+				to_insert.0,
+				to_insert.1
+			),
+			result
+		);
+		match after {
+			Some(after) => {
+				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+			}
+			None => assert_eq!(before, clone),
+		}
+	}
+
+	#[test]
+	fn overlaps_tests() {
+		for range_bounds1 in all_valid_test_bounds() {
+			for range_bounds2 in all_valid_test_bounds() {
+				let our_answer = overlaps(&range_bounds1, &range_bounds2);
+
+				let mathematical_definition_of_overlap =
+					NUMBERS_DOMAIN.iter().any(|x| {
+						range_bounds1.contains(x) && range_bounds2.contains(x)
+					});
+
+				if our_answer != mathematical_definition_of_overlap {
+					dbg!(range_bounds1, range_bounds2);
+					dbg!(mathematical_definition_of_overlap, our_answer);
+					panic!("Discrepency in .overlaps() detected!");
 				}
 			}
 		}
 	}
+
 	#[test]
-	fn mass_cut_range_bounds_tests() {
+	fn cut_range_bounds_tests() {
 		for base in all_valid_test_bounds() {
 			for cut in all_valid_test_bounds() {
 				let cut_result = cut_range_bounds(&base, &cut);
@@ -1470,7 +1796,24 @@ mod tests {
 			}
 		}
 	}
+	impl<I> CutResult<I> {
+		fn contains(&self, point: &I) -> bool
+		where
+			I: PartialOrd,
+		{
+			match self {
+				CutResult::Nothing => false,
+				CutResult::Single(range_bounds) => range_bounds.contains(point),
+				CutResult::Double(first_range_bounds, second_range_bounds) => {
+					first_range_bounds.contains(point)
+						|| second_range_bounds.contains(point)
+				}
+			}
+		}
+	}
 
+	// Test Helper Functions
+	//======================
 	fn all_non_overlapping_test_bound_pairs() -> Vec<(TestBounds, TestBounds)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
@@ -1491,14 +1834,14 @@ mod tests {
 		output.append(&mut all_finite_bounded_pairs());
 		//bounded-unbounded
 		for start_bound in all_finite_bounded() {
-			output.push((start_bound, Bound::Unbounded));
+			output.push((start_bound, u()));
 		}
 		//unbounded-bounded
 		for end_bound in all_finite_bounded() {
-			output.push((Bound::Unbounded, end_bound));
+			output.push((u(), end_bound));
 		}
 		//unbounded-unbounded
-		output.push((Bound::Unbounded, Bound::Unbounded));
+		output.push(uu());
 
 		return output;
 	}
@@ -1537,5 +1880,36 @@ mod tests {
 			false => Bound::Included(x),
 			true => Bound::Excluded(x),
 		}
+	}
+
+	fn uu() -> TestBounds {
+		(Bound::Unbounded, Bound::Unbounded)
+	}
+	fn ui(x: u8) -> TestBounds {
+		(Bound::Unbounded, Bound::Included(x))
+	}
+	fn ue(x: u8) -> TestBounds {
+		(Bound::Unbounded, Bound::Excluded(x))
+	}
+	fn iu(x: u8) -> TestBounds {
+		(Bound::Included(x), Bound::Unbounded)
+	}
+	//fn eu(x: u8) -> TestBounds {
+	//(Bound::Excluded(x), Bound::Unbounded)
+	//}
+	fn ii(x1: u8, x2: u8) -> TestBounds {
+		(Bound::Included(x1), Bound::Included(x2))
+	}
+	fn ie(x1: u8, x2: u8) -> TestBounds {
+		(Bound::Included(x1), Bound::Excluded(x2))
+	}
+	fn ei(x1: u8, x2: u8) -> TestBounds {
+		(Bound::Excluded(x1), Bound::Included(x2))
+	}
+	fn ee(x1: u8, x2: u8) -> TestBounds {
+		(Bound::Excluded(x1), Bound::Excluded(x2))
+	}
+	fn u() -> Bound<u8> {
+		Bound::Unbounded
 	}
 }
