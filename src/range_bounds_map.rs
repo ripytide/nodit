@@ -775,13 +775,18 @@ where
 		Q: RangeBounds<I>,
 	{
 		// I'm in love with how clean/mindblowing this entire function is
-		let inners = self
+		let overlapping = self
 			.overlapping(outer_range_bounds)
 			.map(|(key, _)| (key.start_bound(), key.end_bound()));
 
-		// We have to opposite these ahead of time as we actually want
-		// the bounds included not excluded like with other bounds in
-		// artificials
+		// If the start or end point of outer_range_bounds is not
+		// contained within a RangeBounds in the map then we need to
+		// generate a artificial RangeBounds to use instead.
+		//
+		// We also have to flip the artificial ones ahead of time as
+		// we actually want the search_range_bounds endpoints included
+		// not excluded unlike with other bounds in artificials
+
 		let artificial_start = (
 			flip_bound(outer_range_bounds.start_bound()),
 			flip_bound(outer_range_bounds.start_bound()),
@@ -790,9 +795,35 @@ where
 			flip_bound(outer_range_bounds.end_bound()),
 			flip_bound(outer_range_bounds.end_bound()),
 		);
-		let artificials = once(artificial_start)
-			.chain(inners)
+		let mut artificials = once(artificial_start)
+			.chain(overlapping)
 			.chain(once(artificial_end));
+
+		let start_contained = match outer_range_bounds.start_bound() {
+			Bound::Included(point) => self.contains_point(point),
+			Bound::Excluded(point) => self.contains_point(point),
+			Bound::Unbounded => self.starts.first_key_value().is_some_and(
+				|(_, (range_bounds, _))| {
+					range_bounds.start_bound() == Bound::Unbounded
+				},
+			),
+		};
+		let end_contained = match outer_range_bounds.end_bound() {
+			Bound::Included(point) => self.contains_point(point),
+			Bound::Excluded(point) => self.contains_point(point),
+			Bound::Unbounded => self.starts.last_key_value().is_some_and(
+				|(_, (range_bounds, _))| {
+					range_bounds.end_bound() == Bound::Unbounded
+				},
+			),
+		};
+
+		if start_contained {
+			artificials.next();
+		}
+		if end_contained {
+			artificials.next_back();
+		}
 
 		return artificials
 			.tuple_windows()
