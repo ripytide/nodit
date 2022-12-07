@@ -401,7 +401,7 @@ where
 		Q: RangeBounds<I>,
 	{
 		if !is_valid_range_bounds(range_bounds) {
-			panic!("Invalid search range bounds!");
+			panic!("Invalid range bounds!");
 		}
 
 		let start = StartBound::from(range_bounds.start_bound().cloned());
@@ -1042,9 +1042,11 @@ where
 		};
 		let end_bound = match overlapping.next_back() {
 			Some((last, _)) => std::cmp::max(
-				StartBound::from(last.end_bound().cloned()),
-				StartBound::from(range_bounds.end_bound().cloned()),
-			),
+				StartBound::from(last.end_bound().cloned()).into_end_bound(),
+				StartBound::from(range_bounds.end_bound().cloned())
+					.into_end_bound(),
+			)
+			.into_start_bound(),
 			None => StartBound::from(range_bounds.end_bound().cloned()),
 		};
 
@@ -1398,19 +1400,20 @@ mod tests {
 	fn insert_platonic_tests() {
 		assert_insert_platonic::<0>(basic(), (ii(0, 4), false), Err(OverlapError), None);
 		assert_insert_platonic::<0>(basic(), (ii(5, 6), false), Err(OverlapError), None);
-        assert_insert_platonic(basic(), (ee(6, 7), false), Ok(()), Some([
+        assert_insert_platonic(basic(), (ee(7, 8), false), Ok(()), Some([
 			(ui(4), false),
-			(ee(5, 6), true),
-			(ii(6, 6), false),
-            (ee(6, 7), false),
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+            (ee(7, 8), false),
+			(ie(14, 16), true),
         ]));
         assert_insert_platonic::<0>(basic(), (ii(4, 5), true), Err(OverlapError), None);
         assert_insert_platonic(basic(), (ei(4, 5), true), Ok(()), Some([
 			(ui(4), false),
 			(ei(4, 5), true),
-			(ee(5, 6), true),
-			(ii(6, 6), false),
-            (ee(6, 7), false),
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+			(ie(14, 16), true),
         ]));
 	}
 	fn assert_insert_platonic<const N: usize>(
@@ -1583,16 +1586,6 @@ mod tests {
 		}
 	}
 
-	fn basic() -> RangeBoundsMap<u8, TestBounds, bool> {
-		RangeBoundsMap::try_from([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ie(14, 16), true),
-		])
-		.unwrap()
-	}
-
 	#[test]
 	fn gaps_tests() {
 		assert_gaps(basic(), ii(50, 60), [ii(50, 60)]);
@@ -1620,11 +1613,21 @@ mod tests {
 		);
 	}
 
+	fn basic() -> RangeBoundsMap<u8, TestBounds, bool> {
+		RangeBoundsMap::try_from([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+			(ie(14, 16), true),
+		])
+		.unwrap()
+	}
+
 	#[rustfmt::skip]
 	#[test]
 	fn insert_coalesce_touching_tests() {
 		assert_insert_coalesce_touching::<0>(basic(), (ii(0, 4), false), Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)), None);
-        assert_insert_coalesce_touching::<4>(basic(), (ee(7, 10), false), Ok(&ee(7, 10)), Some([
+        assert_insert_coalesce_touching::<4>(basic(), (ee(7, 10), false), Ok(&ie(7, 10)), Some([
 			(ui(4), false),
 			(ee(5, 7), true),
 			(ie(7, 10), false),
@@ -1636,20 +1639,20 @@ mod tests {
 			(ie(7, 11), true),
             (ie(14, 16), true),
         ]));
-        assert_insert_coalesce_touching::<5>(basic(), (ee(13, 14), true), Ok(&ee(13, 14)), Some([
+        assert_insert_coalesce_touching::<5>(basic(), (ee(12, 13), true), Ok(&ee(12, 13)), Some([
 			(ui(4), false),
 			(ee(5, 7), true),
-			(ie(7, 7), false),
-            (ee(13, 14), true),
+			(ii(7, 7), false),
+            (ee(12, 13), true),
             (ie(14, 16), true),
         ]));
-        assert_insert_coalesce_touching::<4>(basic(), (ei(13, 14), false), Ok(&ee(13, 16)), Some([
+        assert_insert_coalesce_touching::<4>(basic(), (ee(13, 14), false), Ok(&ee(13, 16)), Some([
 			(ui(4), false),
 			(ee(5, 7), true),
-			(ie(7, 7), false),
+			(ii(7, 7), false),
             (ee(13, 16), false),
         ]));
-        assert_insert_coalesce_touching::<3>(basic(), (ii(7, 13), false), Ok(&ie(7, 16)), Some([
+        assert_insert_coalesce_touching::<3>(basic(), (ee(7, 14), false), Ok(&ie(7, 16)), Some([
 			(ui(4), false),
 			(ee(5, 7), true),
             (ie(7, 16), false),
@@ -1686,10 +1689,10 @@ mod tests {
         assert_insert_coalesce_overlapping::<4>(basic(), (ie(14, 16), false), Ok(&ie(14, 16)), Some([
 			(ui(4), false),
 			(ee(5, 7), true),
-			(ie(7, 10), false),
+			(ii(7, 7), false),
             (ie(14, 16), false),
         ]));
-        assert_insert_coalesce_overlapping::<3>(basic(), (ii(7, 11), false), Ok(&ei(5, 11)), Some([
+        assert_insert_coalesce_overlapping::<3>(basic(), (ii(6, 11), false), Ok(&ei(5, 11)), Some([
 			(ui(4), false),
 			(ei(5, 11), false),
             (ie(14, 16), true),
@@ -1697,8 +1700,8 @@ mod tests {
         assert_insert_coalesce_overlapping::<4>(basic(), (ii(15, 18), true), Ok(&ii(14, 18)), Some([
 			(ui(4), false),
 			(ee(5, 7), true),
-			(ie(7, 7), false),
-            (ii(14, 18), true),
+			(ii(7, 7), false),
+			(ii(14, 18), true),
         ]));
         assert_insert_coalesce_overlapping::<1>(basic(), (uu(), false), Ok(&uu()), Some([
             (uu(), false),
@@ -1735,20 +1738,25 @@ mod tests {
         assert_insert_coalesce_touching_or_overlapping::<4>(basic(), (ie(14, 16), false), Ok(&ie(14, 16)), Some([
 			(ui(4), false),
 			(ee(5, 7), true),
-			(ie(7, 10), false),
+			(ii(7, 7), false),
             (ie(14, 16), false),
+        ]));
+        assert_insert_coalesce_touching_or_overlapping::<3>(basic(), (ii(6, 11), false), Ok(&ei(5, 11)), Some([
+			(ui(4), false),
+			(ei(5, 11), false),
+            (ie(14, 16), true),
         ]));
         assert_insert_coalesce_touching_or_overlapping::<4>(basic(), (ii(15, 18), true), Ok(&ii(14, 18)), Some([
 			(ui(4), false),
 			(ee(5, 7), true),
-			(ie(7, 7), false),
-            (ii(14, 18), true),
+			(ii(7, 7), false),
+			(ii(14, 18), true),
         ]));
         assert_insert_coalesce_touching_or_overlapping::<1>(basic(), (uu(), false), Ok(&uu()), Some([
             (uu(), false),
         ]));
         //the only difference from the insert_coalesce_overlapping
-        assert_insert_coalesce_touching_or_overlapping::<2>(basic(), (ii(7, 11), false), Ok(&ee(5, 16)), Some([
+        assert_insert_coalesce_touching_or_overlapping::<2>(basic(), (ii(7, 14), false), Ok(&ee(5, 16)), Some([
 			(ui(4), false),
             (ee(5, 16), false),
         ]));

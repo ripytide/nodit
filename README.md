@@ -133,19 +133,18 @@ To summarise:
 - Some overly strict Trait-Bounds on some functions due to `impl`
   level `Trait-Bounds` rather than specific `function` level
   `Trait-Bounds`
-- No coalescing/merge insert functions, yet
 - Missing some functions common to BTreeMap and BTreeSet like:
   - `clear()`
   - `is_subset()`
-  - etc... a bunch more
+  - etc... prob a bunch more
 - Sub-optimal use of unnecessary `cloned()` just to placate the borrow checker
-- Optimisation comments scattered
+- Lot's of optimisations available
 - Can't use TryFrom<(Bound, Bound)> instead of [`TryFromBounds`] (relys on
   upstream to impl)
 - The data structures are lacking a lot of useful traits, such as:
   - FromIterator
   - IntoIterator
-  - Probably a bunch more
+  - Prob a bunch more
 
 # Credit
 

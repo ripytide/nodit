@@ -72,6 +72,16 @@ impl<T> StartBound<T> {
 			_ => panic!("unsuitable operation"),
 		}
 	}
+    /// Does the inverse of [`StartBound::into_end_bound()`].
+	#[trivial]
+	pub(crate) fn into_start_bound(self) -> StartBound<T> {
+		match self {
+			StartBound::Included(point) => StartBound::Included(point),
+			StartBound::ReverseExcluded(point) => StartBound::Excluded(point),
+			StartBound::ReverseUnbounded => StartBound::Unbounded,
+			_ => panic!("unsuitable operation"),
+		}
+	}
 }
 
 impl<T> Eq for StartBound<T> where T: PartialEq {}
