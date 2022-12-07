@@ -25,7 +25,7 @@ use std::ops::{Bound, RangeBounds};
 
 use either::Either;
 use itertools::Itertools;
-use labels::{tested, trivial, untested};
+use labels::{tested, trivial};
 use serde::{Deserialize, Serialize};
 
 use crate::bounds::StartBound;
@@ -1340,7 +1340,7 @@ where
 	}
 }
 
-#[untested]
+#[tested]
 fn touches<I, A, B>(a: &A, b: &B) -> bool
 where
 	A: RangeBounds<I>,
@@ -1797,7 +1797,7 @@ mod tests {
 				if our_answer != mathematical_definition_of_overlap {
 					dbg!(range_bounds1, range_bounds2);
 					dbg!(mathematical_definition_of_overlap, our_answer);
-					panic!("Discrepency in .overlaps() detected!");
+					panic!("Discrepency in overlaps() detected!");
 				}
 			}
 		}
@@ -1846,6 +1846,32 @@ mod tests {
 				CutResult::Double(first_range_bounds, second_range_bounds) => {
 					first_range_bounds.contains(point)
 						|| second_range_bounds.contains(point)
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn touches_tests() {
+		for range_bounds1 in all_valid_test_bounds() {
+			for range_bounds2 in all_valid_test_bounds() {
+				let our_answer = touches(&range_bounds1, &range_bounds2);
+
+				let mathematical_definition_of_touches =
+					NUMBERS_DOMAIN.iter().tuple_windows().any(|(x1, x2)| {
+						(range_bounds1.contains(x1)
+							&& !range_bounds1.contains(x2)
+							&& range_bounds2.contains(x2)
+							&& !range_bounds2.contains(x1))
+							|| (range_bounds1.contains(x2)
+								&& !range_bounds1.contains(x1) && range_bounds2
+								.contains(x1) && !range_bounds2.contains(x2))
+					});
+
+				if our_answer != mathematical_definition_of_touches {
+					dbg!(range_bounds1, range_bounds2);
+					dbg!(mathematical_definition_of_touches, our_answer);
+					panic!("Discrepency in touches() detected!");
 				}
 			}
 		}
