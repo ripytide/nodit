@@ -18,7 +18,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::ops::{
-	Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo,
+	Bound, Range, RangeBounds, RangeFrom, RangeFull, RangeInclusive, RangeTo,
 	RangeToInclusive,
 };
 
@@ -37,17 +37,32 @@ use labels::{not_a_fn, trivial};
 /// [`TryFrom`]: https://doc.rust-lang.org/std/convert/trait.TryFrom.html
 /// [`Range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
 pub trait TryFromBounds<I> {
-    #[not_a_fn]
+	#[not_a_fn]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
 	) -> Option<Self>
 	where
 		Self: Sized;
+	// optimisation: make this non-implemented so the trait impls can
+	// define them more efficiently
+	#[not_a_fn]
+	fn is_valid<Q>(range_bounds: &Q) -> bool
+	where
+		Q: RangeBounds<I>,
+		Self: Sized,
+		I: Clone,
+	{
+		Self::try_from_bounds(
+			range_bounds.start_bound().cloned(),
+			range_bounds.end_bound().cloned(),
+		)
+		.is_some()
+	}
 }
 
 impl<I> TryFromBounds<I> for (Bound<I>, Bound<I>) {
-    #[trivial]
+	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -57,7 +72,7 @@ impl<I> TryFromBounds<I> for (Bound<I>, Bound<I>) {
 }
 
 impl<I> TryFromBounds<I> for Range<I> {
-    #[trivial]
+	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -70,7 +85,7 @@ impl<I> TryFromBounds<I> for Range<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeInclusive<I> {
-    #[trivial]
+	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -83,7 +98,7 @@ impl<I> TryFromBounds<I> for RangeInclusive<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeFrom<I> {
-    #[trivial]
+	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -96,7 +111,7 @@ impl<I> TryFromBounds<I> for RangeFrom<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeTo<I> {
-    #[trivial]
+	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -109,7 +124,7 @@ impl<I> TryFromBounds<I> for RangeTo<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeToInclusive<I> {
-    #[trivial]
+	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -122,7 +137,7 @@ impl<I> TryFromBounds<I> for RangeToInclusive<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeFull {
-    #[trivial]
+	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,

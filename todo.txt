@@ -1,10 +1,15 @@
+# refactor
+- change <0> to use None::<[_;0]>
+- try and fix all the uses of cloned() in the library
+
 # testing
-- test #[untested]'s
 - add tests for TryFromBounds fails for those that produce them with
   atomnicity tests
 
 # features
 - RangeMap, RangeSet, RangeInclusiveMap...
+- add coalesce if same-value otherwise overwrite) function to make
+  finally make range_bounds_map a superset of rangemap
 
 # docs
 - write something somewhere about wrapper types for RangeBoundsMap
@@ -17,6 +22,7 @@
 - use it in robot_Sweet_graph for a bit before publishing
 
 # final checks
+- remove most rustfmt::skips and cargo fmt
 - check toml meta-data, github meta-data and readme opener
 - copy map to set again
 - copy readme to lib.rs docs again

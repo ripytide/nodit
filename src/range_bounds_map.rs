@@ -178,9 +178,9 @@ pub struct OverlapError;
 /// In this example we use a `RangeBounds` type that can be either
 /// Inclusive-Inclusive OR Exlusive-Exlusive. We then try to use
 /// [`RangeBoundsMap::insert_coalesce_touching()`] to "coalesce" an
-/// Inclusive-Inclusive and a Exlusive-Exlusive `MultiRange`. This
+/// Inclusive-Inclusive and a Exlusive-Exlusive `MultiBounds`. This
 /// will however fail as the resulting "coalesced" `RangeBounds` would
-/// have to be Inclusive-Exlusive which `MultiRange` does not support.
+/// have to be Inclusive-Exlusive which `MultiBounds` does not support.
 ///
 /// ```
 /// use std::ops::{Bound, RangeBounds};
@@ -191,41 +191,45 @@ pub struct OverlapError;
 /// };
 ///
 /// #[derive(Debug, PartialEq)]
-/// enum MultiRange {
+/// enum MultiBounds {
 /// 	Inclusive(u8, u8),
 /// 	Exclusive(u8, u8),
 /// }
 ///
-/// impl RangeBounds<u8> for MultiRange {
+/// impl RangeBounds<u8> for MultiBounds {
 /// 	fn start_bound(&self) -> Bound<&u8> {
 /// 		match self {
-/// 			MultiRange::Inclusive(start, _) => {
+/// 			MultiBounds::Inclusive(start, _) => {
 /// 				Bound::Included(start)
 /// 			}
-/// 			MultiRange::Exclusive(start, _) => {
+/// 			MultiBounds::Exclusive(start, _) => {
 /// 				Bound::Excluded(start)
 /// 			}
 /// 		}
 /// 	}
 /// 	fn end_bound(&self) -> Bound<&u8> {
 /// 		match self {
-/// 			MultiRange::Inclusive(_, end) => Bound::Included(end),
-/// 			MultiRange::Exclusive(_, end) => Bound::Excluded(end),
+/// 			MultiBounds::Inclusive(_, end) => {
+/// 				Bound::Included(end)
+/// 			}
+/// 			MultiBounds::Exclusive(_, end) => {
+/// 				Bound::Excluded(end)
+/// 			}
 /// 		}
 /// 	}
 /// }
 ///
-/// impl TryFromBounds<u8> for MultiRange {
+/// impl TryFromBounds<u8> for MultiBounds {
 /// 	fn try_from_bounds(
 /// 		start_bound: Bound<u8>,
 /// 		end_bound: Bound<u8>,
 /// 	) -> Option<Self> {
 /// 		match (start_bound, end_bound) {
 /// 			(Bound::Included(start), Bound::Included(end)) => {
-/// 				Some(MultiRange::Inclusive(start, end))
+/// 				Some(MultiBounds::Inclusive(start, end))
 /// 			}
 /// 			(Bound::Excluded(start), Bound::Excluded(end)) => {
-/// 				Some(MultiRange::Exclusive(start, end))
+/// 				Some(MultiBounds::Exclusive(start, end))
 /// 			}
 /// 			_ => None,
 /// 		}
@@ -233,14 +237,14 @@ pub struct OverlapError;
 /// }
 ///
 /// let mut range_bounds_map = RangeBoundsMap::try_from([(
-/// 	MultiRange::Inclusive(2, 4),
+/// 	MultiBounds::Inclusive(2, 4),
 /// 	true,
 /// )])
 /// .unwrap();
 ///
 /// assert_eq!(
 /// 	range_bounds_map.insert_coalesce_touching(
-/// 		MultiRange::Exclusive(4, 6),
+/// 		MultiBounds::Exclusive(4, 6),
 /// 		false
 /// 	),
 /// 	Err(OverlapOrTryFromBoundsError::TryFromBounds(
@@ -673,65 +677,66 @@ where
 		K: TryFromBounds<I>,
 		V: Clone,
 	{
-		// only the first and last range_bounds in overlapping stand a
-		// change of remaining after the cut so we don't need to
-		// collect the iterator and can just look at the first and
-		// last elements since range is a double ended iterator ;p
-		let mut overlapping = self.remove_overlapping(range_bounds);
+		let mut to_insert = Vec::new();
 
-		let first_last = (overlapping.next(), overlapping.next_back());
+		{
+			// only the first and last range_bounds in overlapping stand a
+			// change of remaining after the cut so we don't need to
+			// collect the iterator and can just look at the first and
+			// last elements since range is a double ended iterator ;p
+			let mut overlapping = self.overlapping(range_bounds);
 
-		// optimisation don't clone the value when only changing the
-		// RangeBounds via CutResult::Single()
-		let mut attempt_insert_platonic =
-			|(start_bound, end_bound),
-			 value|
-			 -> Result<(), TryFromBoundsError> {
-				match K::try_from_bounds(start_bound, end_bound)
-					.ok_or(TryFromBoundsError)
-				{
-					Ok(key) => {
-						self.insert_platonic(key, value).unwrap();
-						return Ok(());
-					}
-					Err(cut_error) => return Err(cut_error),
-				}
-			};
+			let first_last = (overlapping.next(), overlapping.next_back());
 
-		match first_last {
-			(Some(first), Some(last)) => {
-				match cut_range_bounds(&first.0, range_bounds) {
-					CutResult::Nothing => {}
-					CutResult::Single(left_section) => {
-						attempt_insert_platonic(left_section, first.1)?;
+			match first_last {
+				(Some(first), Some(last)) => {
+					match cut_range_bounds(first.0, range_bounds) {
+						CutResult::Nothing => {}
+						CutResult::Single(left_section) => {
+							to_insert.push((left_section, first.1.clone()));
+						}
+						CutResult::Double(_, _) => unreachable!(),
 					}
-					CutResult::Double(_, _) => unreachable!(),
-				}
-				match cut_range_bounds(&last.0, range_bounds) {
-					CutResult::Nothing => {}
-					CutResult::Single(right_section) => {
-						attempt_insert_platonic(right_section, last.1)?;
+					match cut_range_bounds(last.0, range_bounds) {
+						CutResult::Nothing => {}
+						CutResult::Single(right_section) => {
+							to_insert.push((right_section, last.1.clone()));
+						}
+						CutResult::Double(_, _) => unreachable!(),
 					}
-					CutResult::Double(_, _) => unreachable!(),
 				}
+				(Some(first), None) => {
+					match cut_range_bounds(first.0, range_bounds) {
+						CutResult::Nothing => {}
+						CutResult::Single(section) => {
+							to_insert.push((section, first.1.clone()));
+						}
+						CutResult::Double(left_section, right_section) => {
+							to_insert.push((left_section, first.1.clone()));
+							to_insert.push((right_section, first.1.clone()));
+						}
+					}
+				}
+				(None, None) => {}
+				(None, Some(_)) => unreachable!(),
 			}
-			(Some(first), None) => {
-				match cut_range_bounds(&first.0, range_bounds) {
-					CutResult::Nothing => {}
-					CutResult::Single(section) => {
-						attempt_insert_platonic(section, first.1)?;
-					}
-					CutResult::Double(left_section, right_section) => {
-						attempt_insert_platonic(left_section, first.1.clone())?;
-						attempt_insert_platonic(right_section, first.1)?;
-					}
-				}
-			}
-			(None, None) => {}
-			(None, Some(_)) => unreachable!(),
 		}
 
-		return Ok(());
+		// Make sure that the inserts will work before we try to do
+		// them, so if one fails the map remains unchanged
+		if to_insert.iter().all(|(x, _)| K::is_valid(x)) {
+			self.remove_overlapping(range_bounds).next();
+			for ((start, end), value) in to_insert.into_iter() {
+				self.insert_platonic(
+					K::try_from_bounds(start, end).unwrap(),
+					value.clone(),
+				)
+				.unwrap();
+			}
+			return Ok(());
+		} else {
+			return Err(TryFromBoundsError);
+		}
 	}
 
 	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
@@ -1395,6 +1400,52 @@ mod tests {
 	pub(crate) const NUMBERS_DOMAIN: &'static [u8] =
 		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
+	fn basic() -> RangeBoundsMap<u8, TestBounds, bool> {
+		RangeBoundsMap::try_from([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+			(ie(14, 16), true),
+		])
+		.unwrap()
+	}
+
+	#[derive(Debug, PartialEq, Clone)]
+	enum MultiBounds {
+		Inclusive(u8, u8),
+		Exclusive(u8, u8),
+	}
+	impl RangeBounds<u8> for MultiBounds {
+		fn start_bound(&self) -> Bound<&u8> {
+			match self {
+				MultiBounds::Inclusive(start, _) => Bound::Included(start),
+				MultiBounds::Exclusive(start, _) => Bound::Excluded(start),
+			}
+		}
+		fn end_bound(&self) -> Bound<&u8> {
+			match self {
+				MultiBounds::Inclusive(_, end) => Bound::Included(end),
+				MultiBounds::Exclusive(_, end) => Bound::Excluded(end),
+			}
+		}
+	}
+	impl TryFromBounds<u8> for MultiBounds {
+		fn try_from_bounds(
+			start_bound: Bound<u8>,
+			end_bound: Bound<u8>,
+		) -> Option<Self> {
+			match (start_bound, end_bound) {
+				(Bound::Included(start), Bound::Included(end)) => {
+					Some(MultiBounds::Inclusive(start, end))
+				}
+				(Bound::Excluded(start), Bound::Excluded(end)) => {
+					Some(MultiBounds::Exclusive(start, end))
+				}
+				_ => None,
+			}
+		}
+	}
+
 	#[rustfmt::skip]
 	#[test]
 	fn insert_platonic_tests() {
@@ -1555,10 +1606,18 @@ mod tests {
 		}
 	}
 
+	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
+		RangeBoundsMap::try_from([
+			(MultiBounds::Inclusive(4, 6), false),
+			(MultiBounds::Exclusive(7, 8), true),
+			(MultiBounds::Inclusive(8, 12), false),
+		])
+		.unwrap()
+	}
 	#[rustfmt::skip]
 	#[test]
 	fn cut_tests() {
-		assert_cut::<0>(basic(), ii(50, 60), Ok(()), None);
+		assert_cut(basic(), ii(50, 60), Ok(()), None::<[_; 0]>);
 		assert_cut(basic(), uu(), Ok(()), Some([]));
 		assert_cut(basic(), ui(6), Ok(()), Some([
 			(ee(6, 7), true),
@@ -1569,13 +1628,39 @@ mod tests {
             (ui(4), false),
 			(ee(5, 6), true),
         ]));
+
+        assert_cut(special(), MultiBounds::Exclusive(5, 7), Ok(()), Some([
+            (MultiBounds::Inclusive(4, 5), false),
+            (MultiBounds::Exclusive(7, 8), true),
+            (MultiBounds::Inclusive(8, 12), false),
+        ]));
+        assert_cut(special(), MultiBounds::Exclusive(6, 7), Ok(()), None::<[_; 0]>);
+        assert_cut(special(), MultiBounds::Inclusive(5, 6), Err(TryFromBoundsError), None::<[_; 0]>);
+        assert_cut(special(), MultiBounds::Inclusive(6, 7), Err(TryFromBoundsError), None::<[_; 0]>);
+        assert_cut(special(), 7..8, Ok(()), Some([
+            (MultiBounds::Inclusive(4, 6), false),
+            (MultiBounds::Inclusive(8, 12), false),
+        ]));
+        assert_cut(special(), MultiBounds::Inclusive(7, 10), Err(TryFromBoundsError), None::<[_; 0]>);
+        assert_cut(special(), MultiBounds::Exclusive(4, 6), Ok(()), Some([
+            (MultiBounds::Inclusive(4, 4), false),
+            (MultiBounds::Inclusive(6, 6), false),
+            (MultiBounds::Exclusive(7, 8), true),
+            (MultiBounds::Inclusive(8, 12), false),
+        ]));
 	}
-	fn assert_cut<const N: usize>(
-		mut before: RangeBoundsMap<u8, TestBounds, bool>,
-		to_cut: TestBounds,
+	fn assert_cut<const N: usize, Q, I, K, V>(
+		mut before: RangeBoundsMap<I, K, V>,
+		to_cut: Q,
 		result: Result<(), TryFromBoundsError>,
-		after: Option<[(TestBounds, bool); N]>,
-	) {
+		after: Option<[(K, V); N]>,
+	) where
+		I: Ord + Clone + Debug,
+		K: Clone + TryFromBounds<I> + Debug + PartialEq,
+		V: Clone + Debug + PartialEq,
+		K: RangeBounds<I>,
+		Q: RangeBounds<I>,
+	{
 		let clone = before.clone();
 		assert_eq!(before.cut(&to_cut), result);
 		match after {
@@ -1611,16 +1696,6 @@ mod tests {
 				.collect_vec(),
 			result
 		);
-	}
-
-	fn basic() -> RangeBoundsMap<u8, TestBounds, bool> {
-		RangeBoundsMap::try_from([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ie(14, 16), true),
-		])
-		.unwrap()
 	}
 
 	#[rustfmt::skip]
