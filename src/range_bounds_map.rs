@@ -25,7 +25,7 @@ use std::ops::{Bound, RangeBounds};
 
 use either::Either;
 use itertools::Itertools;
-use labels::{tested, trivial};
+use labels::{tested, trivial, untested};
 use serde::{Deserialize, Serialize};
 
 use crate::bounds::StartBound;
@@ -958,14 +958,14 @@ where
 		);
 
 		let start_bound = match left_touching {
-			Some(left) => {
-				self.starts.remove(&left).unwrap().0.start_bound().cloned()
+			Some(ref left) => {
+				self.starts.get(left).unwrap().0.start_bound().cloned()
 			}
 			None => range_bounds.start_bound().cloned(),
 		};
 		let end_bound = match right_touching {
-			Some(right) => {
-				self.starts.remove(&right).unwrap().0.end_bound().cloned()
+			Some(ref right) => {
+				self.starts.get(right).unwrap().0.end_bound().cloned()
 			}
 			None => range_bounds.end_bound().cloned(),
 		};
@@ -975,6 +975,15 @@ where
 				OverlapOrTryFromBoundsError::TryFromBounds(TryFromBoundsError),
 			)?;
 
+		// Out with the old!
+		if let Some(ref left) = left_touching {
+			self.starts.remove(left);
+		}
+		if let Some(ref right) = right_touching {
+			self.starts.remove(right);
+		}
+
+		// In with the new!
 		self.starts.insert(
 			StartBound::from(new_range_bounds.start_bound().cloned()),
 			(new_range_bounds, value),
@@ -1027,7 +1036,7 @@ where
 	/// 	[(&(-4..1), &true), (&(1..8), &true), (&(10..16), &false)]
 	/// );
 	/// ```
-	#[tested]
+	#[untested]
 	pub fn insert_coalesce_overlapping(
 		&mut self,
 		range_bounds: K,
@@ -1116,7 +1125,7 @@ where
 	/// 	[(&(-4..8), &true), (&(10..16), &false)]
 	/// );
 	/// ```
-	#[tested]
+	#[untested]
 	pub fn insert_coalesce_touching_or_overlapping(
 		&mut self,
 		range_bounds: K,
@@ -1606,14 +1615,6 @@ mod tests {
 		}
 	}
 
-	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
-		RangeBoundsMap::try_from([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Exclusive(7, 8), true),
-			(MultiBounds::Inclusive(8, 12), false),
-		])
-		.unwrap()
-	}
 	#[rustfmt::skip]
 	#[test]
 	fn cut_tests() {
@@ -1697,48 +1698,117 @@ mod tests {
 			result
 		);
 	}
+	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
+		RangeBoundsMap::try_from([
+			(MultiBounds::Inclusive(4, 6), false),
+			(MultiBounds::Exclusive(7, 8), true),
+			(MultiBounds::Inclusive(8, 12), false),
+		])
+		.unwrap()
+	}
 
-	#[rustfmt::skip]
 	#[test]
 	fn insert_coalesce_touching_tests() {
-		assert_insert_coalesce_touching::<0>(basic(), (ii(0, 4), false), Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)), None);
-        assert_insert_coalesce_touching::<4>(basic(), (ee(7, 10), false), Ok(&ie(7, 10)), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ie(7, 10), false),
-            (ie(14, 16), true),
-        ]));
-        assert_insert_coalesce_touching::<4>(basic(), (ee(7, 11), true), Ok(&ie(7, 11)), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ie(7, 11), true),
-            (ie(14, 16), true),
-        ]));
-        assert_insert_coalesce_touching::<5>(basic(), (ee(12, 13), true), Ok(&ee(12, 13)), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-            (ee(12, 13), true),
-            (ie(14, 16), true),
-        ]));
-        assert_insert_coalesce_touching::<4>(basic(), (ee(13, 14), false), Ok(&ee(13, 16)), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-            (ee(13, 16), false),
-        ]));
-        assert_insert_coalesce_touching::<3>(basic(), (ee(7, 14), false), Ok(&ie(7, 16)), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-            (ie(7, 16), false),
-        ]));
+		assert_insert_coalesce_touching(
+			basic(),
+			(ii(0, 4), false),
+			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			None::<[_; 0]>,
+		);
+		assert_insert_coalesce_touching(
+			basic(),
+			(ee(7, 10), false),
+			Ok(&ie(7, 10)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ie(7, 10), false),
+				(ie(14, 16), true),
+			]),
+		);
+		assert_insert_coalesce_touching(
+			basic(),
+			(ee(7, 11), true),
+			Ok(&ie(7, 11)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ie(7, 11), true),
+				(ie(14, 16), true),
+			]),
+		);
+		assert_insert_coalesce_touching(
+			basic(),
+			(ee(12, 13), true),
+			Ok(&ee(12, 13)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ee(12, 13), true),
+				(ie(14, 16), true),
+			]),
+		);
+		assert_insert_coalesce_touching(
+			basic(),
+			(ee(13, 14), false),
+			Ok(&ee(13, 16)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ee(13, 16), false),
+			]),
+		);
+		assert_insert_coalesce_touching(
+			basic(),
+			(ee(7, 14), false),
+			Ok(&ie(7, 16)),
+			Some([(ui(4), false), (ee(5, 7), true), (ie(7, 16), false)]),
+		);
+
+		assert_insert_coalesce_touching(
+			special(),
+			(MultiBounds::Exclusive(6, 7), true),
+			Err(OverlapOrTryFromBoundsError::TryFromBounds(
+				TryFromBoundsError,
+			)),
+			None::<[_; 0]>,
+		);
+		assert_insert_coalesce_touching(
+			special(),
+			(MultiBounds::Inclusive(6, 7), true),
+			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			None::<[_; 0]>,
+		);
+        eprintln!("hithi");
+		assert_insert_coalesce_touching(
+			special(),
+			(MultiBounds::Exclusive(12, 15), true),
+			Err(OverlapOrTryFromBoundsError::TryFromBounds(
+				TryFromBoundsError,
+			)),
+			None::<[_; 0]>,
+		);
+        eprintln!("hithi");
+		assert_insert_coalesce_touching(
+			special(),
+			(MultiBounds::Inclusive(12, 15), true),
+			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			None::<[_; 0]>,
+		);
 	}
-	fn assert_insert_coalesce_touching<const N: usize>(
-		mut before: RangeBoundsMap<u8, TestBounds, bool>,
-		to_insert: (TestBounds, bool),
-		result: Result<&TestBounds, OverlapOrTryFromBoundsError>,
-		after: Option<[(TestBounds, bool); N]>,
-	) {
+	fn assert_insert_coalesce_touching<const N: usize, I, K, V>(
+		mut before: RangeBoundsMap<I, K, V>,
+		to_insert: (K, V),
+		result: Result<&K, OverlapOrTryFromBoundsError>,
+		after: Option<[(K, V); N]>,
+	) where
+		I: Ord + Clone + Debug,
+		K: Clone + TryFromBounds<I> + Debug + PartialEq,
+		V: Clone + Debug + PartialEq,
+		K: RangeBounds<I>,
+	{
 		let clone = before.clone();
 		assert_eq!(
 			before.insert_coalesce_touching(to_insert.0, to_insert.1),
