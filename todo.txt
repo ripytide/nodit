@@ -1,6 +1,8 @@
 # refactor
 - change <0> to use None::<[_;0]>
 - try and fix all the uses of cloned() in the library
+- put special() and basic() together at the top or mod tests
+- replace MultiBounds::* with mee() and mii()
 
 # testing
 - add tests for TryFromBounds fails for those that produce them with
