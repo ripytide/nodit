@@ -23,7 +23,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 #![feature(let_chains)]
 #![allow(clippy::tabs_in_doc_comments)]
 #![allow(clippy::needless_return)]
-pub(crate) mod bounds;
+pub(crate) mod bound_ord;
 pub mod range_bounds_map;
 //pub mod range_bounds_set;
 pub mod try_from_bounds;

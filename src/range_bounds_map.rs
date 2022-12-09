@@ -28,7 +28,7 @@ use itertools::Itertools;
 use labels::{tested, trivial};
 use serde::{Deserialize, Serialize};
 
-use crate::bounds::StartBound;
+use crate::bound_ord::BoundOrd;
 use crate::TryFromBounds;
 
 /// An ordered map of [`RangeBounds`] based on [`BTreeMap`]
@@ -120,7 +120,7 @@ pub struct RangeBoundsMap<I, K, V>
 where
 	I: PartialOrd,
 {
-	starts: BTreeMap<StartBound<I>, (K, V)>,
+	starts: BTreeMap<BoundOrd<I>, (K, V)>,
 }
 
 /// An error type to represent a `RangeBounds` overlapping another
@@ -333,8 +333,8 @@ where
 			return Err(OverlapError);
 		}
 
-		let start = StartBound::from(range_bounds.start_bound());
-		let end = StartBound::from(range_bounds.end_bound())
+		let start = BoundOrd::from(range_bounds.start_bound());
+		let end = BoundOrd::from(range_bounds.end_bound())
 			.into_end_bound();
 
 		if start > end {
@@ -342,7 +342,7 @@ where
 		}
 
 		self.starts.insert(
-			StartBound::from(range_bounds.start_bound().cloned()),
+			BoundOrd::from(range_bounds.start_bound().cloned()),
 			(range_bounds, value),
 		);
 
@@ -408,8 +408,8 @@ where
 			panic!("Invalid range bounds!");
 		}
 
-		let start = StartBound::from(range_bounds.start_bound().cloned());
-		let end = StartBound::from(range_bounds.end_bound().cloned())
+		let start = BoundOrd::from(range_bounds.start_bound().cloned());
+		let end = BoundOrd::from(range_bounds.end_bound().cloned())
 			.into_end_bound();
 
 		let start_range_bounds = (
@@ -430,7 +430,7 @@ where
 			self.starts
 					.range((
 						Bound::Unbounded,
-						Bound::Excluded(StartBound::from(
+						Bound::Excluded(BoundOrd::from(
 							range_bounds.start_bound().cloned(),
 						)),
 					))
@@ -521,7 +521,7 @@ where
 		{
 			return self
 				.starts
-				.get_mut(&StartBound::from(overlapping_start_bound.cloned()))
+				.get_mut(&BoundOrd::from(overlapping_start_bound.cloned()))
 				.map(|(_, value)| value);
 		}
 		return None;
@@ -627,9 +627,9 @@ where
 		//or collectiong anything, may depend on a nicer upstream
 		//BTreeMap remove_range function
 
-		let to_remove: Vec<StartBound<I>> = self
+		let to_remove: Vec<BoundOrd<I>> = self
 			.overlapping(range_bounds)
-			.map(|(key, _)| (StartBound::from(key.start_bound().cloned())))
+			.map(|(key, _)| (BoundOrd::from(key.start_bound().cloned())))
 			.collect();
 
 		let mut output = Vec::new();
@@ -936,10 +936,10 @@ where
 
 		let touching_left_start_bound = self
 			.touching_left(&range_bounds)
-			.map(|x| StartBound::from(x.start_bound().cloned()));
+			.map(|x| BoundOrd::from(x.start_bound().cloned()));
 		let touching_right_start_bound = self
 			.touching_right(&range_bounds)
-			.map(|x| StartBound::from(x.start_bound().cloned()));
+			.map(|x| BoundOrd::from(x.start_bound().cloned()));
 
 		let start_bound = match touching_left_start_bound {
 			Some(ref x) => self.starts.get(x).unwrap().0.start_bound().cloned(),
@@ -965,18 +965,18 @@ where
 
 		// In with the new!
 		self.starts.insert(
-			StartBound::from(new_range_bounds.start_bound().cloned()),
+			BoundOrd::from(new_range_bounds.start_bound().cloned()),
 			(new_range_bounds, value),
 		);
 
-		return Ok(&self.starts.get(&StartBound::from(start_bound)).unwrap().0);
+		return Ok(&self.starts.get(&BoundOrd::from(start_bound)).unwrap().0);
 	}
 	fn touching_left(&self, range_bounds: &K) -> Option<&K> {
 		return self
 			.starts
 			.range((
 				Bound::Unbounded,
-				Bound::Excluded(StartBound::from(
+				Bound::Excluded(BoundOrd::from(
 					range_bounds.start_bound().cloned(),
 				)),
 			))
@@ -988,7 +988,7 @@ where
 		return self
 			.starts
 			.range((
-				Bound::Excluded(StartBound::from(
+				Bound::Excluded(BoundOrd::from(
 					range_bounds.start_bound().cloned(),
 				)),
 				Bound::Unbounded,
@@ -1065,11 +1065,11 @@ where
 
 		// In with the new!
 		self.starts.insert(
-			StartBound::from(new_range_bounds.start_bound().cloned()),
+			BoundOrd::from(new_range_bounds.start_bound().cloned()),
 			(new_range_bounds, value),
 		);
 
-		return Ok(&self.starts.get(&StartBound::from(start_bound)).unwrap().0);
+		return Ok(&self.starts.get(&BoundOrd::from(start_bound)).unwrap().0);
 	}
 	fn overlapping_swell<'a>(
 		&'a self,
@@ -1079,18 +1079,18 @@ where
 
 		let start_bound = match overlapping.peek() {
 			Some((first, _)) => std::cmp::min(
-				StartBound::from(first.start_bound()),
-				StartBound::from(range_bounds.start_bound()),
+				BoundOrd::from(first.start_bound()),
+				BoundOrd::from(range_bounds.start_bound()),
 			),
-			None => StartBound::from(range_bounds.start_bound()),
+			None => BoundOrd::from(range_bounds.start_bound()),
 		};
 		let end_bound = match overlapping.next_back() {
 			Some((last, _)) => std::cmp::max(
-				StartBound::from(last.end_bound()).into_end_bound(),
-				StartBound::from(range_bounds.end_bound()).into_end_bound(),
+				BoundOrd::from(last.end_bound()).into_end_bound(),
+				BoundOrd::from(range_bounds.end_bound()).into_end_bound(),
 			)
 			.into_start_bound(),
-			None => StartBound::from(range_bounds.end_bound()),
+			None => BoundOrd::from(range_bounds.end_bound()),
 		};
 
 		return (Bound::from(start_bound), Bound::from(end_bound));
@@ -1172,11 +1172,11 @@ where
 
 		self.remove_overlapping(&new_range_bounds).next();
 		self.starts.insert(
-			StartBound::from(start_bound.clone()),
+			BoundOrd::from(start_bound.clone()),
 			(new_range_bounds, value),
 		);
 
-		return Ok(&self.starts.get(&StartBound::from(start_bound)).unwrap().0);
+		return Ok(&self.starts.get(&BoundOrd::from(start_bound)).unwrap().0);
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
@@ -1300,8 +1300,8 @@ where
 	let (cut_start_bound, cut_end_bound) =
 		(cut_range_bounds.start_bound(), cut_range_bounds.end_bound());
 
-	let left_section = match StartBound::from(cut_start_bound)
-		> StartBound::from(base_start_bound)
+	let left_section = match BoundOrd::from(cut_start_bound)
+		> BoundOrd::from(base_start_bound)
 	{
 		false => None,
 		true => Some((
@@ -1309,8 +1309,8 @@ where
 			flip_bound(cut_start_bound).cloned(),
 		)),
 	};
-	let right_section = match StartBound::from(cut_end_bound).into_end_bound()
-		< StartBound::from(base_end_bound).into_end_bound()
+	let right_section = match BoundOrd::from(cut_end_bound).into_end_bound()
+		< BoundOrd::from(base_end_bound).into_end_bound()
 	{
 		false => None,
 		true => {
@@ -1356,7 +1356,7 @@ where
 	let b_end = b.end_bound();
 
 	let (left_end, right_start) =
-		match StartBound::from(a_start).cmp(&StartBound::from(b_start)) {
+		match BoundOrd::from(a_start).cmp(&BoundOrd::from(b_start)) {
 			Ordering::Less => (a_end, b_start),
 			Ordering::Greater => (b_end, a_start),
 			Ordering::Equal => return true,
@@ -1390,7 +1390,7 @@ where
 	let b_end = b.end_bound();
 
 	let (left_end, right_start) =
-		match StartBound::from(a_start).cmp(&StartBound::from(b_start)) {
+		match BoundOrd::from(a_start).cmp(&BoundOrd::from(b_start)) {
 			Ordering::Less => (a_end, b_start),
 			Ordering::Greater => (b_end, a_start),
 			Ordering::Equal => return false,
@@ -1419,7 +1419,7 @@ mod tests {
 	use pretty_assertions::assert_eq;
 
 	use super::*;
-	use crate::bounds::StartBound;
+	use crate::bound_ord::BoundOrd;
 
 	type TestBounds = (Bound<u8>, Bound<u8>);
 
@@ -1580,8 +1580,8 @@ mod tests {
 				}
 				//make our expected_overlapping the correct order
 				if expected_overlapping.len() > 1 {
-					if StartBound::from(expected_overlapping[0].start_bound())
-						> StartBound::from(
+					if BoundOrd::from(expected_overlapping[0].start_bound())
+						> BoundOrd::from(
 							expected_overlapping[1].start_bound(),
 						) {
 						expected_overlapping.swap(0, 1);

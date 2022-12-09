@@ -4,19 +4,18 @@
 - replace MultiBounds::\* with mee() and mii()
 - make a StartBoundWrapper that uses StartBound to implement ord and
   use that instead of storing the startbound twice
+- change startBound to BoundOrd with constructors for either start or
+  end_bounds
 
 # features
 
-- RangeMap, RangeSet, RangeInclusiveMap...
+- RangeMap, RangeSet, RangeInclusiveMap... types for signature
+  simplification
 - add coalesce if same-value otherwise overwrite) function to make
   finally make range_bounds_map a superset of rangemap
 
 # docs
 
-- write something somewhere about wrapper types for RangeBoundsMap
-  that can simplify function signatures due to known invariants. For
-  example a wrapper for using K=std::ops::Range which simplifies a LOT
-  probaly in caveats + github issue
 - write docs for undocced things
 
 # time based
