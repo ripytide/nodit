@@ -333,8 +333,8 @@ where
 			return Err(OverlapError);
 		}
 
-		let start = StartBound::from(range_bounds.start_bound().cloned());
-		let end = StartBound::from(range_bounds.end_bound().cloned())
+		let start = StartBound::from(range_bounds.start_bound());
+		let end = StartBound::from(range_bounds.end_bound())
 			.into_end_bound();
 
 		if start > end {
@@ -1488,8 +1488,8 @@ mod tests {
 	#[rustfmt::skip]
 	#[test]
 	fn insert_platonic_tests() {
-		assert_insert_platonic::<0>(basic(), (ii(0, 4), false), Err(OverlapError), None);
-		assert_insert_platonic::<0>(basic(), (ii(5, 6), false), Err(OverlapError), None);
+		assert_insert_platonic(basic(), (ii(0, 4), false), Err(OverlapError), None::<[_; 0]>);
+		assert_insert_platonic(basic(), (ii(5, 6), false), Err(OverlapError), None::<[_; 0]>);
         assert_insert_platonic(basic(), (ee(7, 8), false), Ok(()), Some([
 			(ui(4), false),
 			(ee(5, 7), true),
@@ -1497,7 +1497,7 @@ mod tests {
             (ee(7, 8), false),
 			(ie(14, 16), true),
         ]));
-        assert_insert_platonic::<0>(basic(), (ii(4, 5), true), Err(OverlapError), None);
+        assert_insert_platonic(basic(), (ii(4, 5), true), Err(OverlapError), None::<[_; 0]>);
         assert_insert_platonic(basic(), (ei(4, 5), true), Ok(()), Some([
 			(ui(4), false),
 			(ei(4, 5), true),
@@ -1608,7 +1608,7 @@ mod tests {
 	#[rustfmt::skip]
 	#[test]
 	fn remove_overlapping_tests() {
-		assert_remove_overlapping::<0, 0>(basic(), ii(5, 5), [], None);
+		assert_remove_overlapping(basic(), ii(5, 5), [], None::<[_; 0]>);
 		assert_remove_overlapping(basic(), uu(), [
             (ui(4), false),
 			(ee(5, 7), true),
@@ -1636,7 +1636,10 @@ mod tests {
 		after: Option<[(TestBounds, bool); Y]>,
 	) {
 		let clone = before.clone();
-		assert_eq!(before.remove_overlapping(&to_remove).collect_vec(), result);
+		assert_eq!(
+			before.remove_overlapping(&to_remove).collect::<Vec<_>>(),
+			result
+		);
 		match after {
 			Some(after) => {
 				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
@@ -1724,7 +1727,7 @@ mod tests {
 			range_bounds_map
 				.gaps(&outer_range_bounds)
 				.map(|(start, end)| (start.cloned(), end.cloned()))
-				.collect_vec(),
+				.collect::<Vec<_>>(),
 			result
 		);
 	}

@@ -1,7 +1,8 @@
 # refactor
-- change <0> to use None::<[_;0]>
 - try and fix all the uses of cloned() in the library
 - replace MultiBounds::* with mee() and mii()
+- make a StartBoundWrapper that uses StartBound to implement ord and
+  use that instead of storing the startbound twice
 
 # features
 - RangeMap, RangeSet, RangeInclusiveMap...
