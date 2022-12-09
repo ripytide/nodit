@@ -72,7 +72,7 @@ impl<T> StartBound<T> {
 			_ => panic!("unsuitable operation"),
 		}
 	}
-    /// Does the inverse of [`StartBound::into_end_bound()`].
+	/// Does the inverse of [`StartBound::into_end_bound()`].
 	#[trivial]
 	pub(crate) fn into_start_bound(self) -> StartBound<T> {
 		match self {

@@ -25,7 +25,7 @@ use std::ops::{Bound, RangeBounds};
 
 use either::Either;
 use itertools::Itertools;
-use labels::{tested, trivial, untested};
+use labels::{tested, trivial};
 use serde::{Deserialize, Serialize};
 
 use crate::bounds::StartBound;
@@ -934,19 +934,19 @@ where
 			return Err(OverlapOrTryFromBoundsError::Overlap(OverlapError));
 		}
 
-		let left_touching_start_bound =
-			self.touching_left_start_bound(&range_bounds).cloned();
-		let right_touching_start_bound =
-			self.touching_right_start_bound(&range_bounds).cloned();
+		let touching_left_start_bound = self
+			.touching_left(&range_bounds)
+			.map(|x| StartBound::from(x.start_bound().cloned()));
+		let touching_right_start_bound = self
+			.touching_right(&range_bounds)
+			.map(|x| StartBound::from(x.start_bound().cloned()));
 
-		let start_bound = match left_touching_start_bound {
-			Some(ref left) => {
-				self.starts.get(left).unwrap().0.start_bound().cloned()
-			}
+		let start_bound = match touching_left_start_bound {
+			Some(ref x) => self.starts.get(x).unwrap().0.start_bound().cloned(),
 			None => range_bounds.start_bound().cloned(),
 		};
-		let end_bound = match right_touching_start_bound {
-			Some(ref right) => self.starts.get(right).unwrap().0.end_bound(),
+		let end_bound = match touching_right_start_bound {
+			Some(ref x) => self.starts.get(x).unwrap().0.end_bound(),
 			None => range_bounds.end_bound(),
 		};
 
@@ -956,10 +956,10 @@ where
 			)?;
 
 		// Out with the old!
-		if let Some(ref left) = left_touching_start_bound {
+		if let Some(ref left) = touching_left_start_bound {
 			self.starts.remove(left);
 		}
-		if let Some(ref right) = right_touching_start_bound {
+		if let Some(ref right) = touching_right_start_bound {
 			self.starts.remove(right);
 		}
 
@@ -971,10 +971,7 @@ where
 
 		return Ok(&self.starts.get(&StartBound::from(start_bound)).unwrap().0);
 	}
-	fn touching_left_start_bound(
-		&self,
-		range_bounds: &K,
-	) -> Option<&StartBound<I>> {
+	fn touching_left(&self, range_bounds: &K) -> Option<&K> {
 		return self
 			.starts
 			.range((
@@ -984,13 +981,10 @@ where
 				)),
 			))
 			.next_back()
-			.filter(|x| touches(range_bounds, &x.1.0))
-			.map(|x| x.0);
+			.map(|x| &x.1.0)
+			.filter(|x| touches(range_bounds, *x));
 	}
-	fn touching_right_start_bound(
-		&self,
-		range_bounds: &K,
-	) -> Option<&StartBound<I>> {
+	fn touching_right(&self, range_bounds: &K) -> Option<&K> {
 		return self
 			.starts
 			.range((
@@ -1000,8 +994,8 @@ where
 				Bound::Unbounded,
 			))
 			.next()
-			.filter(|x| touches(range_bounds, &x.1.0))
-			.map(|x| x.0);
+			.map(|x| &x.1.0)
+			.filter(|x| touches(range_bounds, *x));
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
@@ -1048,7 +1042,7 @@ where
 	/// 	[(&(-4..1), &true), (&(1..8), &true), (&(10..16), &false)]
 	/// );
 	/// ```
-	#[untested]
+	#[tested]
 	pub fn insert_coalesce_overlapping(
 		&mut self,
 		range_bounds: K,
@@ -1149,7 +1143,7 @@ where
 	/// 	[(&(-4..8), &true), (&(10..16), &false)]
 	/// );
 	/// ```
-	#[untested]
+	#[tested]
 	pub fn insert_coalesce_touching_or_overlapping(
 		&mut self,
 		range_bounds: K,
@@ -1158,7 +1152,31 @@ where
 	where
 		K: TryFromBounds<I>,
 	{
-		Err(TryFromBoundsError)
+		let overlapping_swell = self.overlapping_swell(&range_bounds);
+		let start_bound = match self.touching_left(&range_bounds) {
+			Some(touching_left) => {
+				Bound::from(touching_left.start_bound().cloned())
+			}
+			None => overlapping_swell.0.cloned(),
+		};
+		let end_bound = match self.touching_right(&range_bounds) {
+			Some(touching_right) => {
+				Bound::from(touching_right.end_bound().cloned())
+			}
+			None => overlapping_swell.1.cloned(),
+		};
+
+		let new_range_bounds =
+			K::try_from_bounds(start_bound.clone(), end_bound)
+				.ok_or(TryFromBoundsError)?;
+
+		self.remove_overlapping(&new_range_bounds).next();
+		self.starts.insert(
+			StartBound::from(start_bound.clone()),
+			(new_range_bounds, value),
+		);
+
+		return Ok(&self.starts.get(&StartBound::from(start_bound)).unwrap().0);
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
@@ -1418,6 +1436,15 @@ mod tests {
 			(ee(5, 7), true),
 			(ii(7, 7), false),
 			(ie(14, 16), true),
+		])
+		.unwrap()
+	}
+
+	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
+		RangeBoundsMap::try_from([
+			(MultiBounds::Inclusive(4, 6), false),
+			(MultiBounds::Exclusive(7, 8), true),
+			(MultiBounds::Inclusive(8, 12), false),
 		])
 		.unwrap()
 	}
@@ -1893,6 +1920,9 @@ mod tests {
 	#[rustfmt::skip]
 	#[test]
 	fn insert_coalesce_touching_or_overlapping_tests() {
+        assert_insert_coalesce_touching_or_overlapping(RangeBoundsMap::try_from([(1..4, false)]).unwrap(), (-4..1, true), Ok(&(-4..4)), Some([(-4..4, true)]));
+
+        //copied from insert_coalesce_overlapping_tests
         assert_insert_coalesce_touching_or_overlapping(basic(), (ii(0, 2), true), Ok(&(ui(4))), Some([
 			(ui(4), true),
 			(ee(5, 7), true),
@@ -1937,11 +1967,7 @@ mod tests {
 			(MultiBounds::Exclusive(7, 8), true),
 			(MultiBounds::Inclusive(8, 12), true),
 		]));
-        assert_insert_coalesce_touching_or_overlapping(special(), (MultiBounds::Exclusive(7, 8), false),  Ok(&MultiBounds::Exclusive(7,8)), Some([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Exclusive(7, 8), false),
-			(MultiBounds::Inclusive(8, 12), false),
-        ]));
+        assert_insert_coalesce_touching_or_overlapping(special(), (MultiBounds::Exclusive(7, 8), false),  Err(TryFromBoundsError), None::<[_; 0]>);
         assert_insert_coalesce_touching_or_overlapping(special(), (MultiBounds::Inclusive(7, 8), false), Ok(&MultiBounds::Inclusive(7, 12)), Some([
 			(MultiBounds::Inclusive(4, 6), false),
 			(MultiBounds::Inclusive(7, 12), false),
@@ -1959,14 +1985,6 @@ mod tests {
 			Err(TryFromBoundsError),
 			None::<[_; 0]>,
 		);
-	}
-	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
-		RangeBoundsMap::try_from([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Exclusive(7, 8), true),
-			(MultiBounds::Inclusive(8, 12), false),
-		])
-		.unwrap()
 	}
 	fn assert_insert_coalesce_touching_or_overlapping<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,

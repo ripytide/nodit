@@ -28,7 +28,7 @@ contained within both `RangeBounds`.
 
 ### Touching
 
-Two `RangeBounds` are "touching" if they do not overlap but
+Two `RangeBounds` are "touching" if they do not overlap and
 there exists no value between them. For example, `2..4` and
 `4..6` are touching but `2..4` and `6..8` are not, neither are
 `2..6` and `4..8`.
