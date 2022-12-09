@@ -50,6 +50,23 @@ pub(crate) enum BoundOrd<T> {
 	EndUnbounded,
 }
 
+impl<T> BoundOrd<T> {
+	pub(crate) fn start(bound: Bound<T>) -> Self {
+		match bound {
+			Bound::Included(point) => BoundOrd::Included(point),
+			Bound::Excluded(point) => BoundOrd::StartExcluded(point),
+			Bound::Unbounded => BoundOrd::StartUnbounded,
+		}
+	}
+	pub(crate) fn end(bound: Bound<T>) -> Self {
+		match bound {
+			Bound::Included(point) => BoundOrd::Included(point),
+			Bound::Excluded(point) => BoundOrd::EndExcluded(point),
+			Bound::Unbounded => BoundOrd::EndUnbounded,
+		}
+	}
+}
+
 impl<T> Eq for BoundOrd<T> where T: PartialEq {}
 
 #[rustfmt::skip]
