@@ -1,15 +1,18 @@
 # refactor
+
 - try and fix all the uses of cloned() in the library
-- replace MultiBounds::* with mee() and mii()
+- replace MultiBounds::\* with mee() and mii()
 - make a StartBoundWrapper that uses StartBound to implement ord and
   use that instead of storing the startbound twice
 
 # features
+
 - RangeMap, RangeSet, RangeInclusiveMap...
 - add coalesce if same-value otherwise overwrite) function to make
   finally make range_bounds_map a superset of rangemap
 
 # docs
+
 - write something somewhere about wrapper types for RangeBoundsMap
   that can simplify function signatures due to known invariants. For
   example a wrapper for using K=std::ops::Range which simplifies a LOT
@@ -17,9 +20,11 @@
 - write docs for undocced things
 
 # time based
+
 - use it in robot_Sweet_graph for a bit before publishing
 
 # final checks
+
 - remove most rustfmt::skips and cargo fmt
 - check toml meta-data, github meta-data and readme opener
 - copy map to set again
@@ -34,6 +39,7 @@
 - PUBLISH
 
 # after publish tasks
+
 - add links to [`RangeBoundsSet`] and map after docs.rs is live with
   the docs, and generally check for dead links on docs and readme
 - tell people in issues of other rangemap libraries about my library
