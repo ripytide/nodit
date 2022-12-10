@@ -3,11 +3,10 @@
 - try to fix all the uses of cloned() in the library
 - make a StartBoundWrapper that uses StartBound to implement ord and
   use that instead of storing the startbound twice
-- text flow all comments
 
 # features
 
-- RangeMap, RangeSet, RangeInclusiveMap... types for signature
+- make specifc RangeMap, RangeSet, RangeInclusiveMap... types for signature
   simplification
 - add coalesce if same-value otherwise overwrite) function to make
   finally make range_bounds_map a superset of rangemap

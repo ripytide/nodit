@@ -104,7 +104,7 @@ use crate::{
 /// ```
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RangeBoundsSet<I, K>
 where
 	I: PartialOrd,
@@ -618,6 +618,36 @@ where
 	{
 		self.map.overwrite(range_bounds, ())
 	}
+
+	/// Returns the first `RangeBounds` in the set, if any.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	///
+	/// assert_eq!(range_bounds_set.first(), Some(&(1..4)));
+	/// ```
+	pub fn first(&self) -> Option<&K> {
+		self.map.first_entry().map(|(key, _)| key)
+	}
+
+	/// Returns the last `RangeBounds` in the set, if any.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	///
+	/// assert_eq!(range_bounds_set.last(), Some(&(8..100)));
+	/// ```
+	pub fn last(&self) -> Option<&K> {
+		self.map.last_entry().map(|(key, _)| key)
+	}
 }
 
 impl<const N: usize, I, K> TryFrom<[K; N]> for RangeBoundsSet<I, K>
@@ -650,5 +680,17 @@ where
 		}
 
 		return Ok(range_bounds_set);
+	}
+}
+
+impl<I, K> Default for RangeBoundsSet<I, K>
+where
+	I: PartialOrd,
+{
+	#[trivial]
+	fn default() -> Self {
+		RangeBoundsSet {
+			map: RangeBoundsMap::default(),
+		}
 	}
 }

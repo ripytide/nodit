@@ -1225,6 +1225,51 @@ where
 
 		return Ok(());
 	}
+
+	/// Returns the first (`RangeBounds`, `Value`) pair in the map, if
+	/// any.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(
+	/// 	range_bounds_map.first_entry(),
+	/// 	Some((&(1..4), &false))
+	/// );
+	/// ```
+	pub fn first_entry(&self) -> Option<(&K, &V)> {
+		self.iter().next()
+	}
+
+	/// Returns the last (`RangeBounds`, `Value`) pair in the map, if
+	/// any.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(
+	/// 	range_bounds_map.last_entry(),
+	/// 	Some((&(8..100), &false))
+	/// );
+	pub fn last_entry(&self) -> Option<(&K, &V)> {
+		self.iter().next_back()
+	}
 }
 
 impl<const N: usize, I, K, V> TryFrom<[(K, V); N]> for RangeBoundsMap<I, K, V>
