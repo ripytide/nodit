@@ -33,6 +33,15 @@ use crate::TryFromBounds;
 
 /// An ordered map of [`RangeBounds`] based on [`BTreeMap`]
 ///
+/// `I` is the generic type parameter for the [`Ord`] type the `K` type
+/// is [`RangeBounds`] over.
+///
+/// `K` is the generic type parameter for the [`RangeBounds`]
+/// implementing type stored as the keys in the map.
+///
+/// `V` is the generic type parameter for the values associated with the
+/// keys in the map.
+///
 /// # Examples
 /// ```
 /// use range_bounds_map::RangeBoundsMap;
