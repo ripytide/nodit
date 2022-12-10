@@ -14,10 +14,6 @@
 - add coalesce if same-value otherwise overwrite) function to make
   finally make range_bounds_map a superset of rangemap
 
-# docs
-
-- write docs for undocced things
-
 # time based
 
 - use it in robot_Sweet_graph for a bit before publishing

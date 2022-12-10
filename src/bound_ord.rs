@@ -159,10 +159,9 @@ impl<T> From<BoundOrd<T>> for Bound<T> {
 mod tests {
 	use super::*;
 
-	#[rustfmt::skip]
 	#[test]
 	fn mass_start_bound_partial_ord_test() {
-        //Included
+		//Included
 		assert!(BoundOrd::Included(2) == BoundOrd::Included(2));
 		assert!(BoundOrd::Included(2) <= BoundOrd::Included(2));
 		assert!(BoundOrd::Included(2) >= BoundOrd::Included(2));
@@ -181,7 +180,7 @@ mod tests {
 
 		assert!(BoundOrd::Included(2) < BoundOrd::EndUnbounded);
 
-        //StartExcluded
+		//StartExcluded
 		assert!(BoundOrd::StartExcluded(2) == BoundOrd::StartExcluded(2));
 		assert!(BoundOrd::StartExcluded(2) <= BoundOrd::StartExcluded(2));
 		assert!(BoundOrd::StartExcluded(2) >= BoundOrd::StartExcluded(2));
@@ -196,7 +195,7 @@ mod tests {
 
 		assert!(BoundOrd::StartExcluded(2) < BoundOrd::EndUnbounded);
 
-        //StartUnbounded
+		//StartUnbounded
 		assert!(BoundOrd::StartUnbounded::<u8> == BoundOrd::StartUnbounded);
 		assert!(BoundOrd::StartUnbounded::<u8> <= BoundOrd::StartUnbounded);
 		assert!(BoundOrd::StartUnbounded::<u8> >= BoundOrd::StartUnbounded);
@@ -205,14 +204,14 @@ mod tests {
 
 		assert!(BoundOrd::StartUnbounded::<u8> < BoundOrd::EndUnbounded);
 
-        //EndExcluded
+		//EndExcluded
 		assert!(BoundOrd::EndExcluded(2) == BoundOrd::EndExcluded(2));
 		assert!(BoundOrd::EndExcluded(2) <= BoundOrd::EndExcluded(2));
 		assert!(BoundOrd::EndExcluded(2) >= BoundOrd::EndExcluded(2));
 		assert!(BoundOrd::EndExcluded(0) < BoundOrd::EndExcluded(2));
 		assert!(BoundOrd::EndExcluded(2) > BoundOrd::EndExcluded(0));
 
-        //EndUnbounded
+		//EndUnbounded
 		assert!(BoundOrd::EndUnbounded::<u8> == BoundOrd::EndUnbounded);
 		assert!(BoundOrd::EndUnbounded::<u8> <= BoundOrd::EndUnbounded);
 		assert!(BoundOrd::EndUnbounded::<u8> >= BoundOrd::EndUnbounded);

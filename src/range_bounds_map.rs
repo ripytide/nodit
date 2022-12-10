@@ -73,7 +73,7 @@ use crate::TryFromBounds;
 /// use ordered_float::NotNan;
 /// use range_bounds_map::RangeBoundsMap;
 ///
-/// // An Exlusive-Exlusive range of [`f32`]s not provided by any
+/// // An Exclusive-Exclusive range of [`f32`]s not provided by any
 /// // std::ops ranges
 /// // We use [`ordered_float::NotNan`]s as the inner type must be Ord
 /// // similar to a normal [`BTreeMap`]
@@ -184,11 +184,11 @@ pub struct OverlapError;
 /// of type `K`.
 ///
 /// In this example we use a `RangeBounds` type that can be either
-/// Inclusive-Inclusive OR Exlusive-Exlusive. We then try to use
+/// Inclusive-Inclusive OR Exclusive-Exclusive. We then try to use
 /// [`RangeBoundsMap::insert_coalesce_touching()`] to "coalesce" an
-/// Inclusive-Inclusive and a Exlusive-Exlusive `MultiBounds`. This
+/// Inclusive-Inclusive and a Exclusive-Exclusive `MultiBounds`. This
 /// will however fail as the resulting "coalesced" `RangeBounds` would
-/// have to be Inclusive-Exlusive which `MultiBounds` does not support.
+/// have to be Inclusive-Exclusive which `MultiBounds` does not support.
 ///
 /// ```
 /// use std::ops::{Bound, RangeBounds};
@@ -1447,9 +1447,9 @@ mod tests {
 
 	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
 		RangeBoundsMap::try_from([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Exclusive(7, 8), true),
-			(MultiBounds::Inclusive(8, 12), false),
+			(mii(4, 6), false),
+			(mee(7, 8), true),
+			(mii(8, 12), false),
 		])
 		.unwrap()
 	}
@@ -1459,6 +1459,14 @@ mod tests {
 		Inclusive(u8, u8),
 		Exclusive(u8, u8),
 	}
+
+	fn mii(start: u8, end: u8) -> MultiBounds {
+		MultiBounds::Inclusive(start, end)
+	}
+	fn mee(start: u8, end: u8) -> MultiBounds {
+		MultiBounds::Exclusive(start, end)
+	}
+
 	impl RangeBounds<u8> for MultiBounds {
 		fn start_bound(&self) -> Bound<&u8> {
 			match self {
@@ -1480,36 +1488,60 @@ mod tests {
 		) -> Option<Self> {
 			match (start_bound, end_bound) {
 				(Bound::Included(start), Bound::Included(end)) => {
-					Some(MultiBounds::Inclusive(start, end))
+					Some(mii(start, end))
 				}
 				(Bound::Excluded(start), Bound::Excluded(end)) => {
-					Some(MultiBounds::Exclusive(start, end))
+					Some(mee(start, end))
 				}
 				_ => None,
 			}
 		}
 	}
 
-	#[rustfmt::skip]
 	#[test]
 	fn insert_platonic_tests() {
-		assert_insert_platonic(basic(), (ii(0, 4), false), Err(OverlapError), None::<[_; 0]>);
-		assert_insert_platonic(basic(), (ii(5, 6), false), Err(OverlapError), None::<[_; 0]>);
-        assert_insert_platonic(basic(), (ee(7, 8), false), Ok(()), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-            (ee(7, 8), false),
-			(ie(14, 16), true),
-        ]));
-        assert_insert_platonic(basic(), (ii(4, 5), true), Err(OverlapError), None::<[_; 0]>);
-        assert_insert_platonic(basic(), (ei(4, 5), true), Ok(()), Some([
-			(ui(4), false),
+		assert_insert_platonic(
+			basic(),
+			(ii(0, 4), false),
+			Err(OverlapError),
+			None::<[_; 0]>,
+		);
+		assert_insert_platonic(
+			basic(),
+			(ii(5, 6), false),
+			Err(OverlapError),
+			None::<[_; 0]>,
+		);
+		assert_insert_platonic(
+			basic(),
+			(ee(7, 8), false),
+			Ok(()),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ee(7, 8), false),
+				(ie(14, 16), true),
+			]),
+		);
+		assert_insert_platonic(
+			basic(),
+			(ii(4, 5), true),
+			Err(OverlapError),
+			None::<[_; 0]>,
+		);
+		assert_insert_platonic(
+			basic(),
 			(ei(4, 5), true),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ie(14, 16), true),
-        ]));
+			Ok(()),
+			Some([
+				(ui(4), false),
+				(ei(4, 5), true),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ie(14, 16), true),
+			]),
+		);
 	}
 	fn assert_insert_platonic<const N: usize>(
 		mut before: RangeBoundsMap<u8, TestBounds, bool>,
@@ -1609,29 +1641,32 @@ mod tests {
 		}
 	}
 
-	#[rustfmt::skip]
 	#[test]
 	fn remove_overlapping_tests() {
 		assert_remove_overlapping(basic(), ii(5, 5), [], None::<[_; 0]>);
-		assert_remove_overlapping(basic(), uu(), [
-            (ui(4), false),
-			(ee(5, 7), true),
-            (ii(7, 7), false),
-			(ie(14, 16), true),
-        ], Some([]));
-		assert_remove_overlapping(basic(), ii(6, 7), [
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-        ], Some([
-            (ui(4), false), (ie(14, 16), true)
-        ]));
-		assert_remove_overlapping(basic(), iu(6), [
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ie(14, 16), true),
-        ], Some([
-			(ui(4), false),
-        ]));
+		assert_remove_overlapping(
+			basic(),
+			uu(),
+			[
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ie(14, 16), true),
+			],
+			Some([]),
+		);
+		assert_remove_overlapping(
+			basic(),
+			ii(6, 7),
+			[(ee(5, 7), true), (ii(7, 7), false)],
+			Some([(ui(4), false), (ie(14, 16), true)]),
+		);
+		assert_remove_overlapping(
+			basic(),
+			iu(6),
+			[(ee(5, 7), true), (ii(7, 7), false), (ie(14, 16), true)],
+			Some([(ui(4), false)]),
+		);
 	}
 	fn assert_remove_overlapping<const N: usize, const Y: usize>(
 		mut before: RangeBoundsMap<u8, TestBounds, bool>,
@@ -1652,40 +1687,65 @@ mod tests {
 		}
 	}
 
-	#[rustfmt::skip]
 	#[test]
 	fn cut_tests() {
 		assert_cut(basic(), ii(50, 60), Ok(()), None::<[_; 0]>);
 		assert_cut(basic(), uu(), Ok(()), Some([]));
-		assert_cut(basic(), ui(6), Ok(()), Some([
-			(ee(6, 7), true),
-            (ii(7, 7), false),
-			(ie(14, 16), true),
-        ]));
-		assert_cut(basic(), iu(6), Ok(()), Some([
-            (ui(4), false),
-			(ee(5, 6), true),
-        ]));
+		assert_cut(
+			basic(),
+			ui(6),
+			Ok(()),
+			Some([(ee(6, 7), true), (ii(7, 7), false), (ie(14, 16), true)]),
+		);
+		assert_cut(
+			basic(),
+			iu(6),
+			Ok(()),
+			Some([(ui(4), false), (ee(5, 6), true)]),
+		);
 
-        assert_cut(special(), MultiBounds::Exclusive(5, 7), Ok(()), Some([
-            (MultiBounds::Inclusive(4, 5), false),
-            (MultiBounds::Exclusive(7, 8), true),
-            (MultiBounds::Inclusive(8, 12), false),
-        ]));
-        assert_cut(special(), MultiBounds::Exclusive(6, 7), Ok(()), None::<[_; 0]>);
-        assert_cut(special(), MultiBounds::Inclusive(5, 6), Err(TryFromBoundsError), None::<[_; 0]>);
-        assert_cut(special(), MultiBounds::Inclusive(6, 7), Err(TryFromBoundsError), None::<[_; 0]>);
-        assert_cut(special(), 7..8, Ok(()), Some([
-            (MultiBounds::Inclusive(4, 6), false),
-            (MultiBounds::Inclusive(8, 12), false),
-        ]));
-        assert_cut(special(), MultiBounds::Inclusive(7, 10), Err(TryFromBoundsError), None::<[_; 0]>);
-        assert_cut(special(), MultiBounds::Exclusive(4, 6), Ok(()), Some([
-            (MultiBounds::Inclusive(4, 4), false),
-            (MultiBounds::Inclusive(6, 6), false),
-            (MultiBounds::Exclusive(7, 8), true),
-            (MultiBounds::Inclusive(8, 12), false),
-        ]));
+		assert_cut(
+			special(),
+			mee(5, 7),
+			Ok(()),
+			Some([(mii(4, 5), false), (mee(7, 8), true), (mii(8, 12), false)]),
+		);
+		assert_cut(special(), mee(6, 7), Ok(()), None::<[_; 0]>);
+		assert_cut(
+			special(),
+			mii(5, 6),
+			Err(TryFromBoundsError),
+			None::<[_; 0]>,
+		);
+		assert_cut(
+			special(),
+			mii(6, 7),
+			Err(TryFromBoundsError),
+			None::<[_; 0]>,
+		);
+		assert_cut(
+			special(),
+			7..8,
+			Ok(()),
+			Some([(mii(4, 6), false), (mii(8, 12), false)]),
+		);
+		assert_cut(
+			special(),
+			mii(7, 10),
+			Err(TryFromBoundsError),
+			None::<[_; 0]>,
+		);
+		assert_cut(
+			special(),
+			mee(4, 6),
+			Ok(()),
+			Some([
+				(mii(4, 4), false),
+				(mii(6, 6), false),
+				(mee(7, 8), true),
+				(mii(8, 12), false),
+			]),
+		);
 	}
 	fn assert_cut<const N: usize, Q, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
@@ -1798,7 +1858,7 @@ mod tests {
 
 		assert_insert_coalesce_touching(
 			special(),
-			(MultiBounds::Exclusive(6, 7), true),
+			(mee(6, 7), true),
 			Err(OverlapOrTryFromBoundsError::TryFromBounds(
 				TryFromBoundsError,
 			)),
@@ -1806,13 +1866,13 @@ mod tests {
 		);
 		assert_insert_coalesce_touching(
 			special(),
-			(MultiBounds::Inclusive(6, 7), true),
+			(mii(6, 7), true),
 			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
 		assert_insert_coalesce_touching(
 			special(),
-			(MultiBounds::Exclusive(12, 15), true),
+			(mee(12, 15), true),
 			Err(OverlapOrTryFromBoundsError::TryFromBounds(
 				TryFromBoundsError,
 			)),
@@ -1820,7 +1880,7 @@ mod tests {
 		);
 		assert_insert_coalesce_touching(
 			special(),
-			(MultiBounds::Inclusive(12, 15), true),
+			(mii(12, 15), true),
 			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
@@ -1849,56 +1909,84 @@ mod tests {
 		}
 	}
 
-	#[rustfmt::skip]
 	#[test]
 	fn insert_coalesce_overlapping_tests() {
-        assert_insert_coalesce_overlapping(basic(), (ii(0, 2), true), Ok(&(ui(4))), Some([
-			(ui(4), true),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ie(14, 16), true),
-        ]));
-        assert_insert_coalesce_overlapping(basic(), (ie(14, 16), false), Ok(&ie(14, 16)), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-            (ie(14, 16), false),
-        ]));
-        assert_insert_coalesce_overlapping(basic(), (ii(6, 11), false), Ok(&ei(5, 11)), Some([
-			(ui(4), false),
-			(ei(5, 11), false),
-            (ie(14, 16), true),
-        ]));
-        assert_insert_coalesce_overlapping(basic(), (ii(15, 18), true), Ok(&ii(14, 18)), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ii(14, 18), true),
-        ]));
-        assert_insert_coalesce_overlapping(basic(), (uu(), false), Ok(&uu()), Some([
-            (uu(), false),
-        ]));
+		assert_insert_coalesce_overlapping(
+			basic(),
+			(ii(0, 2), true),
+			Ok(&(ui(4))),
+			Some([
+				(ui(4), true),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ie(14, 16), true),
+			]),
+		);
+		assert_insert_coalesce_overlapping(
+			basic(),
+			(ie(14, 16), false),
+			Ok(&ie(14, 16)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ie(14, 16), false),
+			]),
+		);
+		assert_insert_coalesce_overlapping(
+			basic(),
+			(ii(6, 11), false),
+			Ok(&ei(5, 11)),
+			Some([(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)]),
+		);
+		assert_insert_coalesce_overlapping(
+			basic(),
+			(ii(15, 18), true),
+			Ok(&ii(14, 18)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ii(14, 18), true),
+			]),
+		);
+		assert_insert_coalesce_overlapping(
+			basic(),
+			(uu(), false),
+			Ok(&uu()),
+			Some([(uu(), false)]),
+		);
 
-        assert_insert_coalesce_overlapping(special(), (MultiBounds::Inclusive(10, 18), true), Ok(&MultiBounds::Inclusive(8,18)), Some([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Exclusive(7, 8), true),
-			(MultiBounds::Inclusive(8, 18), true),
-        ]));
-        assert_insert_coalesce_overlapping(special(), (MultiBounds::Exclusive(10, 18), true), Err(TryFromBoundsError), None::<[_; 0]>);
-        assert_insert_coalesce_overlapping(special(), (MultiBounds::Exclusive(8, 12), true), Ok(&MultiBounds::Inclusive(8, 12)), Some([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Exclusive(7, 8), true),
-			(MultiBounds::Inclusive(8, 12), true),
-		]));
-        assert_insert_coalesce_overlapping(special(), (MultiBounds::Exclusive(7, 8), false),  Ok(&MultiBounds::Exclusive(7,8)), Some([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Exclusive(7, 8), false),
-			(MultiBounds::Inclusive(8, 12), false),
-        ]));
-        assert_insert_coalesce_overlapping(special(), (MultiBounds::Inclusive(7, 8), false), Ok(&MultiBounds::Inclusive(7, 12)), Some([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Inclusive(7, 12), false),
-        ]));
+		assert_insert_coalesce_overlapping(
+			special(),
+			(mii(10, 18), true),
+			Ok(&mii(8, 18)),
+			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 18), true)]),
+		);
+		assert_insert_coalesce_overlapping(
+			special(),
+			(mee(10, 18), true),
+			Err(TryFromBoundsError),
+			None::<[_; 0]>,
+		);
+		assert_insert_coalesce_overlapping(
+			special(),
+			(mee(8, 12), true),
+			Ok(&mii(8, 12)),
+			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 12), true)]),
+		);
+		assert_insert_coalesce_overlapping(
+			special(),
+			(mee(7, 8), false),
+			Ok(&mee(7, 8)),
+			Some([(mii(4, 6), false), (mee(7, 8), false), (mii(8, 12), false)]),
+		);
+		assert_insert_coalesce_overlapping(
+			special(),
+			(mii(7, 8), false),
+			Ok(&mii(7, 12)),
+			Some([(mii(4, 6), false), (mii(7, 12), false)]),
+		);
 	}
 	fn assert_insert_coalesce_overlapping<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
@@ -1924,71 +2012,110 @@ mod tests {
 		}
 	}
 
-	#[rustfmt::skip]
 	#[test]
 	fn insert_coalesce_touching_or_overlapping_tests() {
-        assert_insert_coalesce_touching_or_overlapping(RangeBoundsMap::try_from([(1..4, false)]).unwrap(), (-4..1, true), Ok(&(-4..4)), Some([(-4..4, true)]));
+		assert_insert_coalesce_touching_or_overlapping(
+			RangeBoundsMap::try_from([(1..4, false)]).unwrap(),
+			(-4..1, true),
+			Ok(&(-4..4)),
+			Some([(-4..4, true)]),
+		);
 
-        //copied from insert_coalesce_overlapping_tests
-        assert_insert_coalesce_touching_or_overlapping(basic(), (ii(0, 2), true), Ok(&(ui(4))), Some([
-			(ui(4), true),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ie(14, 16), true),
-        ]));
-        assert_insert_coalesce_touching_or_overlapping(basic(), (ie(14, 16), false), Ok(&ie(14, 16)), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-            (ie(14, 16), false),
-        ]));
-        assert_insert_coalesce_touching_or_overlapping(basic(), (ii(6, 11), false), Ok(&ei(5, 11)), Some([
-			(ui(4), false),
-			(ei(5, 11), false),
-            (ie(14, 16), true),
-        ]));
-        assert_insert_coalesce_touching_or_overlapping(basic(), (ii(15, 18), true), Ok(&ii(14, 18)), Some([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ii(14, 18), true),
-        ]));
-        assert_insert_coalesce_touching_or_overlapping(basic(), (uu(), false), Ok(&uu()), Some([
-            (uu(), false),
-        ]));
-        //the only difference from the insert_coalesce_overlapping
-        assert_insert_coalesce_touching_or_overlapping(basic(), (ii(7, 14), false), Ok(&ee(5, 16)), Some([
-			(ui(4), false),
-            (ee(5, 16), false),
-        ]));
+		//copied from insert_coalesce_overlapping_tests
+		assert_insert_coalesce_touching_or_overlapping(
+			basic(),
+			(ii(0, 2), true),
+			Ok(&(ui(4))),
+			Some([
+				(ui(4), true),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ie(14, 16), true),
+			]),
+		);
+		assert_insert_coalesce_touching_or_overlapping(
+			basic(),
+			(ie(14, 16), false),
+			Ok(&ie(14, 16)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ie(14, 16), false),
+			]),
+		);
+		assert_insert_coalesce_touching_or_overlapping(
+			basic(),
+			(ii(6, 11), false),
+			Ok(&ei(5, 11)),
+			Some([(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)]),
+		);
+		assert_insert_coalesce_touching_or_overlapping(
+			basic(),
+			(ii(15, 18), true),
+			Ok(&ii(14, 18)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ii(14, 18), true),
+			]),
+		);
+		assert_insert_coalesce_touching_or_overlapping(
+			basic(),
+			(uu(), false),
+			Ok(&uu()),
+			Some([(uu(), false)]),
+		);
+		//the only difference from the insert_coalesce_overlapping
+		assert_insert_coalesce_touching_or_overlapping(
+			basic(),
+			(ii(7, 14), false),
+			Ok(&ee(5, 16)),
+			Some([(ui(4), false), (ee(5, 16), false)]),
+		);
 
-        //copied from insert_coalesce_overlapping_tests
-        assert_insert_coalesce_touching_or_overlapping(special(), (MultiBounds::Inclusive(10, 18), true), Ok(&MultiBounds::Inclusive(8,18)), Some([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Exclusive(7, 8), true),
-			(MultiBounds::Inclusive(8, 18), true),
-        ]));
-        assert_insert_coalesce_touching_or_overlapping(special(), (MultiBounds::Exclusive(10, 18), true), Err(TryFromBoundsError), None::<[_; 0]>);
-        assert_insert_coalesce_touching_or_overlapping(special(), (MultiBounds::Exclusive(8, 12), true), Ok(&MultiBounds::Inclusive(8, 12)), Some([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Exclusive(7, 8), true),
-			(MultiBounds::Inclusive(8, 12), true),
-		]));
-        assert_insert_coalesce_touching_or_overlapping(special(), (MultiBounds::Exclusive(7, 8), false),  Err(TryFromBoundsError), None::<[_; 0]>);
-        assert_insert_coalesce_touching_or_overlapping(special(), (MultiBounds::Inclusive(7, 8), false), Ok(&MultiBounds::Inclusive(7, 12)), Some([
-			(MultiBounds::Inclusive(4, 6), false),
-			(MultiBounds::Inclusive(7, 12), false),
-        ]));
-        //copied from insert_coalesce_touching_tests
+		//copied from insert_coalesce_overlapping_tests
 		assert_insert_coalesce_touching_or_overlapping(
 			special(),
-			(MultiBounds::Exclusive(6, 7), true),
+			(mii(10, 18), true),
+			Ok(&mii(8, 18)),
+			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 18), true)]),
+		);
+		assert_insert_coalesce_touching_or_overlapping(
+			special(),
+			(mee(10, 18), true),
 			Err(TryFromBoundsError),
 			None::<[_; 0]>,
 		);
 		assert_insert_coalesce_touching_or_overlapping(
 			special(),
-			(MultiBounds::Exclusive(12, 15), true),
+			(mee(8, 12), true),
+			Ok(&mii(8, 12)),
+			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 12), true)]),
+		);
+		assert_insert_coalesce_touching_or_overlapping(
+			special(),
+			(mee(7, 8), false),
+			Err(TryFromBoundsError),
+			None::<[_; 0]>,
+		);
+		assert_insert_coalesce_touching_or_overlapping(
+			special(),
+			(mii(7, 8), false),
+			Ok(&mii(7, 12)),
+			Some([(mii(4, 6), false), (mii(7, 12), false)]),
+		);
+		//copied from insert_coalesce_touching_tests
+		assert_insert_coalesce_touching_or_overlapping(
+			special(),
+			(mee(6, 7), true),
+			Err(TryFromBoundsError),
+			None::<[_; 0]>,
+		);
+		assert_insert_coalesce_touching_or_overlapping(
+			special(),
+			(mee(12, 15), true),
 			Err(TryFromBoundsError),
 			None::<[_; 0]>,
 		);
