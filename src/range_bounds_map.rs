@@ -31,7 +31,7 @@ use serde::{Deserialize, Serialize};
 use crate::bound_ord::BoundOrd;
 use crate::TryFromBounds;
 
-/// An ordered map of [`RangeBounds`] based on [`BTreeMap`]
+/// An ordered map of [`RangeBounds`] based on [`BTreeMap`].
 ///
 /// `I` is the generic type parameter for the [`Ord`] type the `K` type
 /// is [`RangeBounds`] over.
@@ -57,7 +57,6 @@ use crate::TryFromBounds;
 /// // Change a value in the map
 /// *map.get_at_point_mut(&(7)).unwrap() = true;
 ///
-/// // Get a value in the map
 /// if map.contains_point(&99) {
 /// 	println!("Map contains value at 99 :)");
 /// }
@@ -316,7 +315,7 @@ where
 	/// modifying other entries.
 	///
 	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
-	/// already in the map rather than just touching then an
+	/// already in the map rather than just touching, then an
 	/// [`OverlapError`] is returned and the map is not updated.
 	///
 	/// # Examples
@@ -375,11 +374,11 @@ where
 	/// assert_eq!(range_bounds_map.overlaps(&(4..6)), true);
 	/// ```
 	#[trivial]
-	pub fn overlaps<Q>(&self, search_range_bounds: &Q) -> bool
+	pub fn overlaps<Q>(&self, range_bounds: &Q) -> bool
 	where
 		Q: RangeBounds<I>,
 	{
-		self.overlapping(search_range_bounds).next().is_some()
+		self.overlapping(range_bounds).next().is_some()
 	}
 
 	/// Returns an iterator over every (`RangeBounds`, `Value`) pair
@@ -482,7 +481,7 @@ where
 	}
 
 	/// Returns `true` if the map contains a `RangeBounds` that
-	/// overlaps a given point, and `false` if not.
+	/// overlaps the given point, and `false` if not.
 	///
 	/// # Examples
 	/// ```
@@ -750,7 +749,7 @@ where
 	/// maximally-sized gaps in the map that are also within the given
 	/// `outer_range_bounds`.
 	///
-	/// To get all possible gaps just call `gaps()` with an unbounded
+	/// To get all possible gaps call `gaps()` with an unbounded
 	/// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
 	/// Bound::Unbounded)`.
 	///
@@ -796,7 +795,7 @@ where
 		// generate a artificial RangeBounds to use instead.
 		//
 		// We also have to flip the artificial ones ahead of time as
-		// we actually want the search_range_bounds endpoints included
+		// we actually want the range_bounds endpoints included
 		// not excluded unlike with other bounds in artificials
 
 		let artificial_start = (
@@ -888,7 +887,7 @@ where
 	/// `RangeBounds` is returned.
 	///
 	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
-	/// already in the map rather than just touching then an
+	/// already in the map rather than just touching, then an
 	/// [`OverlapError`] is returned and the map is not updated.
 	/// `RangeBounds` is returned.
 	///
@@ -925,7 +924,7 @@ where
 	///
 	/// assert_eq!(
 	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
-	/// 	[(&(1..6), &true), (&(10..16), &false),]
+	/// 	[(&(1..6), &true), (&(10..16), &false)]
 	/// );
 	/// ```
 	#[tested]

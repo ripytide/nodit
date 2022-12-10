@@ -17,30 +17,40 @@ You should have received a copy of the GNU General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::fmt::Debug;
 use std::ops::{Bound, RangeBounds};
 
+use labels::{tested, trivial};
 use serde::{Deserialize, Serialize};
 
-use crate::{CutError, InsertPlatonicError, RangeBoundsMap, TryFromBounds};
+use crate::{
+	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap, TryFromBounds,
+	TryFromBoundsError,
+};
 
-/// An ordered set of [`RangeBounds`] based on [`BTreeSet`]
+/// An ordered set of [`RangeBounds`] based on [`RangeBoundsMap`].
+///
+/// `I` is the generic type parameter for the [`Ord`] type the `K`
+/// type is [`RangeBounds`] over.
+///
+/// `K` is the generic type parameter for the [`RangeBounds`]
+/// implementing type in the set.
 ///
 /// # Examples
 /// ```
 /// use range_bounds_map::RangeBoundsSet;
 ///
-/// // Make a set with some ranges
-/// let visits =
+/// // Make a new set
+/// let mut set =
 /// 	RangeBoundsSet::try_from([4..8, 8..18, 20..100]).unwrap();
 ///
-/// // Check if a point is contained in the set
-/// if !visits.contains_point(&0) {
-/// 	println!("No visit at the beginning ;(");
+/// if set.contains_point(&99) {
+/// 	println!("Set contains value at 99 :)");
 /// }
 ///
-/// // Iterate over the ranges overlapping another range
-/// for visit in visits.overlapping(&(2..=8)) {
-/// 	println!("{visit:?}");
+/// // Iterate over the entries in the set
+/// for range in set.iter() {
+/// 	println!("{range:?}");
 /// }
 /// ```
 /// Example using a custom [`RangeBounds`] type:
@@ -54,6 +64,7 @@ use crate::{CutError, InsertPlatonicError, RangeBoundsMap, TryFromBounds};
 /// // std::ops ranges
 /// // We use [`ordered_float::NotNan`]s as the inner type must be Ord
 /// // similar to a normal [`BTreeSet`]
+/// #[derive(Debug, PartialEq)]
 /// struct ExEx {
 /// 	start: NotNan<f32>,
 /// 	end: NotNan<f32>,
@@ -84,13 +95,16 @@ use crate::{CutError, InsertPlatonicError, RangeBoundsMap, TryFromBounds};
 /// set.insert_platonic(ExEx::new(5.0, 7.5)).unwrap();
 ///
 /// assert_eq!(set.contains_point(&NotNan::new(5.0).unwrap()), false);
-/// assert_eq!(set.contains_point(&NotNan::new(7.0).unwrap()), true);
-/// assert_eq!(set.contains_point(&NotNan::new(7.5).unwrap()), false);
+///
+/// assert_eq!(set.get_at_point(&NotNan::new(9.0).unwrap()), None);
+/// assert_eq!(
+/// 	set.get_at_point(&NotNan::new(7.0).unwrap()),
+/// 	Some(&ExEx::new(5.0, 7.5))
+/// );
 /// ```
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
-/// [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RangeBoundsSet<I, K>
 where
 	I: PartialOrd,
@@ -114,6 +128,7 @@ where
 	/// let range_bounds_set: RangeBoundsSet<u8, Range<u8>> =
 	/// 	RangeBoundsSet::new();
 	/// ```
+	#[trivial]
 	pub fn new() -> Self {
 		RangeBoundsSet {
 			map: RangeBoundsMap::new(),
@@ -132,34 +147,36 @@ where
 	/// range_bounds_set.insert_platonic(0..1).unwrap();
 	/// assert_eq!(range_bounds_set.len(), 1);
 	/// ```
+	#[trivial]
 	pub fn len(&self) -> usize {
 		self.map.len()
 	}
 
 	/// Adds a new `RangeBounds` to the set without modifying other
-	/// `RangeBounds`.
+	/// `RangeBounds` in the set.
 	///
 	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
-	/// already in the set then [`InsertPlatonicError`]
-	/// is returned and the set is not updated.
+	/// already in the set rather than just touching, then an
+	/// [`OverlapError`] is returned and the set is not updated.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::{InsertPlatonicError, RangeBoundsSet};
+	/// use range_bounds_map::{OverlapError, RangeBoundsSet};
 	///
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///
 	/// assert_eq!(range_bounds_set.insert_platonic(5..10), Ok(()));
 	/// assert_eq!(
 	/// 	range_bounds_set.insert_platonic(5..10),
-	/// 	Err(InsertPlatonicError)
+	/// 	Err(OverlapError)
 	/// );
 	/// assert_eq!(range_bounds_set.len(), 1);
 	/// ```
+	#[tested]
 	pub fn insert_platonic(
 		&mut self,
 		range_bounds: K,
-	) -> Result<(), InsertPlatonicError> {
+	) -> Result<(), OverlapError> {
 		self.map.insert_platonic(range_bounds, ())
 	}
 
@@ -180,15 +197,16 @@ where
 	/// assert_eq!(range_bounds_set.overlaps(&(4..=5)), true);
 	/// assert_eq!(range_bounds_set.overlaps(&(4..6)), true);
 	/// ```
-	pub fn overlaps<Q>(&self, search_range_bounds: &Q) -> bool
+	#[trivial]
+	pub fn overlaps<Q>(&self, range_bounds: &Q) -> bool
 	where
 		Q: RangeBounds<I>,
 	{
-		self.map.overlaps(search_range_bounds)
+		self.map.overlaps(range_bounds)
 	}
 
 	/// Returns an iterator over every `RangeBounds` in the set which
-	/// overlap the given `search_range_bounds` in ascending order.
+	/// overlap the given `range_bounds` in ascending order.
 	///
 	/// # Examples
 	/// ```
@@ -199,20 +217,20 @@ where
 	///
 	/// let mut overlapping = range_bounds_set.overlapping(&(2..8));
 	///
-	/// assert_eq!(overlapping.next(), Some(&(1..4)));
-	/// assert_eq!(overlapping.next(), Some(&(4..8)));
-	/// assert_eq!(overlapping.next(), None);
+	/// assert_eq!(
+	/// 	overlapping.collect::<Vec<_>>(),
+	/// 	[(&(1..4)), (&(4..8))]
+	/// );
 	/// ```
+	#[tested]
 	pub fn overlapping<Q>(
 		&self,
-		search_range_bounds: &Q,
-	) -> impl Iterator<Item = &K>
+		range_bounds: &Q,
+	) -> impl DoubleEndedIterator<Item = &K>
 	where
 		Q: RangeBounds<I>,
 	{
-		self.map
-			.overlapping(search_range_bounds)
-			.map(|(key, _)| key)
+		self.map.overlapping(range_bounds).map(|(key, _)| key)
 	}
 
 	/// Returns a reference to the `RangeBounds` in the set that
@@ -229,12 +247,13 @@ where
 	/// assert_eq!(range_bounds_set.get_at_point(&4), Some(&(4..8)));
 	/// assert_eq!(range_bounds_set.get_at_point(&101), None);
 	/// ```
+	#[trivial]
 	pub fn get_at_point(&self, point: &I) -> Option<&K> {
 		self.map.get_entry_at_point(point).map(|(key, _)| key)
 	}
 
 	/// Returns `true` if the set contains a `RangeBounds` that
-	/// overlaps a given point, and `false` if not.
+	/// overlaps the given point, and `false` if not.
 	///
 	/// # Examples
 	/// ```
@@ -247,6 +266,7 @@ where
 	/// assert_eq!(range_bounds_set.contains_point(&4), true);
 	/// assert_eq!(range_bounds_set.contains_point(&101), false);
 	/// ```
+	#[trivial]
 	pub fn contains_point(&self, point: &I) -> bool {
 		self.map.contains_point(point)
 	}
@@ -268,7 +288,8 @@ where
 	/// assert_eq!(iter.next(), Some(&(8..100)));
 	/// assert_eq!(iter.next(), None);
 	/// ```
-	pub fn iter(&self) -> impl Iterator<Item = &K> {
+	#[trivial]
+	pub fn iter(&self) -> impl DoubleEndedIterator<Item = &K> {
 		self.map.iter().map(|(key, _)| key)
 	}
 
@@ -284,14 +305,14 @@ where
 	///
 	/// let mut removed = range_bounds_set.remove_overlapping(&(2..8));
 	///
-	/// assert_eq!(removed.next(), Some(1..4));
-	/// assert_eq!(removed.next(), Some(4..8));
-	/// assert_eq!(removed.next(), None);
+	/// assert_eq!(removed.collect::<Vec<_>>(), [1..4, 4..8]);
 	///
-	/// let mut remaining = range_bounds_set.iter();
-	/// assert_eq!(remaining.next(), Some(&(8..100)));
-	/// assert_eq!(remaining.next(), None);
+	/// assert_eq!(
+	/// 	range_bounds_set.iter().collect::<Vec<_>>(),
+	/// 	[&(8..100)]
+	/// );
 	/// ```
+	#[tested]
 	pub fn remove_overlapping<Q>(
 		&mut self,
 		range_bounds: &Q,
@@ -307,12 +328,12 @@ where
 	/// Cuts a given `RangeBounds` out of the set.
 	///
 	/// If the remaining `RangeBounds` left after the cut are not able
-	/// to be converted into the `K` type with the [`TryFromBounds`]
-	/// trait then a [`CutError`] will be returned.
+	/// to be created with the [`TryFromBounds`] trait then a
+	/// [`TryFromBoundsError`] will be returned.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::{CutError, RangeBoundsSet};
+	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
 	///
 	/// let mut base =
 	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
@@ -322,12 +343,10 @@ where
 	///
 	/// assert_eq!(base.cut(&(2..40)), Ok(()));
 	/// assert_eq!(base, after_cut);
-	/// assert_eq!(
-	/// 	base.cut(&(60..=80)),
-	/// 	Err(CutError)
-	/// );
+	/// assert_eq!(base.cut(&(60..=80)), Err(TryFromBoundsError));
 	/// ```
-	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), CutError>
+	#[tested]
+	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), TryFromBoundsError>
 	where
 		Q: RangeBounds<I>,
 		K: TryFromBounds<I>,
@@ -339,7 +358,7 @@ where
 	/// maximally-sized gaps in the set that are also within the given
 	/// `outer_range_bounds`.
 	///
-	/// To get all possible gaps just call `gaps()` with an unbounded
+	/// To get all possible gaps call `gaps()` with an unbounded
 	/// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
 	/// Bound::Unbounded)`.
 	///
@@ -355,19 +374,15 @@ where
 	/// let mut gaps = range_bounds_set.gaps(&(2..));
 	///
 	/// assert_eq!(
-	/// 	gaps.next(),
-	/// 	Some((Bound::Included(&3), Bound::Excluded(&5)))
+	/// 	gaps.collect::<Vec<_>>(),
+	/// 	[
+	/// 		(Bound::Included(&3), Bound::Excluded(&5)),
+	/// 		(Bound::Included(&7), Bound::Excluded(&9)),
+	/// 		(Bound::Included(&100), Bound::Unbounded)
+	/// 	]
 	/// );
-	/// assert_eq!(
-	/// 	gaps.next(),
-	/// 	Some((Bound::Included(&7), Bound::Excluded(&9)))
-	/// );
-	/// assert_eq!(
-	/// 	gaps.next(),
-	/// 	Some((Bound::Included(&100), Bound::Unbounded))
-	/// );
-	/// assert_eq!(gaps.next(), None);
 	/// ```
+	#[tested]
 	pub fn gaps<'a, Q>(
 		&'a self,
 		outer_range_bounds: &'a Q,
@@ -398,22 +413,210 @@ where
 	/// 	true
 	/// );
 	/// ```
+	#[trivial]
 	pub fn contains_range_bounds<Q>(&self, range_bounds: &Q) -> bool
 	where
 		Q: RangeBounds<I>,
 	{
 		self.map.contains_range_bounds(range_bounds)
 	}
-}
 
-impl<I, K> Default for RangeBoundsSet<I, K>
-where
-	I: PartialOrd,
-{
-	fn default() -> Self {
-		RangeBoundsSet {
-			map: RangeBoundsMap::default(),
-		}
+	/// Adds a new `RangeBounds` to the set and coalesces into other
+	/// `RangeBounds` in the set which touch it.
+	///
+	/// If successful then a reference to the newly inserted
+	/// `RangeBounds` is returned.
+	///
+	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
+	/// already in the set rather than just touching, then an
+	/// [`OverlapError`] is returned and the set is not updated.
+	///
+	/// If the coalesced `RangeBounds` cannot be created with the
+	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// returned.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{
+	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsSet,
+	/// };
+	///
+	/// let mut range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4]).unwrap();
+	///
+	/// // Touching
+	/// assert_eq!(
+	/// 	range_bounds_set.insert_coalesce_touching(4..6),
+	/// 	Ok(&(1..6))
+	/// );
+	///
+	/// // Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_set.insert_coalesce_touching(4..8),
+	/// 	Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+	/// );
+	///
+	/// // Neither Touching or Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_set.insert_coalesce_touching(10..16),
+	/// 	Ok(&(10..16))
+	/// );
+	///
+	/// assert_eq!(
+	/// 	range_bounds_set.iter().collect::<Vec<_>>(),
+	/// 	[&(1..6), &(10..16)]
+	/// );
+	/// ```
+	#[tested]
+	pub fn insert_coalesce_touching(
+		&mut self,
+		range_bounds: K,
+	) -> Result<&K, OverlapOrTryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		self.map.insert_coalesce_touching(range_bounds, ())
+	}
+
+	/// Adds a new `RangeBounds` to the set and coalesces into other
+	/// `RangeBounds` in the set which overlap it.
+	///
+	/// If successful then a reference to the newly inserted
+	/// `RangeBounds` is returned.
+	///
+	/// If the coalesced `RangeBounds` cannot be created with the
+	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// returned.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4]).unwrap();
+	///
+	/// // Touching
+	/// assert_eq!(
+	/// 	range_bounds_set.insert_coalesce_overlapping(-4..1),
+	/// 	Ok(&(-4..1))
+	/// );
+	///
+	/// // Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_set.insert_coalesce_overlapping(2..8),
+	/// 	Ok(&(1..8))
+	/// );
+	///
+	/// // Neither Touching or Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_set.insert_coalesce_overlapping(10..16),
+	/// 	Ok(&(10..16))
+	/// );
+	///
+	/// assert_eq!(
+	/// 	range_bounds_set.iter().collect::<Vec<_>>(),
+	/// 	[&(-4..1), &(1..8), &(10..16)]
+	/// );
+	/// ```
+	#[tested]
+	pub fn insert_coalesce_overlapping(
+		&mut self,
+		range_bounds: K,
+	) -> Result<&K, TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		self.map.insert_coalesce_overlapping(range_bounds, ())
+	}
+
+	/// Adds a new `RangeBounds` to the set and coalesces into other
+	/// `RangeBounds` in the set which touch or overlap it.
+	///
+	/// If successful then a reference to the newly inserted
+	/// `RangeBounds` is returned.
+	///
+	/// If the coalesced `RangeBounds` cannot be created with the
+	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// returned.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4]).unwrap();
+	///
+	/// // Touching
+	/// assert_eq!(
+	/// 	range_bounds_set
+	/// 		.insert_coalesce_touching_or_overlapping(-4..1),
+	/// 	Ok(&(-4..4))
+	/// );
+	///
+	/// // Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_set
+	/// 		.insert_coalesce_touching_or_overlapping(2..8),
+	/// 	Ok(&(-4..8))
+	/// );
+	///
+	/// // Neither Touching or Overlapping
+	/// assert_eq!(
+	/// 	range_bounds_set
+	/// 		.insert_coalesce_touching_or_overlapping(10..16),
+	/// 	Ok(&(10..16))
+	/// );
+	///
+	/// assert_eq!(
+	/// 	range_bounds_set.iter().collect::<Vec<_>>(),
+	/// 	[&(-4..8), &(10..16)]
+	/// );
+	/// ```
+	#[tested]
+	pub fn insert_coalesce_touching_or_overlapping(
+		&mut self,
+		range_bounds: K,
+	) -> Result<&K, TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		self.map
+			.insert_coalesce_touching_or_overlapping(range_bounds, ())
+	}
+
+	/// Adds a new `RangeBounds` to the set and overwrites any other
+	/// `RangeBounds` that overlap the new `RangeBounds`.
+	///
+	/// This is equivalent to using [`RangeBoundsSet::cut()`]
+	/// followed by [`RangeBoundsSet::insert_platonic()`].
+	///
+	/// If the remaining `RangeBounds` left after the cut are not able
+	/// to be created with the [`TryFromBounds`] trait then a
+	/// [`TryFromBoundsError`] will be returned.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut range_bounds_set =
+	/// 	RangeBoundsSet::try_from([2..8]).unwrap();
+	///
+	/// assert_eq!(range_bounds_set.overwrite(4..6), Ok(()));
+	///
+	/// assert_eq!(
+	/// 	range_bounds_set.iter().collect::<Vec<_>>(),
+	/// 	[&(2..4), &(4..6), &(6..8)]
+	/// );
+	/// ```
+	#[trivial]
+	pub fn overwrite(
+		&mut self,
+		range_bounds: K,
+	) -> Result<(), TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		self.map.overwrite(range_bounds, ())
 	}
 }
 
@@ -422,10 +625,27 @@ where
 	K: RangeBounds<I>,
 	I: Ord + Clone,
 {
-	type Error = InsertPlatonicError;
-	fn try_from(range_bounds: [K; N]) -> Result<Self, Self::Error> {
+	type Error = OverlapError;
+	#[trivial]
+	fn try_from(pairs: [K; N]) -> Result<Self, Self::Error> {
 		let mut range_bounds_set = RangeBoundsSet::new();
-		for range_bounds in range_bounds {
+		for range_bounds in pairs {
+			range_bounds_set.insert_platonic(range_bounds)?;
+		}
+
+		return Ok(range_bounds_set);
+	}
+}
+impl<I, K> TryFrom<Vec<K>> for RangeBoundsSet<I, K>
+where
+	K: RangeBounds<I>,
+	I: Ord + Clone,
+{
+	type Error = OverlapError;
+	#[trivial]
+	fn try_from(pairs: Vec<K>) -> Result<Self, Self::Error> {
+		let mut range_bounds_set = RangeBoundsSet::new();
+		for range_bounds in pairs {
 			range_bounds_set.insert_platonic(range_bounds)?;
 		}
 

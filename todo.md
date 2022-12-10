@@ -4,6 +4,8 @@
 - replace MultiBounds::\* with mee() and mii()
 - make a StartBoundWrapper that uses StartBound to implement ord and
   use that instead of storing the startbound twice
+- do a /map on set.rs after finishing it
+- text flow all comments
 
 # features
 
