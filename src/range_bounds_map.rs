@@ -31,7 +31,7 @@ use serde::{Deserialize, Serialize};
 use crate::bound_ord::BoundOrd;
 use crate::TryFromBounds;
 
-/// An ordered map of [`RangeBounds`] based on [`BTreeMap`].
+/// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
 ///
 /// `I` is the generic type parameter for the [`Ord`] type the `K` type
 /// is [`RangeBounds`] over.

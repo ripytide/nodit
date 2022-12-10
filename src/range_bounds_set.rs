@@ -28,7 +28,7 @@ use crate::{
 	TryFromBoundsError,
 };
 
-/// An ordered set of [`RangeBounds`] based on [`RangeBoundsMap`].
+/// An ordered set of non-overlapping [`RangeBounds`] based on [`RangeBoundsMap`].
 ///
 /// `I` is the generic type parameter for the [`Ord`] type the `K`
 /// type is [`RangeBounds`] over.

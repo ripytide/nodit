@@ -1,10 +1,8 @@
 # refactor
 
-- try and fix all the uses of cloned() in the library
-- replace MultiBounds::\* with mee() and mii()
+- try to fix all the uses of cloned() in the library
 - make a StartBoundWrapper that uses StartBound to implement ord and
   use that instead of storing the startbound twice
-- do a /map on set.rs after finishing it
 - text flow all comments
 
 # features
