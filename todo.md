@@ -9,6 +9,8 @@
 - make an expand function to go RangeBounds -> (Bound, Bound) rather
   than doing it manually everywhere
 
+- put basic() back in place and special()
+
 # Documentation
 - replace `RangeBounds` with `K` where applicatble in docs
 
