@@ -6,6 +6,8 @@
 - make a range_bounds configuration: NonOverlapping, A contained in B,
   A partial overlap B, with A before B. And use it to simplify all the
   logic based RangeBounds functions
+- make an expand function to go RangeBounds -> (Bound, Bound) rather
+  than doing it manually everywhere
 
 # features
 
@@ -14,6 +16,10 @@
 - alternatively add just the one generic SafeRangeBoundsMap + Set that
   just add unwraps everywhere to simplify signatures on known-"Safe"
   symmetric types such as Range
+
+- make gaps() DoubleEndedIterator
+- make all iterators cutsom types as is standardised in libraries for
+  some reason
 
 - add coalesce if same-value otherwise overwrite) function to make
   finally make range_bounds_map a superset of rangemap
@@ -34,7 +40,7 @@
 - copy map to set again
 - copy readme to lib.rs docs again
 - take a look around idiomatic rust for a bit first
-- run is_labelled again
+- run is_labelled again and check they are accurate
 - review method parameter names for all public functions
 - update lines of code figures on docs
 - add issues to github for all the caveats

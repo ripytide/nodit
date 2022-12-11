@@ -680,65 +680,88 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert_eq!(base.cut(&(60..=80)), Err(TryFromBoundsError));
 	/// ```
-	//#[untested]
-	//pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), TryFromBoundsError>
-	//where
-	//Q: RangeBounds<I>,
-	//K: TryFromBounds<I>,
-	//V: Clone,
-	//{
-	//let mut to_insert = Vec::new();
+	#[tested]
+	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<impl DoubleEndedIterator<Item = ((Bound<I>, Bound<I>), V)>, TryFromBoundsError>
+	where
+		Q: RangeBounds<I>,
+		K: TryFromBounds<I>,
+		V: Clone,
+	{
+		let mut to_insert = Vec::new();
+		let mut partial_first = None;
+		let mut partial_last = None;
 
-	//{
-	//let mut overlapping = self.overlapping(range_bounds);
+		{
+			// only the first and last range_bounds in overlapping stand a
+			// change of remaining after the cut so we don't need to
+			// collect the iterator and can just look at the first and
+			// last elements since range is a double ended iterator ;p
+			let mut overlapping = self.overlapping(range_bounds);
 
-	//let first_last = (overlapping.next(), overlapping.next_back());
+			if let Some(first) = overlapping.next() {
+				let cut_result = cut_range_bounds(first.0, range_bounds);
 
-	//match first_last {
-	//(Some(first), Some(last)) => {
-	//match cut_range_bounds(first.0, range_bounds) {
-	//CutResult::Nothing => {}
-	//CutResult::Single(left_section) => {
-	//to_insert.push((left_section, first.1.clone()));
-	//}
-	//CutResult::Double(_, _) => unreachable!(),
-	//}
-	//match cut_range_bounds(last.0, range_bounds) {
-	//CutResult::Nothing => {}
-	//CutResult::Single(right_section) => {
-	//to_insert.push((right_section, last.1.clone()));
-	//}
-	//CutResult::Double(_, _) => unreachable!(),
-	//}
-	//(Some(first), None) => {
-	//match cut_range_bounds(first.0, range_bounds) {
-	//CutResult::Nothing => {}
-	//CutResult::Single(section) => {
-	//to_insert.push((section, first.1.clone()));
-	//}
-	//CutResult::Double(left_section, right_section) => {
-	//to_insert.push((left_section, first.1.clone()));
-	//to_insert.push((right_section, first.1.clone()));
-	//}
-	//(None, None) => {}
-	//(None, Some(_)) => unreachable!(),
-	//}
+				if let Some(before) = cut_result.before_cut {
+					to_insert.push((cloned_bounds(before), first.1.clone()));
+				}
+				if let Some(after) = cut_result.after_cut {
+					to_insert.push((cloned_bounds(after), first.1.clone()));
+				}
 
-	//// Make sure that the inserts will work before we try to do
-	//// them, so if one fails the map remains unchanged
-	//if to_insert.iter().all(|(x, _)| K::is_valid(x)) {
-	//let removed = self.remove_overlapping(range_bounds);
-	//for ((start, end), value) in to_insert.into_iter() {
-	//self.insert_platonic(
-	//K::try_from_bounds(start, end).unwrap(),
-	//value.clone(),
-	//)
-	//.unwrap();
-	//}
-	//return Ok(());
-	//} else {
-	//return Err(TryFromBoundsError);
-	//}
+				partial_first = cut_result.inside_cut.map(cloned_bounds);
+			}
+			if let Some(last) = overlapping.next_back() {
+				let cut_result = cut_range_bounds(last.0, range_bounds);
+
+				if cut_result.before_cut.is_some() {
+					unreachable!()
+				}
+				if let Some(after) = cut_result.after_cut {
+					to_insert.push((cloned_bounds(after), last.1.clone()));
+				}
+
+				partial_last = cut_result.inside_cut.map(cloned_bounds);
+			}
+		}
+
+		// Make sure that the inserts will work before we try to do
+		// them, so if one fails the map remains unchanged
+		if to_insert.iter().all(|(x, _)| K::is_valid(x)) {
+			let mut removed = self.remove_overlapping(range_bounds);
+			for ((start, end), value) in to_insert.into_iter() {
+				self.insert_platonic(
+					K::try_from_bounds(start, end).unwrap(),
+					value,
+				)
+				.unwrap();
+			}
+
+			let mut removed_first =
+				removed.next().map(|(key, value)| (expand_cloned(&key), value));
+			let mut removed_last = removed
+				.next_back()
+				.map(|(key, value)| (expand_cloned(&key), value));
+
+			//remove the full rangebounds and replace with their partial cuts
+			//if they exist
+			if let Some(partial_first) = partial_first {
+				removed_first = removed_first.map(|(_, v)| (partial_first, v));
+			}
+			if let Some(partial_last) = partial_last {
+				removed_last = removed_last.map(|(_, v)| (partial_last, v));
+			}
+
+			// I'm in love again with this lol
+			let result = removed_first
+				.into_iter()
+				.chain(removed.map(|(key, value)| (expand_cloned(&key), value)))
+				.chain(removed_last.into_iter());
+
+			return Ok(result);
+		} else {
+			return Err(TryFromBoundsError);
+		}
+	}
 
 	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
 	/// maximally-sized gaps in the map that are also within the given
@@ -1205,21 +1228,21 @@ where
 	/// 	[(&(2..4), &false), (&(4..6), &true), (&(6..8), &false)]
 	/// );
 	/// ```
-	//#[trivial]
-	//pub fn overwrite(
-	//&mut self,
-	//range_bounds: K,
-	//value: V,
-	//) -> Result<(), TryFromBoundsError>
-	//where
-	//V: Clone,
-	//K: TryFromBounds<I>,
-	//{
-	//self.cut(&range_bounds)?;
-	//self.insert_platonic(range_bounds, value).unwrap();
+	#[trivial]
+	pub fn overwrite(
+		&mut self,
+		range_bounds: K,
+		value: V,
+	) -> Result<(), TryFromBoundsError>
+	where
+		V: Clone,
+		K: TryFromBounds<I>,
+	{
+		self.cut(&range_bounds)?;
+		self.insert_platonic(range_bounds, value).unwrap();
 
-	//return Ok(());
-	//}
+		return Ok(());
+	}
 
 	/// Returns the first (`RangeBounds`, `Value`) pair in the map, if
 	/// any.
@@ -1400,24 +1423,10 @@ where
 }
 
 #[derive(Debug)]
-enum CutResult<I> {
-	Nothing((Bound<I>, Bound<I>)),
-	Everything((Bound<I>, Bound<I>)),
-	Single(SingleCutResult<I>),
-	Double(DoubleCutResult<I>),
-}
-
-#[derive(Debug)]
-struct SingleCutResult<I> {
-	inside_cut: (Bound<I>, Bound<I>),
-	outside_cut: (Bound<I>, Bound<I>),
-}
-
-#[derive(Debug)]
-struct DoubleCutResult<I> {
-	inside_cut: (Bound<I>, Bound<I>),
-	before_cut: (Bound<I>, Bound<I>),
-	after_cut: (Bound<I>, Bound<I>),
+struct CutResult<I> {
+	before_cut: Option<(Bound<I>, Bound<I>)>,
+	inside_cut: Option<(Bound<I>, Bound<I>)>,
+	after_cut: Option<(Bound<I>, Bound<I>)>,
 }
 
 #[untested]
@@ -1437,29 +1446,39 @@ where
 	let cut_all @ (cut_start, cut_end) =
 		(cut_range_bounds.start_bound(), cut_range_bounds.end_bound());
 
-	match config(base_range_bounds, cut_range_bounds) {
-		Config::LeftFirstNonOverlapping(_, _) => CutResult::Nothing(base_all),
-		Config::LeftFirstPartialOverlap(_, _) => {
-			CutResult::Single(SingleCutResult {
-				inside_cut: (cut_start, base_end),
-				outside_cut: (base_start, flip_bound(cut_start)),
-			})
-		}
-		Config::LeftContainsRight(a, b) => CutResult::Double(DoubleCutResult {
-			inside_cut: cut_all,
-			before_cut: (base_start, flip_bound(cut_start)),
-			after_cut: (flip_bound(cut_end), base_end),
-		}),
+	let mut result = CutResult {
+		before_cut: None,
+		inside_cut: None,
+		after_cut: None,
+	};
 
-		Config::RightFirstNonOverlapping(_, _) => CutResult::Nothing(base_all),
-		Config::RightFirstPartialOverlap(_, _) => {
-			CutResult::Single(SingleCutResult {
-				inside_cut: (base_start, cut_end),
-				outside_cut: (flip_bound(cut_end), base_end),
-			})
+	match config(base_range_bounds, cut_range_bounds) {
+		Config::LeftFirstNonOverlapping(_, _) => {
+			result.before_cut = Some(base_all);
 		}
-		Config::RightContainsLeft(_, _) => CutResult::Everything(base_all),
+		Config::LeftFirstPartialOverlap(_, _) => {
+			result.inside_cut = Some((cut_start, base_end));
+			result.after_cut = Some((base_start, flip_bound(cut_start)));
+		}
+		Config::LeftContainsRight(a, b) => {
+			result.before_cut = Some((base_start, flip_bound(cut_start)));
+			result.inside_cut = Some(cut_all);
+			result.after_cut = Some((flip_bound(cut_end), base_end));
+		}
+
+		Config::RightFirstNonOverlapping(_, _) => {
+			result.after_cut = Some(base_all);
+		}
+		Config::RightFirstPartialOverlap(_, _) => {
+			result.before_cut = Some((flip_bound(cut_end), base_end));
+			result.inside_cut = Some((base_start, cut_end));
+		}
+		Config::RightContainsLeft(_, _) => {
+			result.inside_cut = Some(base_all);
+		}
 	}
+
+	return result;
 }
 
 #[trivial]
@@ -1508,6 +1527,33 @@ where
 		}
 		_ => false,
 	}
+}
+
+#[trivial]
+fn expand<I, K>(range_bounds: &K) -> (Bound<&I>, Bound<&I>)
+where
+	K: RangeBounds<I>,
+{
+	(range_bounds.start_bound(), range_bounds.end_bound())
+}
+
+#[trivial]
+fn expand_cloned<I, K>(range_bounds: &K) -> (Bound<I>, Bound<I>)
+where
+	K: RangeBounds<I>,
+    I: Clone
+{
+	cloned_bounds((range_bounds.start_bound(), range_bounds.end_bound()))
+}
+
+#[trivial]
+fn cloned_bounds<I>(
+	(start, end): (Bound<&I>, Bound<&I>),
+) -> (Bound<I>, Bound<I>)
+where
+	I: Clone,
+{
+	(start.cloned(), end.cloned())
 }
 
 #[trivial]
