@@ -648,7 +648,7 @@ where
 
 	/// Cuts a given `RangeBounds` out of the map and returns an
 	/// iterator of the full or partial `RangeBounds` that were cut in
-	/// a tuple with their `Value`s.
+	/// as `((Bound, Bound), Value)`.
 	///
 	/// If the remaining `RangeBounds` left in the map after the cut
 	/// or the `RangeBounds` returned in the iterator are not able to
@@ -676,12 +676,25 @@ where
 	/// 	RangeBoundsMap::try_from([(1..2, false), (40..100, false)])
 	/// 		.unwrap();
 	///
-	/// assert_eq!(base.cut(&(2..40)), Ok(()));
+	/// assert_eq!(
+	/// 	base.cut(&(2..40)).collect::<Vec<_>>(),
+	/// 	[
+	/// 		((Bound::Included(2), Bound::Excluded(4)), false),
+	/// 		((Bound::Included(4), Bound::Excluded(8)), true),
+	/// 		((Bound::Included(8), Bound::Excluded(40)), false),
+	/// 	]
+	/// );
 	/// assert_eq!(base, after_cut);
 	/// assert_eq!(base.cut(&(60..=80)), Err(TryFromBoundsError));
 	/// ```
 	#[tested]
-	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<impl DoubleEndedIterator<Item = ((Bound<I>, Bound<I>), V)>, TryFromBoundsError>
+	pub fn cut<Q>(
+		&mut self,
+		range_bounds: &Q,
+	) -> Result<
+		impl DoubleEndedIterator<Item = ((Bound<I>, Bound<I>), V)>,
+		TryFromBoundsError,
+	>
 	where
 		Q: RangeBounds<I>,
 		K: TryFromBounds<I>,
@@ -736,8 +749,9 @@ where
 				.unwrap();
 			}
 
-			let mut removed_first =
-				removed.next().map(|(key, value)| (expand_cloned(&key), value));
+			let mut removed_first = removed
+				.next()
+				.map(|(key, value)| (expand_cloned(&key), value));
 			let mut removed_last = removed
 				.next_back()
 				.map(|(key, value)| (expand_cloned(&key), value));
@@ -761,6 +775,55 @@ where
 		} else {
 			return Err(TryFromBoundsError);
 		}
+	}
+
+	/// Identical to [`RangeBoundsMap::cut()`] except it returns an
+	/// iterator of `Result<RangeBounds, TryFromBoundsError>, Value),
+	/// TryFromBoundsError>` after applying TryFromBounds to the
+	/// `(Bound, Bound)`s in in the iterator returned by
+	/// [`RangeBoundsMap::cut()`].
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	///
+	/// let mut base = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let after_cut =
+	/// 	RangeBoundsMap::try_from([(1..2, false), (40..100, false)])
+	/// 		.unwrap();
+	///
+	/// assert_eq!(
+	/// 	base.cut_same(&(2..40)).collect::<Vec<_>>(),
+	/// 	[(Ok(2..4), false), (Ok(4..8), true), (Ok(8..40), false)]
+	/// );
+	/// assert_eq!(base, after_cut);
+	/// assert_eq!(base.cut_same(&(60..=80)), Err(TryFromBoundsError));
+	/// ```
+	#[tested]
+	pub fn cut_same<Q>(
+		&mut self,
+		range_bounds: &Q,
+	) -> Result<
+		impl DoubleEndedIterator<Item = (Result<K, TryFromBoundsError>, V)>,
+		TryFromBoundsError,
+	>
+	where
+		Q: RangeBounds<I>,
+		K: TryFromBounds<I>,
+		V: Clone,
+	{
+		Ok(self.cut(range_bounds)?.map(|((start, end), value)| {
+			(
+				K::try_from_bounds(start, end).ok_or(TryFromBoundsError),
+				value,
+			)
+		}))
 	}
 
 	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
@@ -1541,7 +1604,7 @@ where
 fn expand_cloned<I, K>(range_bounds: &K) -> (Bound<I>, Bound<I>)
 where
 	K: RangeBounds<I>,
-    I: Clone
+	I: Clone,
 {
 	cloned_bounds((range_bounds.start_bound(), range_bounds.end_bound()))
 }

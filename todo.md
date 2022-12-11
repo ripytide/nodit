@@ -9,6 +9,9 @@
 - make an expand function to go RangeBounds -> (Bound, Bound) rather
   than doing it manually everywhere
 
+# Documentation
+- replace `RangeBounds` with `K` where applicatble in docs
+
 # features
 
 - make specifc RangeMap, RangeSet, RangeInclusiveMap... types for signature
