@@ -153,7 +153,8 @@ pub struct OverlapError;
 /// Bound::Exclusive(8))`. However, since the `RangeBounds` type of
 /// this `RangeBoundsMap` is `Range<{integer}>` the latter of the two
 /// new `RangeBounds` is "unrepresentable", and hence will fail to be
-/// created via [`TryFromBounds`].
+/// created via [`TryFromBounds`] and [`RangeBoundsMap::cut()`] will
+/// return Err(TryFromBoundsError).
 ///
 /// ```
 /// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
@@ -161,10 +162,7 @@ pub struct OverlapError;
 /// let mut range_bounds_map =
 /// 	RangeBoundsMap::try_from([(2..8, true)]).unwrap();
 ///
-/// assert_eq!(
-/// 	range_bounds_map.cut(&(4..=6)),
-/// 	Err(TryFromBoundsError)
-/// );
+/// assert!(range_bounds_map.cut(&(4..=6)).is_err());
 /// ```
 ///
 /// # Example with `insert_coalesce_*` functions.
@@ -663,6 +661,8 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use std::ops::Bound;
+	///
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
 	/// let mut base = RangeBoundsMap::try_from([
@@ -677,7 +677,7 @@ where
 	/// 		.unwrap();
 	///
 	/// assert_eq!(
-	/// 	base.cut(&(2..40)).collect::<Vec<_>>(),
+	/// 	base.cut(&(2..40)).unwrap().collect::<Vec<_>>(),
 	/// 	[
 	/// 		((Bound::Included(2), Bound::Excluded(4)), false),
 	/// 		((Bound::Included(4), Bound::Excluded(8)), true),
@@ -685,9 +685,9 @@ where
 	/// 	]
 	/// );
 	/// assert_eq!(base, after_cut);
-	/// assert_eq!(base.cut(&(60..=80)), Err(TryFromBoundsError));
+	/// assert!(base.cut(&(60..=80)).is_err());
 	/// ```
-	#[tested]
+	#[untested]
 	pub fn cut<Q>(
 		&mut self,
 		range_bounds: &Q,
@@ -778,10 +778,8 @@ where
 	}
 
 	/// Identical to [`RangeBoundsMap::cut()`] except it returns an
-	/// iterator of `Result<RangeBounds, TryFromBoundsError>, Value),
-	/// TryFromBoundsError>` after applying TryFromBounds to the
-	/// `(Bound, Bound)`s in in the iterator returned by
-	/// [`RangeBoundsMap::cut()`].
+	/// iterator of `(Result<RangeBounds, TryFromBoundsError>,
+	/// Value)`.
 	///
 	/// # Examples
 	/// ```
@@ -799,13 +797,13 @@ where
 	/// 		.unwrap();
 	///
 	/// assert_eq!(
-	/// 	base.cut_same(&(2..40)).collect::<Vec<_>>(),
+	/// 	base.cut_same(&(2..40)).unwrap().collect::<Vec<_>>(),
 	/// 	[(Ok(2..4), false), (Ok(4..8), true), (Ok(8..40), false)]
 	/// );
 	/// assert_eq!(base, after_cut);
-	/// assert_eq!(base.cut_same(&(60..=80)), Err(TryFromBoundsError));
+	/// assert!(base.cut_same(&(60..=80)).is_err());
 	/// ```
-	#[tested]
+	#[trivial]
 	pub fn cut_same<Q>(
 		&mut self,
 		range_bounds: &Q,
@@ -858,7 +856,7 @@ where
 	/// 	]
 	/// );
 	/// ```
-	#[tested]
+	#[untested]
 	pub fn gaps<'a, Q>(
 		&'a self,
 		outer_range_bounds: &'a Q,
@@ -923,6 +921,44 @@ where
 				(flip_bound(first_end), flip_bound(second_start))
 			})
 			.filter(is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>);
+	}
+
+	/// Identical to [`RangeBoundsMap::gaps()`] except it returns an
+	/// iterator of `Result<RangeBounds, TryFromBoundsError>`.
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Bound;
+	///
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..3, false),
+	/// 	(5..7, true),
+	/// 	(9..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let mut gaps_same = range_bounds_map.gaps_same(&(2..));
+	///
+	/// assert_eq!(
+	/// 	gaps_same.collect::<Vec<_>>(),
+	/// 	[Ok(3..5), Ok(7..9), Err(TryFromBoundsError),]
+	/// );
+	/// ```
+	#[trivial]
+	pub fn gaps_same<'a, Q>(
+		&'a self,
+		outer_range_bounds: &'a Q,
+	) -> impl Iterator<Item = Result<K, TryFromBoundsError>> + '_
+	where
+		Q: RangeBounds<I>,
+		K: TryFromBounds<I>,
+	{
+		self.gaps(outer_range_bounds).map(|(start, end)| {
+			K::try_from_bounds(start.cloned(), end.cloned())
+				.ok_or(TryFromBoundsError)
+		})
 	}
 
 	/// Returns `true` if the map covers every point in the given
@@ -1523,7 +1559,7 @@ where
 			result.inside_cut = Some((cut_start, base_end));
 			result.after_cut = Some((base_start, flip_bound(cut_start)));
 		}
-		Config::LeftContainsRight(a, b) => {
+		Config::LeftContainsRight(_, _) => {
 			result.before_cut = Some((base_start, flip_bound(cut_start)));
 			result.inside_cut = Some(cut_all);
 			result.after_cut = Some((flip_bound(cut_end), base_end));

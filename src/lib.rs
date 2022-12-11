@@ -25,12 +25,12 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 #![allow(clippy::needless_return)]
 pub(crate) mod bound_ord;
 pub mod range_bounds_map;
-pub mod range_bounds_set;
+//pub mod range_bounds_set;
 pub mod try_from_bounds;
 
 pub use crate::range_bounds_map::{
 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
 	TryFromBoundsError,
 };
-pub use crate::range_bounds_set::RangeBoundsSet;
+//pub use crate::range_bounds_set::RangeBoundsSet;
 pub use crate::try_from_bounds::TryFromBounds;
