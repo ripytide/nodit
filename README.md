@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/github/license/ripytide/range_bounds_map)](https://www.gnu.org/licenses/agpl-3.0.en.html)
 
-[![Docs](https://docs.rs/range_bounds_map/badge)](https://docs.rs/range_bounds_map)
+[![Docs](https://docs.rs/range_bounds_map/badge.svg)](https://docs.rs/range_bounds_map)
 
 [![Maintained](https://img.shields.io/maintenance/yes/2023)](https://github.com/ripytide)
 
