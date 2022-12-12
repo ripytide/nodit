@@ -9,7 +9,7 @@
 <img src="logo.svg" alt="range_bounds_map_logo" width="350">
 </p>
 
-This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`.]
+This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`].
 
 [`RangeBoundsMap`] is an ordered map of non-overlapping [`RangeBounds`]
 based on [`BTreeMap`].
