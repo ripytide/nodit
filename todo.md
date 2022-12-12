@@ -8,10 +8,13 @@
   logic based RangeBounds functions
 - make an expand function to go RangeBounds -> (Bound, Bound) rather
   than doing it manually everywhere
+- rename overwrite to insert_forceful
+- replace instances of |(key, _)| with fn first()
 
 # Documentation
 
 - replace `RangeBounds` with `K` where applicatble in docs
+- replace rust types URL links with direct rust links
 
 # features
 
@@ -37,6 +40,7 @@
 - remove most rustfmt::skips and cargo fmt
 - check toml meta-data, github meta-data and readme opener
 - copy map to set again
+- review todo.txt
 - copy readme to lib.rs docs again
 - take a look around idiomatic rust for a bit first
 - run is_labelled again and check they are accurate

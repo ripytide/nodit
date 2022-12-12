@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::collections::btree_map::IntoValues;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::iter::once;
@@ -1449,6 +1450,38 @@ where
 		}
 
 		return output;
+	}
+}
+
+impl<I, K, V> IntoIterator for RangeBoundsMap<I, K, V>
+where
+	K: RangeBounds<I>,
+	I: Ord + Clone,
+{
+	type Item = (K, V);
+	type IntoIter = IntoIter<I, K, V>;
+	#[trivial]
+	fn into_iter(self) -> Self::IntoIter {
+		return IntoIter {
+			inner: self.starts.into_values(),
+		};
+	}
+}
+/// An owning iterator over the entries of a `RangeBoundsMap`.
+///
+/// This `struct` is created by the [`into_iter`] method on
+/// [`RangeBoundsMap`] (provided by the [`IntoIterator`] trait). See
+/// its documentation for more.
+///
+/// [`into_iter`]: IntoIterator::into_iter
+/// [`IntoIterator`]: core::iter::IntoIterator
+pub struct IntoIter<I, K, V> {
+	inner: IntoValues<BoundOrd<I>, (K, V)>,
+}
+impl<I, K, V> Iterator for IntoIter<I, K, V> {
+	type Item = (K, V);
+	fn next(&mut self) -> Option<Self::Item> {
+		self.inner.next()
 	}
 }
 

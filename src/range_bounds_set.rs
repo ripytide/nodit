@@ -23,6 +23,7 @@ use std::ops::{Bound, RangeBounds};
 use labels::{tested, trivial};
 use serde::{Deserialize, Serialize};
 
+use crate::range_bounds_map::IntoIter as MapIntoIter;
 use crate::{
 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap, TryFromBounds,
 	TryFromBoundsError,
@@ -802,6 +803,37 @@ where
 		return output;
 	}
 }
+impl<I, K> IntoIterator for RangeBoundsSet<I, K>
+where
+	K: RangeBounds<I>,
+	I: Ord + Clone,
+{
+	type Item = K;
+	type IntoIter = IntoIter<I, K>;
+	#[trivial]
+	fn into_iter(self) -> Self::IntoIter {
+		return IntoIter {
+			inner: self.map.into_iter(),
+		};
+	}
+}
+/// An owning iterator over the entries of a `RangeBoundsSet`.
+///
+/// This `struct` is created by the [`into_iter`] method on
+/// [`RangeBoundsSet`] (provided by the [`IntoIterator`] trait). See
+/// its documentation for more.
+///
+/// [`into_iter`]: IntoIterator::into_iter
+/// [`IntoIterator`]: core::iter::IntoIterator
+pub struct IntoIter<I, K> {
+	inner: MapIntoIter<I, K, ()>,
+}
+impl<I, K> Iterator for IntoIter<I, K> {
+	type Item = K;
+	fn next(&mut self) -> Option<Self::Item> {
+		self.inner.next().map(first)
+	}
+}
 
 impl<I, K> Default for RangeBoundsSet<I, K>
 where
@@ -813,4 +845,8 @@ where
 			map: RangeBoundsMap::default(),
 		}
 	}
+}
+
+fn first<A, B>((a, _): (A, B)) -> A {
+	a
 }
