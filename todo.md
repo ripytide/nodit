@@ -10,6 +10,7 @@
   than doing it manually everywhere
 
 # Documentation
+
 - replace `RangeBounds` with `K` where applicatble in docs
 
 # features

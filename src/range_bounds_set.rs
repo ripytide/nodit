@@ -768,6 +768,23 @@ where
 	}
 }
 
+impl<I, K> FromIterator<K> for RangeBoundsSet<I, K>
+where
+	K: RangeBounds<I>,
+	I: Ord + Clone,
+{
+	#[trivial]
+	fn from_iter<T: IntoIterator<Item = K>>(iter: T) -> Self {
+		let mut output = RangeBoundsSet::new();
+
+		for range_bounds in iter {
+			output.insert_platonic(range_bounds).unwrap();
+		}
+
+		return output;
+	}
+}
+
 impl<I, K> Default for RangeBoundsSet<I, K>
 where
 	I: PartialOrd,
