@@ -24,7 +24,7 @@ use std::ops::{Bound, RangeBounds};
 
 use either::Either;
 use itertools::Itertools;
-use labels::{tested, trivial, untested};
+use labels::{tested, trivial};
 use serde::{Deserialize, Serialize};
 
 use crate::bound_ord::BoundOrd;
@@ -648,10 +648,9 @@ where
 	/// iterator of the full or partial `RangeBounds` that were cut in
 	/// as `((Bound, Bound), Value)`.
 	///
-	/// If the remaining `RangeBounds` left in the map after the cut
-	/// or the `RangeBounds` returned in the iterator are not able to
-	/// be created with the [`TryFromBounds`] trait then a
-	/// [`TryFromBoundsError`] will be returned.
+    /// If the remaining `RangeBounds` left in the map after the cut
+    /// are not able be created with the [`TryFromBounds`] trait then
+    /// a [`TryFromBoundsError`] will be returned.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
 	/// of a `RangeBounds` in the map it will split into two different
@@ -687,7 +686,7 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert!(base.cut(&(60..=80)).is_err());
 	/// ```
-	#[untested]
+	#[tested]
 	pub fn cut<Q>(
 		&mut self,
 		range_bounds: &Q,
@@ -856,7 +855,7 @@ where
 	/// 	]
 	/// );
 	/// ```
-	#[untested]
+	#[tested]
 	pub fn gaps<'a, Q>(
 		&'a self,
 		outer_range_bounds: &'a Q,
@@ -1445,7 +1444,7 @@ enum Config {
 	RightContainsLeft,
 }
 
-#[untested]
+#[tested]
 fn config<'a, I, A, B>(a: &'a A, b: &'a B) -> Config
 where
 	A: RangeBounds<I>,
@@ -1528,7 +1527,7 @@ struct CutResult<I> {
 	after_cut: Option<(Bound<I>, Bound<I>)>,
 }
 
-#[untested]
+#[tested]
 fn cut_range_bounds<'a, I, B, C>(
 	base_range_bounds: &'a B,
 	cut_range_bounds: &'a C,

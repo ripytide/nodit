@@ -325,11 +325,54 @@ where
 			.map(|(key, _)| key)
 	}
 
-	/// Cuts a given `RangeBounds` out of the set.
+	/// Cuts a given `RangeBounds` out of the set and returns an
+	/// iterator of the full or partial `RangeBounds` that were cut in
+	/// as `(Bound, Bound)`.
 	///
-	/// If the remaining `RangeBounds` left after the cut are not able
-	/// to be created with the [`TryFromBounds`] trait then a
-	/// [`TryFromBoundsError`] will be returned.
+	/// If the remaining `RangeBounds` left in the map after the cut
+	/// are not able be created with the [`TryFromBounds`] trait then
+	/// a [`TryFromBoundsError`] will be returned.
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Bound;
+	///
+	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
+	///
+	/// let mut base =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	///
+	/// let after_cut =
+	/// 	RangeBoundsSet::try_from([1..2, 40..100]).unwrap();
+	///
+	/// assert_eq!(
+	/// 	base.cut(&(2..40)).unwrap().collect::<Vec<_>>(),
+	/// 	[
+	/// 		(Bound::Included(2), Bound::Excluded(4)),
+	/// 		(Bound::Included(4), Bound::Excluded(8)),
+	/// 		(Bound::Included(8), Bound::Excluded(40)),
+	/// 	]
+	/// );
+	/// assert_eq!(base, after_cut);
+	/// assert!(base.cut(&(60..=80)).is_err());
+	/// ```
+	#[tested]
+	pub fn cut<Q>(
+		&mut self,
+		range_bounds: &Q,
+	) -> Result<
+		impl DoubleEndedIterator<Item = (Bound<I>, Bound<I>)>,
+		TryFromBoundsError,
+	>
+	where
+		Q: RangeBounds<I>,
+		K: TryFromBounds<I>,
+	{
+		self.map.cut(range_bounds).map(|x| x.map(|(key, _)| key))
+	}
+
+	/// Identical to [`RangeBoundsSet::cut()`] except it returns an
+	/// iterator of `Result<RangeBounds, TryFromBoundsError>`
 	///
 	/// # Examples
 	/// ```
@@ -341,17 +384,28 @@ where
 	/// let after_cut =
 	/// 	RangeBoundsSet::try_from([1..2, 40..100]).unwrap();
 	///
-	/// assert_eq!(base.cut(&(2..40)), Ok(()));
+	/// assert_eq!(
+	/// 	base.cut_same(&(2..40)).unwrap().collect::<Vec<_>>(),
+	/// 	[Ok(2..4), Ok(4..8), Ok(8..40)]
+	/// );
 	/// assert_eq!(base, after_cut);
-	/// assert_eq!(base.cut(&(60..=80)), Err(TryFromBoundsError));
+	/// assert!(base.cut_same(&(60..=80)).is_err());
 	/// ```
-	#[tested]
-	pub fn cut<Q>(&mut self, range_bounds: &Q) -> Result<(), TryFromBoundsError>
+	#[trivial]
+	pub fn cut_same<Q>(
+		&mut self,
+		range_bounds: &Q,
+	) -> Result<
+		impl DoubleEndedIterator<Item = Result<K, TryFromBoundsError>>,
+		TryFromBoundsError,
+	>
 	where
 		Q: RangeBounds<I>,
 		K: TryFromBounds<I>,
 	{
-		self.map.cut(range_bounds)
+		self.map
+			.cut_same(range_bounds)
+			.map(|x| x.map(|(key, _)| key))
 	}
 
 	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
@@ -391,6 +445,37 @@ where
 		Q: RangeBounds<I>,
 	{
 		self.map.gaps(outer_range_bounds)
+	}
+
+	/// Identical to [`RangeBoundsSet::gaps()`] except it returns an
+	/// iterator of `Result<RangeBounds, TryFromBoundsError>`.
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Bound;
+	///
+	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
+	///
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..3, 5..7, 9..100]).unwrap();
+	///
+	/// let mut gaps_same = range_bounds_set.gaps_same(&(2..));
+	///
+	/// assert_eq!(
+	/// 	gaps_same.collect::<Vec<_>>(),
+	/// 	[Ok(3..5), Ok(7..9), Err(TryFromBoundsError),]
+	/// );
+	/// ```
+	#[trivial]
+	pub fn gaps_same<'a, Q>(
+		&'a self,
+		outer_range_bounds: &'a Q,
+	) -> impl Iterator<Item = Result<K, TryFromBoundsError>> + '_
+	where
+		Q: RangeBounds<I>,
+		K: TryFromBounds<I>,
+	{
+		self.map.gaps_same(outer_range_bounds)
 	}
 
 	/// Returns `true` if the set covers every point in the given
