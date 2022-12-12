@@ -1,11 +1,8 @@
 # range_bounds_map
 
 [![License](https://img.shields.io/github/license/ripytide/range_bounds_map)](https://www.gnu.org/licenses/agpl-3.0.en.html)
-
 [![Docs](https://docs.rs/range_bounds_map/badge.svg)](https://docs.rs/range_bounds_map)
-
 [![Maintained](https://img.shields.io/maintenance/yes/2023)](https://github.com/ripytide)
-
 [![Crates.io](https://img.shields.io/crates/v/range_bounds_map)](https://crates.io/crates/range_bounds_map)
 
 <p align="center">
