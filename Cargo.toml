@@ -4,13 +4,7 @@ version = "0.0.2"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
-This crate provides `RangeBoundsMap` and `RangeBoundsSet`.
-
-`RangeBoundsMap` is an ordered map of non-overlapping [`RangeBounds`]
-based on [`BTreeMap`].
-
-`RangeBoundsSet` is an ordered set of non-overlapping [`RangeBounds`]
-based on [`RangeBoundsMap`].
+This crate provides `RangeBoundsMap` and `RangeBoundsSet`
 """
 documentation = "https://docs.rs/range_bounds_map"
 readme = "README.md"
