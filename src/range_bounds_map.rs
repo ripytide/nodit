@@ -648,9 +648,9 @@ where
 	/// iterator of the full or partial `RangeBounds` that were cut in
 	/// as `((Bound, Bound), Value)`.
 	///
-    /// If the remaining `RangeBounds` left in the map after the cut
-    /// are not able be created with the [`TryFromBounds`] trait then
-    /// a [`TryFromBoundsError`] will be returned.
+	/// If the remaining `RangeBounds` left in the map after the cut
+	/// are not able be created with the [`TryFromBounds`] trait then
+	/// a [`TryFromBoundsError`] will be returned.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
 	/// of a `RangeBounds` in the map it will split into two different
@@ -1687,6 +1687,25 @@ mod tests {
 	pub(crate) const NUMBERS_DOMAIN: &'static [u8] =
 		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
+	fn basic() -> RangeBoundsMap<u8, TestBounds, bool> {
+		RangeBoundsMap::try_from([
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+			(ie(14, 16), true),
+		])
+		.unwrap()
+	}
+
+	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
+		RangeBoundsMap::try_from([
+			(mii(4, 6), false),
+			(mee(7, 8), true),
+			(mii(8, 12), false),
+		])
+		.unwrap()
+	}
+
 	#[derive(Debug, PartialEq, Clone)]
 	enum MultiBounds {
 		Inclusive(u8, u8),
@@ -1920,16 +1939,6 @@ mod tests {
 		}
 	}
 
-	fn basic() -> RangeBoundsMap<u8, TestBounds, bool> {
-		RangeBoundsMap::try_from([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ie(14, 16), true),
-		])
-		.unwrap()
-	}
-
 	#[test]
 	fn cut_tests() {
 		assert_cut(basic(), ii(50, 60), Ok([]), None::<[_; 0]>);
@@ -1999,14 +2008,6 @@ mod tests {
 				(mii(8, 12), false),
 			]),
 		);
-	}
-	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
-		RangeBoundsMap::try_from([
-			(mii(4, 6), false),
-			(mee(7, 8), true),
-			(mii(8, 12), false),
-		])
-		.unwrap()
 	}
 
 	fn assert_cut<const N: usize, const Y: usize, Q, I, K, V>(
