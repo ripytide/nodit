@@ -192,6 +192,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 //! [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
 //! [`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
+//! [`RangeBoundsMap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.RangeBoundsMap.html
+//! [`RangeBoundsSet`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.RangeBoundsSet.html
 
 #![feature(is_some_and)]
 #![feature(let_chains)]

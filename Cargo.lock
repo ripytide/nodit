@@ -41,7 +41,9 @@ dependencies = [
 
 [[package]]
 name = "labels"
-version = "0.1.0"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef0d115162498c588b6406a026d2ba545e955720f0ff4230d6b380afe7dd7fd4"
 dependencies = [
  "quote",
  "syn",
@@ -106,7 +108,7 @@ dependencies = [
 
 [[package]]
 name = "range_bounds_map"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "either",
  "itertools",
