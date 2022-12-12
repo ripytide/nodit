@@ -152,6 +152,24 @@ where
 		self.map.len()
 	}
 
+	/// Returns `true` if the set contains no `RangeBounds`, and
+	/// `false` if it does.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut range_bounds_set = RangeBoundsSet::new();
+	///
+	/// assert_eq!(range_bounds_set.is_empty(), true);
+	/// range_bounds_set.insert_platonic(0..1).unwrap();
+	/// assert_eq!(range_bounds_set.is_empty(), false);
+	/// ```
+	#[trivial]
+	pub fn is_empty(&self) -> bool {
+		self.len() == 0
+	}
+
 	/// Adds a new `RangeBounds` to the set without modifying other
 	/// `RangeBounds` in the set.
 	///
@@ -181,7 +199,7 @@ where
 	}
 
 	/// Returns `true` if the given `RangeBounds` overlaps any of the
-	/// `RangeBounds` in the set.
+	/// `RangeBounds` in the set, and `false` if not.
 	///
 	/// # Examples
 	/// ```

@@ -308,6 +308,24 @@ where
 		self.starts.len()
 	}
 
+	/// Returns `true` if the map contains no `RangeBounds`, and
+	/// `false` if it does.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let mut range_bounds_map = RangeBoundsMap::new();
+	///
+	/// assert_eq!(range_bounds_map.is_empty(), true);
+	/// range_bounds_map.insert_platonic(0..1, false).unwrap();
+	/// assert_eq!(range_bounds_map.is_empty(), false);
+	/// ```
+	#[trivial]
+	pub fn is_empty(&self) -> bool {
+		self.len() == 0
+	}
+
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map without
 	/// modifying other entries.
 	///
@@ -354,7 +372,7 @@ where
 	}
 
 	/// Returns `true` if the given `RangeBounds` overlaps any of the
-	/// `RangeBounds` in the map.
+	/// `RangeBounds` in the map, and `false` if not.
 	///
 	/// # Examples
 	/// ```
@@ -1275,15 +1293,11 @@ where
 	{
 		let overlapping_swell = self.overlapping_swell(&range_bounds);
 		let start_bound = match self.touching_left(&range_bounds) {
-			Some(touching_left) => {
-				Bound::from(touching_left.start_bound().cloned())
-			}
+			Some(touching_left) => touching_left.start_bound().cloned(),
 			None => overlapping_swell.0.cloned(),
 		};
 		let end_bound = match self.touching_right(&range_bounds) {
-			Some(touching_right) => {
-				Bound::from(touching_right.end_bound().cloned())
-			}
+			Some(touching_right) => touching_right.end_bound().cloned(),
 			None => overlapping_swell.1.cloned(),
 		};
 
@@ -1624,10 +1638,7 @@ where
 	B: RangeBounds<I>,
 	I: PartialOrd,
 {
-	match sorted_config(a, b) {
-		SortedConfig::NonOverlapping(_, _) => false,
-		_ => true,
-	}
+	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
 
 #[rustfmt::skip]
