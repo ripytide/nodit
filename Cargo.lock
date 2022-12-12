@@ -108,7 +108,7 @@ dependencies = [
 
 [[package]]
 name = "range_bounds_map"
-version = "0.0.2"
+version = "0.0.5"
 dependencies = [
  "either",
  "itertools",

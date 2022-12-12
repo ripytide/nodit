@@ -118,15 +118,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! When a `RangeBounds` "coalesces" other `RangeBounds` it absorbs them
 //! to become larger.
 //!
-//! # How
-//!
-//! Most of the [`RangeBounds`]-specific methods on [`RangeBoundsMap`]
-//! utilize the [`RangeBoundsMap::overlapping()`] method which
-//! internally uses [`BTreeMap`]'s [`range()`] function. To allow
-//! using [`range()`] for this purpose a newtype wrapper is wrapped
-//! around the [`start_bound()`]s so that we can apply our custom [`Ord`]
-//! implementation onto all the [`start_bound()`]s.
-//!
 //! # Improvements/Caveats
 //!
 //! - Missing some functions common to BTreeMap and BTreeSet like:
@@ -142,7 +133,9 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! I originally came up with the `StartBound`: [`Ord`] bodge on my own,
 //! however, I later stumbled across [`rangemap`] which also used a
 //! `StartBound`: [`Ord`] bodge. [`rangemap`] then became my main source
-//! of inspiration. The aim for my library was to become a more generic
+//! of inspiration.
+//!
+//! The aim for my library was to become a more generic
 //! superset of [`rangemap`], following from [this
 //! issue](https://github.com/jeffparsons/rangemap/issues/56) and [this
 //! pull request](https://github.com/jeffparsons/rangemap/pull/57) in
