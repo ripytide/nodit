@@ -6,20 +6,17 @@ edition = "2021"
 description = """
 This crate provides `RangeBoundsMap` and `RangeBoundsSet`.
 
-`RangeBoundsMap` is similar to `BTreeMap` except `RangeBoundsMap`
-uses any type that implements the `RangeBounds` trait as keys, while
-maintaining two invariants:
-- No two keys may overlap
-- A keys' `start_bound()` <= its `end_bound()`
+`RangeBoundsMap` is an ordered map of non-overlapping [`RangeBounds`]
+based on [`BTreeMap`].
 
-`RangeBoundsSet` is like `RangeBoundsMap` except it
-uses `()` as values, as `BTreeSet` does for `BTreeMap`
+`RangeBoundsSet` is an ordered set of non-overlapping [`RangeBounds`]
+based on [`RangeBoundsMap`].
 """
 documentation = "https://docs.rs/range_bounds_map"
 readme = "README.md"
 homepage = "https://github.com/ripytide/range_bounds_map"
 repository = "https://github.com/ripytide/range_bounds_map"
-license = "GPL-3.0-or-later"
+license = "AGPL-3.0-or-later"
 keywords = ["data-structures", "map", "data", "library"]
 categories = ["data-structures"]
 

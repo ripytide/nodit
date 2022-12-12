@@ -4,23 +4,23 @@ Copyright 2022 James Forster
 This file is part of range_bounds_map.
 
 range_bounds_map is free software: you can redistribute it and/or
-modify it under the terms of the GNU General Public License as
+modify it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
 range_bounds_map is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-General Public License for more details.
+Affero General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::fmt::Debug;
 use std::ops::{Bound, RangeBounds};
 
-use labels::{tested, trivial};
+use labels::trivial;
 use serde::{Deserialize, Serialize};
 
 use crate::range_bounds_map::IntoIter as MapIntoIter;
@@ -191,7 +191,7 @@ where
 	/// );
 	/// assert_eq!(range_bounds_set.len(), 1);
 	/// ```
-	#[tested]
+	#[trivial]
 	pub fn insert_platonic(
 		&mut self,
 		range_bounds: K,
@@ -241,7 +241,7 @@ where
 	/// 	[(&(1..4)), (&(4..8))]
 	/// );
 	/// ```
-	#[tested]
+	#[trivial]
 	pub fn overlapping<Q>(
 		&self,
 		range_bounds: &Q,
@@ -331,7 +331,7 @@ where
 	/// 	[&(8..100)]
 	/// );
 	/// ```
-	#[tested]
+	#[trivial]
 	pub fn remove_overlapping<Q>(
 		&mut self,
 		range_bounds: &Q,
@@ -375,7 +375,7 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert!(base.cut(&(60..=80)).is_err());
 	/// ```
-	#[tested]
+	#[trivial]
 	pub fn cut<Q>(
 		&mut self,
 		range_bounds: &Q,
@@ -455,7 +455,7 @@ where
 	/// 	]
 	/// );
 	/// ```
-	#[tested]
+	#[trivial]
 	pub fn gaps<'a, Q>(
 		&'a self,
 		outer_range_bounds: &'a Q,
@@ -571,7 +571,7 @@ where
 	/// 	[&(1..6), &(10..16)]
 	/// );
 	/// ```
-	#[tested]
+	#[trivial]
 	pub fn insert_coalesce_touching(
 		&mut self,
 		range_bounds: K,
@@ -622,7 +622,7 @@ where
 	/// 	[&(-4..1), &(1..8), &(10..16)]
 	/// );
 	/// ```
-	#[tested]
+	#[trivial]
 	pub fn insert_coalesce_overlapping(
 		&mut self,
 		range_bounds: K,
@@ -676,7 +676,7 @@ where
 	/// 	[&(-4..8), &(10..16)]
 	/// );
 	/// ```
-	#[tested]
+	#[trivial]
 	pub fn insert_coalesce_touching_or_overlapping(
 		&mut self,
 		range_bounds: K,
@@ -817,7 +817,7 @@ where
 		};
 	}
 }
-/// An owning iterator over the entries of a `RangeBoundsSet`.
+/// An owning iterator over the entries of a [`RangeBoundsSet`].
 ///
 /// This `struct` is created by the [`into_iter`] method on
 /// [`RangeBoundsSet`] (provided by the [`IntoIterator`] trait). See
@@ -830,6 +830,7 @@ pub struct IntoIter<I, K> {
 }
 impl<I, K> Iterator for IntoIter<I, K> {
 	type Item = K;
+	#[trivial]
 	fn next(&mut self) -> Option<Self::Item> {
 		self.inner.next().map(first)
 	}
@@ -847,6 +848,7 @@ where
 	}
 }
 
+#[trivial]
 fn first<A, B>((a, _): (A, B)) -> A {
 	a
 }

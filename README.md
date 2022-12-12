@@ -2,41 +2,19 @@
 
 [![Crates.io](https://img.shields.io/crates/v/range_bounds_set)](https://crates.io/crates/range_bounds_set)
 [![Docs](https://docs.rs/range_bounds_set/badge)](https://docs.rs/range_bounds_set)
+[![Maintained]](https://img.shields.io/maintenance/yes/2023)
 
 <p align="center">
 <img src="logo.svg" alt="range_bounds_map_logo" width="350">
 </p>
 
-This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`].
+This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`.]
 
-[`RangeBoundsMap`] is similar to [`BTreeMap`] except [`RangeBoundsMap`]
-uses any type that implements the [`RangeBounds`] trait as keys, while
-maintaining two invariants:
+[`RangeBoundsMap`] is an ordered map of non-overlapping [`RangeBounds`]
+based on [`BTreeMap`].
 
-- No two keys may overlap
-- A keys' [`start_bound()`] <= its [`end_bound()`]
-
-[`RangeBoundsSet`] is like [`RangeBoundsMap`] except it
-uses `()` as values, as [`BTreeSet`] does for [`BTreeMap`]
-
-## Key Definitions:
-
-### Overlap
-
-Two `RangeBounds` are "overlapping" if there exists a point that is
-contained within both `RangeBounds`.
-
-### Touching
-
-Two `RangeBounds` are "touching" if they do not overlap and
-there exists no value between them. For example, `2..4` and
-`4..6` are touching but `2..4` and `6..8` are not, neither are
-`2..6` and `4..8`.
-
-### Coalesce
-
-When a `RangeBounds` "coalesces" other `RangeBounds` it absorbs them
-to become larger.
+[`RangeBoundsSet`] is an ordered set of non-overlapping [`RangeBounds`]
+based on [`RangeBoundsMap`].
 
 ## Example using [`Range`]s
 
@@ -45,8 +23,8 @@ use range_bounds_map::RangeBoundsMap;
 
 let mut range_bounds_map = RangeBoundsMap::new();
 
-range_bounds_map.insert(0..5, true);
-range_bounds_map.insert(5..10, false);
+range_bounds_map.insert_platonic(0..5, true);
+range_bounds_map.insert_platonic(5..10, false);
 
 assert_eq!(range_bounds_map.overlaps(&(-2..12)), true);
 assert_eq!(range_bounds_map.contains_point(&20), false);
@@ -112,54 +90,51 @@ assert_eq!(
 );
 ```
 
-# How
+## Key Definitions:
 
-Most of the [`RangeBounds`]-specific methods on [`RangeBoundsMap`]
-utilize the [`RangeBoundsMap::overlapping()`] method which
-internally uses [`BTreeMap`]'s [`range()`] function. To allow
-using [`range()`] for this purpose a newtype wrapper is wrapped
-around the [`start_bound()`]s so that we can apply our custom [`Ord`]
-implementation onto all the [`start_bound()`]s.
+### Overlap
+
+Two `RangeBounds` are "overlapping" if there exists a point that is
+contained within both `RangeBounds`.
+
+### Touching
+
+Two `RangeBounds` are "touching" if they do not overlap and
+there exists no value between them. For example, `2..4` and
+`4..6` are touching but `2..4` and `6..8` are not, neither are
+`2..6` and `4..8`.
+
+### Coalesce
+
+When a `RangeBounds` "coalesces" other `RangeBounds` it absorbs them
+to become larger.
 
 # Improvements/Caveats
 
-There are a few issues I can think of with this implementation,
-each of them are documented as GitHub Issues. If you would like
-any of these features added, drop a comment in a respective GitHub
-Issue (or even open a new one) and I'd be happy to implement it.
-
-To summarise:
-
-- Some overly strict Trait-Bounds on some functions due to `impl`
-  level `Trait-Bounds` rather than specific `function` level
-  `Trait-Bounds`
 - Missing some functions common to BTreeMap and BTreeSet like:
   - `clear()`
   - `is_subset()`
   - etc... prob a bunch more
-- Sub-optimal use of unnecessary `cloned()` just to placate the borrow checker
-- Lot's of optimisations available
+- Not particularly optimized, (which doesn't mean it's neccessarily slow)
 - Can't use TryFrom<(Bound, Bound)> instead of [`TryFromBounds`] (relys on
-  upstream to impl)
-- The data structures are lacking a lot of useful traits, such as:
-  - FromIterator
-  - IntoIterator
-  - Prob a bunch more
+  upstream to impl, see [this thread](https://internals.rust-lang.org/t/range-should-impl-tryfrom-bound-bound))
 
 # Credit
 
-I originally came up with the `StartBound`: [`Ord`] bodge on my
-own, however, I later stumbled across [`rangemap`] which also used
-a `StartBound`: [`Ord`] bodge. [`rangemap`] then became my main
-source of inspiration. The aim for my library was to become a more
-generic superset of [`rangemap`], following from
-[this issue](https://github.com/jeffparsons/rangemap/issues/56) and
-[this pull request](https://github.com/jeffparsons/rangemap/pull/57)
-in which I changed [`rangemap`]'s [`RangeMap`] to use
-[`RangeBounds`]s as keys before I realized it might be easier and
-simpler to just write it all from scratch. Which ended up working
-really well with some simplifications I made which ended up
-resulting in much less code (~600 lines over [`rangemap`]'s ~2700)
+I originally came up with the `StartBound`: [`Ord`] bodge on my own,
+however, I later stumbled across [`rangemap`] which also used a
+`StartBound`: [`Ord`] bodge. [`rangemap`] then became my main source
+of inspiration.
+
+The aim for my library was to become a more generic
+superset of [`rangemap`], following from [this
+issue](https://github.com/jeffparsons/rangemap/issues/56) and [this
+pull request](https://github.com/jeffparsons/rangemap/pull/57) in
+which I changed [`rangemap`]'s [`RangeMap`] to use [`RangeBounds`]s as
+keys before I realized it might be easier and simpler to just write it
+all from scratch. Which ended up working really well with some
+simplifications (BoundOrd) I made which made some of the code much
+easier to work with.
 
 # Similar Crates
 

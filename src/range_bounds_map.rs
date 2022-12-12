@@ -4,16 +4,16 @@ Copyright 2022 James Forster
 This file is part of range_bounds_map.
 
 range_bounds_map is free software: you can redistribute it and/or
-modify it under the terms of the GNU General Public License as
+modify it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
 range_bounds_map is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-General Public License for more details.
+Affero General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
@@ -25,7 +25,7 @@ use std::ops::{Bound, RangeBounds};
 
 use either::Either;
 use itertools::Itertools;
-use labels::{tested, trivial};
+use labels::{parent_tested, tested, trivial};
 use serde::{Deserialize, Serialize};
 
 use crate::bound_ord::BoundOrd;
@@ -131,8 +131,8 @@ where
 	starts: BTreeMap<BoundOrd<I>, (K, V)>,
 }
 
-/// An error type to represent a `RangeBounds` overlapping another
-/// `RangeBounds` when it should not have.
+/// An error type to represent a [`RangeBounds`] overlapping another
+/// [`RangeBounds`] when it should not have.
 #[derive(PartialEq, Debug)]
 pub struct OverlapError;
 
@@ -1112,6 +1112,7 @@ where
 
 		return Ok(&self.starts.get(&BoundOrd::start(start_bound)).unwrap().0);
 	}
+	#[parent_tested]
 	fn touching_left(&self, range_bounds: &K) -> Option<&K> {
 		return self
 			.starts
@@ -1125,6 +1126,7 @@ where
 			.map(|x| &x.1.0)
 			.filter(|x| touches(range_bounds, *x));
 	}
+	#[parent_tested]
 	fn touching_right(&self, range_bounds: &K) -> Option<&K> {
 		return self
 			.starts
@@ -1212,6 +1214,7 @@ where
 
 		return Ok(&self.starts.get(&BoundOrd::start(start_bound)).unwrap().0);
 	}
+	#[parent_tested]
 	fn overlapping_swell<'a>(
 		&'a self,
 		range_bounds: &'a K,
@@ -1467,7 +1470,7 @@ where
 		};
 	}
 }
-/// An owning iterator over the entries of a `RangeBoundsMap`.
+/// An owning iterator over the entries of a [`RangeBoundsMap`].
 ///
 /// This `struct` is created by the [`into_iter`] method on
 /// [`RangeBoundsMap`] (provided by the [`IntoIterator`] trait). See
@@ -1480,6 +1483,7 @@ pub struct IntoIter<I, K, V> {
 }
 impl<I, K, V> Iterator for IntoIter<I, K, V> {
 	type Item = (K, V);
+	#[trivial]
 	fn next(&mut self) -> Option<Self::Item> {
 		self.inner.next()
 	}
@@ -1674,7 +1678,6 @@ where
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
 
-#[rustfmt::skip]
 #[tested]
 fn touches<I, A, B>(a: &A, b: &B) -> bool
 where
@@ -1683,13 +1686,15 @@ where
 	I: PartialOrd,
 {
 	match sorted_config(a, b) {
-		SortedConfig::NonOverlapping(a, b) => {
-			match (a.1, b.0) {
-				(Bound::Included(point1), Bound::Excluded(point2)) => point1 == point2,
-				(Bound::Excluded(point1), Bound::Included(point2)) => point1 == point2,
-                _ => false,
+		SortedConfig::NonOverlapping(a, b) => match (a.1, b.0) {
+			(Bound::Included(point1), Bound::Excluded(point2)) => {
+				point1 == point2
 			}
-		}
+			(Bound::Excluded(point1), Bound::Included(point2)) => {
+				point1 == point2
+			}
+			_ => false,
+		},
 		_ => false,
 	}
 }
