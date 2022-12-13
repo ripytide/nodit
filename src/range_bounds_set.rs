@@ -734,7 +734,7 @@ where
 	///
 	/// assert_eq!(range_bounds_set.first(), Some(&(1..4)));
 	/// ```
-    #[trivial]
+	#[trivial]
 	pub fn first(&self) -> Option<&K> {
 		self.map.first_entry().map(|(key, _)| key)
 	}
@@ -750,9 +750,89 @@ where
 	///
 	/// assert_eq!(range_bounds_set.last(), Some(&(8..100)));
 	/// ```
-    #[trivial]
+	#[trivial]
 	pub fn last(&self) -> Option<&K> {
 		self.map.last_entry().map(|(key, _)| key)
+	}
+
+	/// Moves all elements from `other` into `self` by
+	/// [`RangeBoundsSet::insert_platonic()`] in acending order,
+	/// leaving `other` empty.
+	///
+	/// If any of the `RangeBounds` in `other` overlap `self` then
+	/// that `RangeBounds` is not inserted and the function returns.
+	/// This will mean all `RangeBounds` after the failed one will not
+	/// be inserted into `self`.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut base = RangeBoundsSet::try_from([1..4, 4..8]).unwrap();
+	///
+	/// let mut add = RangeBoundsSet::try_from([10..38, 40..42]).unwrap();
+	///
+	/// let expected =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 10..38, 40..42])
+	/// 		.unwrap();
+	///
+	/// assert_eq!(base.append_platonic(&mut add), Ok(()));
+	/// assert_eq!(base, expected);
+	/// assert!(add.is_empty());
+	/// ```
+	#[trivial]
+	pub fn append_platonic(
+		&mut self,
+		other: &mut RangeBoundsSet<I, K>,
+	) -> Result<(), OverlapError> {
+		self.map.append_platonic(
+			&mut other
+				.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
+				.map(|key| (key, ()))
+				.collect(),
+		)
+	}
+
+	/// Splits the set in two at the given `start_bound()`. Returns
+	/// the full or partial `RangeBounds` after the split.
+	///
+	/// If the remaining `RangeBounds` left in either the base or the
+	/// returned set are not able be created with the
+	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// returned and the base set will not be split.
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Bound;
+	///
+	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
+	///
+	/// let mut a =
+	/// 	RangeBoundsSet::try_from([1..2, 4..8, 10..16]).unwrap();
+	///
+	/// // Fails because that would leave an Inclusive-Inclusive
+	/// // `RangeBounds` in `a`
+	/// assert_eq!(
+	/// 	a.split_off(Bound::Excluded(6)),
+	/// 	Err(TryFromBoundsError)
+	/// );
+	///
+	/// let b = a.split_off(Bound::Included(6)).unwrap();
+	///
+	/// assert_eq!(a.into_iter().collect::<Vec<_>>(), [1..2, 4..6],);
+	/// assert_eq!(b.into_iter().collect::<Vec<_>>(), [6..8, 10..16],);
+	/// ```
+	#[trivial]
+	pub fn split_off(
+		&mut self,
+		start_bound: Bound<I>,
+	) -> Result<RangeBoundsSet<I, K>, TryFromBoundsError>
+	where
+		K: TryFromBounds<I> + Clone,
+	{
+		self.map
+			.split_off(start_bound)
+			.map(|map| map.into_iter().map(first).collect())
 	}
 }
 

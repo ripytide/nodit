@@ -27,7 +27,7 @@
   symmetric types such as Range
 - add rangemap's insert function to finally make range_bounds_map a superset of rangemap
 
-- add append() split_off(), remove_at_point(), etc
+- add remove_at_point(), clear(), etc..
 
 # open questions
 

@@ -1455,7 +1455,7 @@ where
 		return Ok(());
 	}
 
-	/// Splits the collection in two at the given `start_bound()`. Returns
+	/// Splits the map in two at the given `start_bound()`. Returns
 	/// the full or partial `RangeBounds` after the split.
 	///
 	/// If the remaining `RangeBounds` left in either the base or the
@@ -1480,7 +1480,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// // fails because that would leave an Inclusive-Inclusive
+	/// // Fails because that would leave an Inclusive-Inclusive
 	/// // `RangeBounds` in `a`
 	/// assert_eq!(
 	/// 	a.split_off(Bound::Excluded(6)),
