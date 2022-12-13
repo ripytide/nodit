@@ -734,6 +734,7 @@ where
 	///
 	/// assert_eq!(range_bounds_set.first(), Some(&(1..4)));
 	/// ```
+    #[trivial]
 	pub fn first(&self) -> Option<&K> {
 		self.map.first_entry().map(|(key, _)| key)
 	}
@@ -749,6 +750,7 @@ where
 	///
 	/// assert_eq!(range_bounds_set.last(), Some(&(8..100)));
 	/// ```
+    #[trivial]
 	pub fn last(&self) -> Option<&K> {
 		self.map.last_entry().map(|(key, _)| key)
 	}

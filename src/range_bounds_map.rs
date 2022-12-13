@@ -669,7 +669,8 @@ where
 	///
 	/// If the remaining `RangeBounds` left in the map after the cut
 	/// are not able be created with the [`TryFromBounds`] trait then
-	/// a [`TryFromBoundsError`] will be returned.
+	/// a [`TryFromBoundsError`] will be returned and the map will not
+	/// be cut.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
 	/// of a `RangeBounds` in the map it will split into two different
@@ -1379,6 +1380,7 @@ where
 	/// 	Some((&(1..4), &false))
 	/// );
 	/// ```
+	#[trivial]
 	pub fn first_entry(&self) -> Option<(&K, &V)> {
 		self.iter().next()
 	}
@@ -1401,8 +1403,127 @@ where
 	/// 	range_bounds_map.last_entry(),
 	/// 	Some((&(8..100), &false))
 	/// );
+	#[trivial]
 	pub fn last_entry(&self) -> Option<(&K, &V)> {
 		self.iter().next_back()
+	}
+
+    /// Moves all elements from `other` into `self` by
+    /// [`RangeBoundsMap::insert_platonic()`] in acending order,
+    /// leaving `other` empty.
+	///
+	/// If any of the `RangeBounds` in `other` overlap `self` then
+	/// that `RangeBounds` is not inserted and the function returns.
+	/// This will mean all `RangeBounds` after the failed one will not
+	/// be inserted into `self`.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let mut base =
+	/// 	RangeBoundsMap::try_from([(1..4, false), (4..8, true)])
+	/// 		.unwrap();
+	///
+	/// let mut add =
+	/// 	RangeBoundsMap::try_from([(10..38, true), (40..42, false)])
+	/// 		.unwrap();
+	///
+	/// let expected = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(10..38, true),
+	/// 	(40..42, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(base.append_platonic(&mut add), Ok(()));
+	/// assert_eq!(base, expected);
+	/// assert!(add.is_empty());
+	/// ```
+	#[trivial]
+	pub fn append_platonic(
+		&mut self,
+		other: &mut RangeBoundsMap<I, K, V>,
+	) -> Result<(), OverlapError> {
+		for (range_bounds, value) in
+			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
+		{
+			self.insert_platonic(range_bounds, value)?;
+		}
+
+		return Ok(());
+	}
+
+	/// Splits the collection in two at the given `start_bound()`. Returns
+	/// the full or partial `RangeBounds` after the split.
+	///
+	/// If the remaining `RangeBounds` left in either the base or the
+	/// returned map are not able be created with the
+	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// returned and the base map will not be split.
+	///
+	/// `V` must implement `Clone` as if you try to split the map
+	/// inside a `RangeBounds` then that entries value will need to be
+	/// cloned into the returned `RangeBoundsMap`.
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Bound;
+	///
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	///
+	/// let mut a = RangeBoundsMap::try_from([
+	/// 	(1..2, false),
+	/// 	(4..8, true),
+	/// 	(10..16, true),
+	/// ])
+	/// .unwrap();
+	///
+	/// // fails because that would leave an Inclusive-Inclusive
+	/// // `RangeBounds` in `a`
+	/// assert_eq!(
+	/// 	a.split_off(Bound::Excluded(6)),
+	/// 	Err(TryFromBoundsError)
+	/// );
+	///
+	/// let b = a.split_off(Bound::Included(6)).unwrap();
+	///
+	/// assert_eq!(
+	/// 	a.into_iter().collect::<Vec<_>>(),
+	/// 	[(1..2, false), (4..6, true)],
+	/// );
+	/// assert_eq!(
+	/// 	b.into_iter().collect::<Vec<_>>(),
+	/// 	[(6..8, true), (10..16, true)],
+	/// );
+	/// ```
+	#[trivial]
+	pub fn split_off(
+		&mut self,
+		start_bound: Bound<I>,
+	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError>
+	where
+		K: TryFromBounds<I> + Clone,
+		V: Clone,
+	{
+		// optimisation: this is a terrible way of being atomic
+		let before = self.clone();
+
+		let split_off = self.cut_same(&(start_bound, Bound::Unbounded))?;
+		let mut output = RangeBoundsMap::new();
+
+		for (possible_key, value) in split_off {
+			match possible_key {
+				Ok(key) => output.insert_platonic(key, value).unwrap(),
+				Err(TryFromBoundsError) => {
+					*self = before;
+					return Err(TryFromBoundsError);
+				}
+			}
+		}
+
+		return Ok(output);
 	}
 }
 

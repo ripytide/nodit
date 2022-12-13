@@ -27,12 +27,13 @@
   symmetric types such as Range
 - add rangemap's insert function to finally make range_bounds_map a superset of rangemap
 
-- add append() split_off() etc..
+- add append() split_off(), remove_at_point(), etc
 
 # open questions
 
 - should we implement FromIterator? If so which insert should we use?
   (At the moment we do implement it using insert_platonic())
+- should append_* functions not change the base if they fail half way?
 
 #### PUBLISH
 
