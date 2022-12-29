@@ -17,11 +17,14 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
+use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 
 use labels::trivial;
-use serde::{Deserialize, Serialize};
+use serde::de::{SeqAccess, Visitor};
+use serde::ser::SerializeSeq;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::range_bounds_map::IntoIter as MapIntoIter;
 use crate::{
@@ -105,7 +108,7 @@ use crate::{
 /// ```
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RangeBoundsSet<I, K>
 where
 	I: PartialOrd,
@@ -927,6 +930,69 @@ where
 		RangeBoundsSet {
 			map: RangeBoundsMap::default(),
 		}
+	}
+}
+
+impl<I, K> Serialize for RangeBoundsSet<I, K>
+where
+	I: Ord + Clone,
+	K: RangeBounds<I> + Serialize,
+{
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		let mut seq = serializer.serialize_seq(Some(self.len()))?;
+		for range_bounds in self.iter() {
+			seq.serialize_element(&range_bounds)?;
+		}
+		seq.end()
+	}
+}
+
+impl<'de, I, K> Deserialize<'de> for RangeBoundsSet<I, K>
+where
+	K: Deserialize<'de> + RangeBounds<I>,
+	I: Ord + Clone,
+{
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		deserializer.deserialize_seq(RangeBoundsSetVisitor {
+			i: PhantomData,
+			k: PhantomData,
+		})
+	}
+}
+
+struct RangeBoundsSetVisitor<I, K> {
+	i: PhantomData<I>,
+	k: PhantomData<K>,
+}
+
+impl<'de, I, K> Visitor<'de> for RangeBoundsSetVisitor<I, K>
+where
+	I: Ord + Clone,
+	K: RangeBounds<I> + Deserialize<'de>,
+{
+	type Value = RangeBoundsSet<I, K>;
+
+	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		formatter.write_str("a RangeBoundsSet")
+	}
+
+	fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
+	where
+		A: SeqAccess<'de>,
+	{
+		let mut range_bounds_set = RangeBoundsSet::new();
+		while let Some(range_bounds) = access.next_element()? {
+			range_bounds_set
+				.insert_platonic(range_bounds)
+				.map_err(|_| serde::de::Error::custom("RangeBounds overlap"))?;
+		}
+		Ok(range_bounds_set)
 	}
 }
 

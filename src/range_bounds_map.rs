@@ -19,14 +19,17 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::collections::btree_map::IntoValues;
 use std::collections::BTreeMap;
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
 use std::iter::once;
+use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 
 use either::Either;
 use itertools::Itertools;
 use labels::{parent_tested, tested, trivial};
-use serde::{Deserialize, Serialize};
+use serde::de::{MapAccess, Visitor};
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
 use crate::TryFromBounds;
@@ -123,7 +126,7 @@ use crate::TryFromBounds;
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RangeBoundsMap<I, K, V>
 where
 	I: PartialOrd,
@@ -1408,9 +1411,9 @@ where
 		self.iter().next_back()
 	}
 
-    /// Moves all elements from `other` into `self` by
-    /// [`RangeBoundsMap::insert_platonic()`] in acending order,
-    /// leaving `other` empty.
+	/// Moves all elements from `other` into `self` by
+	/// [`RangeBoundsMap::insert_platonic()`] in acending order,
+	/// leaving `other` empty.
 	///
 	/// If any of the `RangeBounds` in `other` overlap `self` then
 	/// that `RangeBounds` is not inserted and the function returns.
@@ -1619,6 +1622,74 @@ where
 		RangeBoundsMap {
 			starts: BTreeMap::default(),
 		}
+	}
+}
+
+impl<I, K, V> Serialize for RangeBoundsMap<I, K, V>
+where
+	I: Ord + Clone,
+	K: RangeBounds<I> + Serialize,
+	V: Serialize,
+{
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		let mut map = serializer.serialize_map(Some(self.len()))?;
+		for (range_bounds, value) in self.iter() {
+			map.serialize_entry(range_bounds, value)?;
+		}
+		map.end()
+	}
+}
+
+impl<'de, I, K, V> Deserialize<'de> for RangeBoundsMap<I, K, V>
+where
+	K: Deserialize<'de> + RangeBounds<I>,
+	I: Ord + Clone,
+	V: Deserialize<'de>,
+{
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		deserializer.deserialize_map(RangeBoundsMapVisitor {
+			i: PhantomData,
+			k: PhantomData,
+			v: PhantomData,
+		})
+	}
+}
+
+struct RangeBoundsMapVisitor<I, K, V> {
+	i: PhantomData<I>,
+	k: PhantomData<K>,
+	v: PhantomData<V>,
+}
+
+impl<'de, I, K, V> Visitor<'de> for RangeBoundsMapVisitor<I, K, V>
+where
+	I: Ord + Clone,
+	K: RangeBounds<I> + Deserialize<'de>,
+	V: Deserialize<'de>,
+{
+	type Value = RangeBoundsMap<I, K, V>;
+
+	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		formatter.write_str("a RangeBoundsMap")
+	}
+
+	fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
+	where
+		A: MapAccess<'de>,
+	{
+		let mut range_bounds_map = RangeBoundsMap::new();
+		while let Some((range_bounds, value)) = access.next_entry()? {
+			range_bounds_map
+				.insert_platonic(range_bounds, value)
+				.map_err(|_| serde::de::Error::custom("RangeBounds overlap"))?;
+		}
+		Ok(range_bounds_map)
 	}
 }
 
