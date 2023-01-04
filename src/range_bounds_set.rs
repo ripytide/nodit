@@ -1013,7 +1013,7 @@ where
 	I: Ord + Clone,
 	K: RangeBounds<I> + Serialize,
 {
-    #[trivial]
+	#[trivial]
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: Serializer,
@@ -1031,7 +1031,7 @@ where
 	K: Deserialize<'de> + RangeBounds<I>,
 	I: Ord + Clone,
 {
-    #[trivial]
+	#[trivial]
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -1055,12 +1055,12 @@ where
 {
 	type Value = RangeBoundsSet<I, K>;
 
-    #[trivial]
+	#[trivial]
 	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		formatter.write_str("a RangeBoundsSet")
 	}
 
-    #[trivial]
+	#[trivial]
 	fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
 	where
 		A: SeqAccess<'de>,

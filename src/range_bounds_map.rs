@@ -1529,9 +1529,9 @@ where
 		return Ok(output);
 	}
 
-    /// Similar to [`RangeBoundsMap::overlapping()`] except the
-    /// `(Bound, Bound)`s returned in the iterator have been
-    /// trimmed/cut by the given `range_bounds`.
+	/// Similar to [`RangeBoundsMap::overlapping()`] except the
+	/// `(Bound, Bound)`s returned in the iterator have been
+	/// trimmed/cut by the given `range_bounds`.
 	///
 	/// This is sort of the analogue to the AND function between a
 	/// `RangeBounds` AND a [`RangeBoundsMap`].
@@ -1737,7 +1737,7 @@ where
 	K: RangeBounds<I> + Serialize,
 	V: Serialize,
 {
-    #[trivial]
+	#[trivial]
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: Serializer,
@@ -1756,7 +1756,7 @@ where
 	I: Ord + Clone,
 	V: Deserialize<'de>,
 {
-    #[trivial]
+	#[trivial]
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -1783,12 +1783,12 @@ where
 {
 	type Value = RangeBoundsMap<I, K, V>;
 
-    #[trivial]
+	#[trivial]
 	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		formatter.write_str("a RangeBoundsMap")
 	}
 
-    #[trivial]
+	#[trivial]
 	fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
 	where
 		A: MapAccess<'de>,
