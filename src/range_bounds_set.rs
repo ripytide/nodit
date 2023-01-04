@@ -492,7 +492,7 @@ where
 	pub fn gaps_same<'a, Q>(
 		&'a self,
 		outer_range_bounds: &'a Q,
-	) -> impl Iterator<Item = Result<K, TryFromBoundsError>> + '_
+	) -> impl Iterator<Item = Result<K, TryFromBoundsError>> + 'a
 	where
 		Q: RangeBounds<I>,
 		K: TryFromBounds<I>,
@@ -837,6 +837,81 @@ where
 			.split_off(start_bound)
 			.map(|map| map.into_iter().map(first).collect())
 	}
+
+	/// Similar to [`RangeBoundsSet::overlapping()`] except the
+	/// `(Bound, Bound)`s returned in the iterator have been
+	/// trimmed/cut by the given `range_bounds`.
+	///
+	/// This is sort of the analogue to the AND function between a
+	/// `RangeBounds` AND a [`RangeBoundsSet`].
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Bound;
+	///
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	///
+	/// let mut overlapping_trimmed =
+	/// 	range_bounds_set.overlapping_trimmed(&(2..20));
+	///
+	/// assert_eq!(
+	/// 	overlapping_trimmed.collect::<Vec<_>>(),
+	/// 	[
+	/// 		(Bound::Included(&2), Bound::Excluded(&4)),
+	/// 		(Bound::Included(&4), Bound::Excluded(&8)),
+	/// 		(Bound::Included(&8), Bound::Excluded(&20)),
+	/// 	]
+	/// );
+	/// ```
+	#[trivial]
+	pub fn overlapping_trimmed<'a, Q>(
+		&'a self,
+		range_bounds: &'a Q,
+	) -> impl DoubleEndedIterator<Item = (Bound<&I>, Bound<&I>)>
+	where
+		Q: RangeBounds<I>,
+	{
+		self.map.overlapping_trimmed(range_bounds).map(first)
+	}
+
+	/// Identical to [`RangeBoundsSet::overlapping_trimmed()`] except
+	/// it returns an iterator of `Result<RangeBounds,
+	/// TryFromBoundsError>`.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
+	///
+	/// let range_bounds_set =
+	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	///
+	/// let mut overlapping_trimmed_same =
+	/// 	range_bounds_set.overlapping_trimmed_same(&(2..=20));
+	///
+	/// assert_eq!(
+	/// 	overlapping_trimmed_same.collect::<Vec<_>>(),
+	/// 	[
+	/// 		Ok(2..4),
+	/// 		Ok(4..8),
+	/// 		// Due to using a RangeInclusive in `overlapping_trimmed_same()`
+	/// 		Err(TryFromBoundsError),
+	/// 	]
+	/// );
+	/// ```
+	#[trivial]
+	pub fn overlapping_trimmed_same<'a, Q>(
+		&'a self,
+		range_bounds: &'a Q,
+	) -> impl DoubleEndedIterator<Item = Result<K, TryFromBoundsError>> + 'a
+	where
+		Q: RangeBounds<I>,
+		K: TryFromBounds<I>,
+	{
+		self.map.overlapping_trimmed_same(range_bounds).map(first)
+	}
 }
 
 impl<const N: usize, I, K> TryFrom<[K; N]> for RangeBoundsSet<I, K>
@@ -938,6 +1013,7 @@ where
 	I: Ord + Clone,
 	K: RangeBounds<I> + Serialize,
 {
+	#[trivial]
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: Serializer,
@@ -955,6 +1031,7 @@ where
 	K: Deserialize<'de> + RangeBounds<I>,
 	I: Ord + Clone,
 {
+	#[trivial]
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -978,10 +1055,12 @@ where
 {
 	type Value = RangeBoundsSet<I, K>;
 
+	#[trivial]
 	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		formatter.write_str("a RangeBoundsSet")
 	}
 
+	#[trivial]
 	fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
 	where
 		A: SeqAccess<'de>,
