@@ -972,7 +972,7 @@ where
 	pub fn gaps_same<'a, Q>(
 		&'a self,
 		outer_range_bounds: &'a Q,
-	) -> impl Iterator<Item = Result<K, TryFromBoundsError>> + '_
+	) -> impl Iterator<Item = Result<K, TryFromBoundsError>> + 'a
 	where
 		Q: RangeBounds<I>,
 		K: TryFromBounds<I>,
@@ -1528,6 +1528,112 @@ where
 
 		return Ok(output);
 	}
+
+    /// Similar to [`RangeBoundsMap::overlapping()`] except the
+    /// `(Bound, Bound)`s returned in the iterator have been
+    /// trimmed/cut by the given `range_bounds`.
+	///
+	/// This is sort of the analogue to the AND function between a
+	/// `RangeBounds` AND a [`RangeBoundsMap`].
+	///
+	/// # Examples
+	/// ```
+	/// use std::ops::Bound;
+	///
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let mut overlapping_trimmed =
+	/// 	range_bounds_map.overlapping_trimmed(&(2..20));
+	///
+	/// assert_eq!(
+	/// 	overlapping_trimmed.collect::<Vec<_>>(),
+	/// 	[
+	/// 		((Bound::Included(&2), Bound::Excluded(&4)), &false),
+	/// 		((Bound::Included(&4), Bound::Excluded(&8)), &true),
+	/// 		((Bound::Included(&8), Bound::Excluded(&20)), &false)
+	/// 	]
+	/// );
+	/// ```
+	#[tested]
+	pub fn overlapping_trimmed<'a, Q>(
+		&'a self,
+		range_bounds: &'a Q,
+	) -> impl DoubleEndedIterator<Item = ((Bound<&I>, Bound<&I>), &V)>
+	where
+		Q: RangeBounds<I>,
+	{
+		let mut overlapping = self.overlapping(range_bounds);
+		let first = overlapping.next();
+		let mut overlapping = overlapping.rev();
+		let last = overlapping.next();
+		let overlapping = overlapping.rev();
+
+		let trimmed_first =
+			first.and_then(|x| cut_range_bounds(x.0, range_bounds).inside_cut);
+		let trimmed_last =
+			last.and_then(|x| cut_range_bounds(x.0, range_bounds).inside_cut);
+
+		let trimmed_first_entry = trimmed_first.map(|x| (x, first.unwrap().1));
+		let trimmed_last_entry = trimmed_last.map(|x| (x, last.unwrap().1));
+
+		return trimmed_first_entry
+			.into_iter()
+			.chain(overlapping.map(|(key, value)| (expand(key), value)))
+			.chain(trimmed_last_entry.into_iter());
+	}
+
+	/// Identical to [`RangeBoundsMap::overlapping_trimmed()`] except
+	/// it returns an iterator of `(Result<RangeBounds,
+	/// TryFromBoundsError>, Value)`.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	///
+	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let mut overlapping_trimmed_same =
+	/// 	range_bounds_map.overlapping_trimmed_same(&(2..=20));
+	///
+	/// assert_eq!(
+	/// 	overlapping_trimmed_same.collect::<Vec<_>>(),
+	/// 	[
+	/// 		(Ok(2..4), &false),
+	/// 		(Ok(4..8), &true),
+	/// 		// Due to using a RangeInclusive in `overlapping_trimmed_same()`
+	/// 		(Err(TryFromBoundsError), &false)
+	/// 	]
+	/// );
+	/// ```
+	#[trivial]
+	pub fn overlapping_trimmed_same<'a, Q>(
+		&'a self,
+		range_bounds: &'a Q,
+	) -> impl DoubleEndedIterator<Item = (Result<K, TryFromBoundsError>, &V)>
+	where
+		Q: RangeBounds<I>,
+		K: TryFromBounds<I>,
+	{
+		self.overlapping_trimmed(range_bounds).map(|(key, value)| {
+			(
+				K::try_from_bounds(key.0.cloned(), key.1.cloned())
+					.ok_or(TryFromBoundsError),
+				value,
+			)
+		})
+	}
 }
 
 impl<const N: usize, I, K, V> TryFrom<[(K, V); N]> for RangeBoundsMap<I, K, V>
@@ -1631,6 +1737,7 @@ where
 	K: RangeBounds<I> + Serialize,
 	V: Serialize,
 {
+    #[trivial]
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: Serializer,
@@ -1649,6 +1756,7 @@ where
 	I: Ord + Clone,
 	V: Deserialize<'de>,
 {
+    #[trivial]
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -1675,10 +1783,12 @@ where
 {
 	type Value = RangeBoundsMap<I, K, V>;
 
+    #[trivial]
 	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		formatter.write_str("a RangeBoundsMap")
 	}
 
+    #[trivial]
 	fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
 	where
 		A: MapAccess<'de>,
@@ -2085,15 +2195,15 @@ mod tests {
 		//case one
 		for overlap_range in all_valid_test_bounds() {
 			for inside_range in all_valid_test_bounds() {
-				let mut range_bounds_set = RangeBoundsMap::new();
-				range_bounds_set.insert_platonic(inside_range, ()).unwrap();
+				let mut range_bounds_map = RangeBoundsMap::new();
+				range_bounds_map.insert_platonic(inside_range, ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
 				if overlaps(&overlap_range, &inside_range) {
 					expected_overlapping.push(inside_range);
 				}
 
-				let overlapping = range_bounds_set
+				let overlapping = range_bounds_map
 					.overlapping(&overlap_range)
 					.map(|(key, _)| key)
 					.copied()
@@ -2114,9 +2224,9 @@ mod tests {
 			for (inside_range1, inside_range2) in
 				all_non_overlapping_test_bound_pairs()
 			{
-				let mut range_bounds_set = RangeBoundsMap::new();
-				range_bounds_set.insert_platonic(inside_range1, ()).unwrap();
-				range_bounds_set.insert_platonic(inside_range2, ()).unwrap();
+				let mut range_bounds_map = RangeBoundsMap::new();
+				range_bounds_map.insert_platonic(inside_range1, ()).unwrap();
+				range_bounds_map.insert_platonic(inside_range2, ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
 				if overlaps(&overlap_range, &inside_range1) {
@@ -2134,7 +2244,7 @@ mod tests {
 					}
 				}
 
-				let overlapping = range_bounds_set
+				let overlapping = range_bounds_map
 					.overlapping(&overlap_range)
 					.map(|(key, _)| key)
 					.copied()
@@ -2145,6 +2255,65 @@ mod tests {
 					dbg!(overlapping, expected_overlapping);
 					panic!(
 						"Discrepency in .overlapping() with two inside ranges detected!"
+					);
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn overlapping_trimmed_tests() {
+		//case zero
+		for overlap_range in all_valid_test_bounds() {
+			//you can't overlap nothing
+			assert!(
+				RangeBoundsMap::<u8, Range<u8>, ()>::new()
+					.overlapping_trimmed(&overlap_range)
+					.next()
+					.is_none()
+			);
+		}
+
+		//case one
+		for overlap_range in all_valid_test_bounds() {
+			for inside_range in all_valid_test_bounds() {
+				let mut range_bounds_map = RangeBoundsMap::new();
+				range_bounds_map.insert_platonic(inside_range, ()).unwrap();
+
+				let result = range_bounds_map
+					.overlapping_trimmed(&overlap_range)
+					.map(|(key, value)| (cloned_bounds(key), value.clone()))
+					.collect::<RangeBoundsMap<u8, TestBounds, ()>>();
+
+				for i in NUMBERS_DOMAIN {
+					assert_eq!(
+						overlap_range.contains(i) && inside_range.contains(i),
+						result.contains_point(i)
+					);
+				}
+			}
+		}
+
+		//case two
+		for overlap_range in all_valid_test_bounds() {
+			for (inside_range1, inside_range2) in
+				all_non_overlapping_test_bound_pairs()
+			{
+				let mut range_bounds_map = RangeBoundsMap::new();
+				range_bounds_map.insert_platonic(inside_range1, ()).unwrap();
+				range_bounds_map.insert_platonic(inside_range2, ()).unwrap();
+
+				let result = range_bounds_map
+					.overlapping_trimmed(&overlap_range)
+					.map(|(key, value)| (cloned_bounds(key), value.clone()))
+					.collect::<RangeBoundsMap<u8, TestBounds, ()>>();
+
+				for i in NUMBERS_DOMAIN {
+					assert_eq!(
+						overlap_range.contains(i)
+							&& (inside_range1.contains(i)
+								|| inside_range2.contains(i)),
+						result.contains_point(i)
 					);
 				}
 			}

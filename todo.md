@@ -8,6 +8,8 @@
   some reason(?)
 - take a look around idiomatic rust for a bit
 - review method parameter names for all public functions
+- make try_from_bounds trait return TryFromBoundsError rather than
+  mapping the option all the time
 
 # optimisations
 
@@ -18,6 +20,8 @@
 
 - replace `RangeBounds` with `K` where applicatble in docs
 - replace rust types URL links with direct rust links
+- add a # Panics section to every method that can panic, probably most
+  given invalid RangeBounds
 
 # features
 
@@ -33,7 +37,7 @@
 
 - should we implement FromIterator? If so which insert should we use?
   (At the moment we do implement it using insert_platonic())
-- should append_* functions not change the base if they fail half way?
+- should append\_\* functions not change the base if they fail half way?
 
 #### PUBLISH
 

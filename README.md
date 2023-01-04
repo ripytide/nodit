@@ -145,6 +145,7 @@ topic area:
 - <https://docs.rs/rangemap>
   Very similar to this crate but can only use [`Range`]s and
   [`RangeInclusive`]s as keys in it's `map` and `set` structs (separately).
+- <https://docs.rs/btree-range-map>
 - <https://docs.rs/ranges>
   Cool library for fully-generic ranges (unlike std::ops ranges), along
   with a `Ranges` datastructure for storing them (Vec-based
