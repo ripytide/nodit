@@ -1952,7 +1952,18 @@ where
 		}
 	}
 
-	return result;
+	//only return valid range_bounds
+	return CutResult {
+		before_cut: result
+			.before_cut
+			.filter(|x| is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>(x)),
+		inside_cut: result
+			.inside_cut
+			.filter(|x| is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>(x)),
+		after_cut: result
+			.after_cut
+			.filter(|x| is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>(x)),
+	};
 }
 
 #[trivial]
@@ -2930,6 +2941,30 @@ mod tests {
 		match x {
 			Some(y) => y.contains(point),
 			None => false,
+		}
+	}
+	#[test]
+	fn cut_range_bounds_should_return_valid_ranges() {
+		let result = cut_range_bounds(&(3..8), &(5..8));
+		if let Some(x) = result.before_cut {
+			assert!(is_valid_range_bounds(&cloned_bounds(x)));
+		}
+		if let Some(x) = result.inside_cut {
+			assert!(is_valid_range_bounds(&cloned_bounds(x)));
+		}
+		if let Some(x) = result.after_cut {
+			assert!(is_valid_range_bounds(&cloned_bounds(x)));
+		}
+
+		let result = cut_range_bounds(&(3..8), &(3..5));
+		if let Some(x) = result.before_cut {
+			assert!(is_valid_range_bounds(&cloned_bounds(x)));
+		}
+		if let Some(x) = result.inside_cut {
+			assert!(is_valid_range_bounds(&cloned_bounds(x)));
+		}
+		if let Some(x) = result.after_cut {
+			assert!(is_valid_range_bounds(&cloned_bounds(x)));
 		}
 	}
 
