@@ -33,6 +33,8 @@
 
 - add remove_at_point(), clear(), etc..
 
+- add a multi-dimentional version of RandBounds{Map,Set} by compositing Normal 1D RangeBoundsSets together in a big Vec or something.
+
 # open questions
 
 - should we implement FromIterator? If so which insert should we use?
