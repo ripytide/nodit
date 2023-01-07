@@ -5,6 +5,7 @@ authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
 This crate provides `RangeBoundsMap` and `RangeBoundsSet`
+Data Structures for storing intervals. Based off BTreeMap.
 """
 documentation = "https://docs.rs/range_bounds_map"
 readme = "README.md"
