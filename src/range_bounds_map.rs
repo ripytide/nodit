@@ -1412,7 +1412,7 @@ where
 	}
 
 	/// Moves all elements from `other` into `self` by
-	/// [`RangeBoundsMap::insert_platonic()`] in acending order,
+	/// [`RangeBoundsMap::insert_platonic()`] in ascending order,
 	/// leaving `other` empty.
 	///
 	/// If any of the `RangeBounds` in `other` overlap `self` then
