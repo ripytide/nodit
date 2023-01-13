@@ -15,9 +15,7 @@ const REPEAT: usize = 120;
 fn build_identity_map(n: usize) -> RangeBoundsMap<usize, Range<usize>, usize> {
 	let mut map = RangeBoundsMap::new();
 	for i in 0..n {
-		if let Err(OverlapError) = map.insert_platonic(i..i + 1, i) {
-			panic!("Failed to insert")
-		}
+		map.insert_platonic(i..i + 1, i).expect("insert failed");
 	}
 	map
 }
@@ -48,9 +46,7 @@ fn bench_cut(b: &mut Bencher) {
 	let map = build_identity_map(REPEAT);
 	b.iter(|| {
 		let mut map = map.clone();
-		if let Err(e) = map.cut(&(0..REPEAT)) {
-			panic!("Failed to cut: {:?}", e)
-		}
+		for _ in map.cut(&(0..REPEAT)).expect("Failed to cut") {}
 	})
 }
 
@@ -65,9 +61,8 @@ fn bench_split_off(b: &mut Bencher) {
 	let map = build_identity_map(REPEAT);
 	b.iter(|| {
 		let mut map = map.clone();
-		if let Err(e) = map.split_off(Bound::Included(REPEAT / 2)) {
-			panic!("Failed to split: {:?}", e)
-		}
+		map.split_off(Bound::Included(REPEAT / 2))
+			.expect("Failed to split");
 	})
 }
 
