@@ -1744,11 +1744,10 @@ where
 	) -> Result<RangeBoundsMap<I, K, V>, OverlapError> {
 		let mut map = RangeBoundsMap::new();
 		for (range_bounds, value) in slice {
-			map.insert_strict(range_bounds, value).unwrap();
+			map.insert_strict(range_bounds, value)?;
 		}
 		return Ok(map);
 	}
-
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
 	/// `Value`) pairs from the slice into the map using
 	/// [`RangeBoundsMap::insert_merge_touching()`].
@@ -1777,17 +1776,16 @@ where
 	#[trivial]
 	pub fn from_slice_merge_touching<const N: usize>(
 		slice: [(K, V); N],
-	) -> Result<RangeBoundsMap<I, K, V>, OverlapError>
+	) -> Result<RangeBoundsMap<I, K, V>, OverlapOrTryFromBoundsError>
 	where
 		K: TryFromBounds<I>,
 	{
 		let mut map = RangeBoundsMap::new();
 		for (range_bounds, value) in slice {
-			map.insert_merge_touching(range_bounds, value).unwrap();
+			map.insert_merge_touching(range_bounds, value)?;
 		}
 		return Ok(map);
 	}
-
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
 	/// `Value`) pairs from the slice into the map using
 	/// [`RangeBoundsMap::insert_merge_overlapping()`].
@@ -1816,17 +1814,16 @@ where
 	#[trivial]
 	pub fn from_slice_merge_overlapping<const N: usize>(
 		slice: [(K, V); N],
-	) -> Result<RangeBoundsMap<I, K, V>, OverlapError>
+	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError>
 	where
 		K: TryFromBounds<I>,
 	{
 		let mut map = RangeBoundsMap::new();
 		for (range_bounds, value) in slice {
-			map.insert_merge_overlapping(range_bounds, value).unwrap();
+			map.insert_merge_overlapping(range_bounds, value)?;
 		}
 		return Ok(map);
 	}
-
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
 	/// `Value`) pairs from the slice into the map using
 	/// [`RangeBoundsMap::insert_merge_touching_or_overlapping()`].
@@ -1857,18 +1854,16 @@ where
 	#[trivial]
 	pub fn from_slice_merge_touching_or_overlapping<const N: usize>(
 		slice: [(K, V); N],
-	) -> Result<RangeBoundsMap<I, K, V>, OverlapError>
+	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError>
 	where
 		K: TryFromBounds<I>,
 	{
 		let mut map = RangeBoundsMap::new();
 		for (range_bounds, value) in slice {
-			map.insert_merge_touching_or_overlapping(range_bounds, value)
-				.unwrap();
+			map.insert_merge_touching_or_overlapping(range_bounds, value)?;
 		}
 		return Ok(map);
 	}
-
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
 	/// `Value`) pairs from the slice into the map using
 	/// [`RangeBoundsMap::insert_overwrite()`].
@@ -1897,14 +1892,14 @@ where
 	#[trivial]
 	pub fn from_slice_overwrite<const N: usize>(
 		slice: [(K, V); N],
-	) -> Result<RangeBoundsMap<I, K, V>, OverlapError>
+	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError>
 	where
 		V: Clone,
 		K: TryFromBounds<I>,
 	{
 		let mut map = RangeBoundsMap::new();
 		for (range_bounds, value) in slice {
-			map.insert_overwrite(range_bounds, value).unwrap();
+			map.insert_overwrite(range_bounds, value)?;
 		}
 		return Ok(map);
 	}

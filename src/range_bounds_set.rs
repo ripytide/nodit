@@ -995,9 +995,8 @@ where
 	/// from the slice into the set using
 	/// [`RangeBoundsSet::insert_strict()`].
 	///
-	/// If any of the given `RangeBounds` overlap any of the other
-	/// `RangeBounds` in the slice, then an [`OverlapError`] is
-	/// returned.
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsSet::insert_strict()`] for details.
 	///
 	/// # Panics
 	///
@@ -1019,7 +1018,157 @@ where
 	) -> Result<RangeBoundsSet<I, K>, OverlapError> {
 		let mut set = RangeBoundsSet::new();
 		for range_bounds in slice {
-			set.insert_strict(range_bounds).unwrap();
+			set.insert_strict(range_bounds)?;
+		}
+		return Ok(set);
+	}
+	/// Allocate a `RangeBoundsSet` and move the given `RangeBounds`
+	/// from the slice into the set using
+	/// [`RangeBoundsSet::insert_merge_touching()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsSet::insert_merge_touching()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
+	///
+	/// let set = RangeBoundsSet::from_slice_merge_touching([
+	/// 	1..4,
+	/// 	4..8,
+	/// 	8..100,
+	/// ])
+	/// .unwrap();
+	/// ```
+	#[trivial]
+	pub fn from_slice_merge_touching<const N: usize>(
+		slice: [K; N],
+	) -> Result<RangeBoundsSet<I, K>, OverlapOrTryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		let mut set = RangeBoundsSet::new();
+		for range_bounds in slice {
+			set.insert_merge_touching(range_bounds)?;
+		}
+		return Ok(set);
+	}
+	/// Allocate a `RangeBoundsSet` and move the given `RangeBounds`
+	/// from the slice into the set using
+	/// [`RangeBoundsSet::insert_merge_overlapping()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsSet::insert_merge_overlapping()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
+	///
+	/// let set = RangeBoundsSet::from_slice_merge_overlapping([
+	/// 	1..4,
+	/// 	4..8,
+	/// 	8..100,
+	/// ])
+	/// .unwrap();
+	/// ```
+	#[trivial]
+	pub fn from_slice_merge_overlapping<const N: usize>(
+		slice: [K; N],
+	) -> Result<RangeBoundsSet<I, K>, TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		let mut set = RangeBoundsSet::new();
+		for range_bounds in slice {
+			set.insert_merge_overlapping(range_bounds)?;
+		}
+		return Ok(set);
+	}
+	/// Allocate a `RangeBoundsSet` and move the given `RangeBounds`
+	/// from the slice into the set using
+	/// [`RangeBoundsSet::insert_merge_touching_or_overlapping()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsSet::insert_merge_touching_or_overlapping()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
+	///
+	/// let set =
+	/// 	RangeBoundsSet::from_slice_merge_touching_or_overlapping([
+	/// 		1..4,
+	/// 		4..8,
+	/// 		8..100,
+	/// 	])
+	/// 	.unwrap();
+	/// ```
+	#[trivial]
+	pub fn from_slice_merge_touching_or_overlapping<const N: usize>(
+		slice: [K; N],
+	) -> Result<RangeBoundsSet<I, K>, TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		let mut set = RangeBoundsSet::new();
+		for range_bounds in slice {
+			set.insert_merge_touching_or_overlapping(range_bounds)?;
+		}
+		return Ok(set);
+	}
+	/// Allocate a `RangeBoundsSet` and move the given `RangeBounds`
+	/// from the slice into the set using
+	/// [`RangeBoundsSet::insert_overwrite()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsSet::insert_overwrite()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
+	///
+	/// let set =
+	/// 	RangeBoundsSet::from_slice_overwrite([1..4, 4..8, 8..100])
+	/// 		.unwrap();
+	/// ```
+	#[trivial]
+	pub fn from_slice_overwrite<const N: usize>(
+		slice: [K; N],
+	) -> Result<RangeBoundsSet<I, K>, TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		let mut set = RangeBoundsSet::new();
+		for range_bounds in slice {
+			set.insert_overwrite(range_bounds)?;
 		}
 		return Ok(set);
 	}
