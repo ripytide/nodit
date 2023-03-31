@@ -21,45 +21,45 @@ fn bench_insert_platonic(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_insert_coalesce_touching(b: &mut Bencher) {
+fn bench_insert_merge_touching(b: &mut Bencher) {
 	b.iter(|| {
 		let mut map = RangeBoundsMap::new();
 		for i in 0..REPEAT / 2 {
 			let r1 = (10 * i)..(10 * i + 1);
 			let r2 = (10 * i + 1)..(10 * i + 2);
-			map.insert_coalesce_touching(r1, true)
+			map.insert_merge_touching(r1, true)
 				.expect("Failed to insert");
-			map.insert_coalesce_touching(r2, true)
+			map.insert_merge_touching(r2, true)
 				.expect("Failed to insert");
 		}
 	})
 }
 
 #[bench]
-fn bench_insert_coalesce_overlapping(b: &mut Bencher) {
+fn bench_insert_merge_overlapping(b: &mut Bencher) {
 	b.iter(|| {
 		let mut map = RangeBoundsMap::new();
 		for i in 0..REPEAT / 2 {
 			let r1 = (10 * i)..(10 * i + 1);
 			let r2 = (10 * i)..(10 * i + 2);
-			map.insert_coalesce_overlapping(r1, true)
+			map.insert_merge_overlapping(r1, true)
 				.expect("Failed to insert");
-			map.insert_coalesce_overlapping(r2, true)
+			map.insert_merge_overlapping(r2, true)
 				.expect("Failed to insert");
 		}
 	})
 }
 
 #[bench]
-fn bench_insert_coalesce_touching_or_overlapping(b: &mut Bencher) {
+fn bench_insert_merge_touching_or_overlapping(b: &mut Bencher) {
 	b.iter(|| {
 		let mut map = RangeBoundsMap::new();
 		for i in 0..REPEAT / 2 {
 			let r1 = (10 * i + 1)..(10 * i + 2);
 			let r2 = (10 * i)..(10 * i + 4);
-			map.insert_coalesce_touching_or_overlapping(r1, 1)
+			map.insert_merge_touching_or_overlapping(r1, 1)
 				.expect("Failed to insert");
-			map.insert_coalesce_touching_or_overlapping(r2, 2)
+			map.insert_merge_touching_or_overlapping(r2, 2)
 				.expect("Failed to insert");
 		}
 	})

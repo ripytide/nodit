@@ -169,16 +169,16 @@ pub struct OverlapError;
 /// assert!(range_bounds_map.cut(&(4..=6)).is_err());
 /// ```
 ///
-/// # Example with `insert_coalesce_*` functions.
+/// # Example with `insert_merge_*` functions.
 ///
 /// The second and final way you may recieve a [`TryFromBoundsError`]
 /// is via coalescing methods such as
-/// [`RangeBoundsMap::insert_coalesce_touching`].
+/// [`RangeBoundsMap::insert_merge_touching`].
 ///
 /// In the first example it was fairly easy to create an invalid
 /// `RangeBounds` by cutting with a different `RangeBounds` than the
 /// underlying `RangeBoundsMap`'s `RangeBounds` type. However, the
-/// `insert_coalesce_*` functions all take `range_bounds: K` as an
+/// `insert_merge_*` functions all take `range_bounds: K` as an
 /// argument so it is not possible to create an invalid `K` type
 /// directly. However upon "coalescing" of two `RangeBounds` (even if
 /// both of them are type `K`), you can create a `RangeBounds` that *cannot* be
@@ -186,9 +186,9 @@ pub struct OverlapError;
 ///
 /// In this example we use a `RangeBounds` type that can be either
 /// Inclusive-Inclusive OR Exclusive-Exclusive. We then try to use
-/// [`RangeBoundsMap::insert_coalesce_touching()`] to "coalesce" an
+/// [`RangeBoundsMap::insert_merge_touching()`] to "merge" an
 /// Inclusive-Inclusive and a Exclusive-Exclusive `MultiBounds`. This
-/// will however fail as the resulting "coalesced" `RangeBounds` would
+/// will however fail as the resulting "merged" `RangeBounds` would
 /// have to be Inclusive-Exclusive which `MultiBounds` does not support.
 ///
 /// ```
@@ -252,7 +252,7 @@ pub struct OverlapError;
 /// .unwrap();
 ///
 /// assert_eq!(
-/// 	range_bounds_map.insert_coalesce_touching(
+/// 	range_bounds_map.insert_merge_touching(
 /// 		MultiBounds::Exclusive(4, 6),
 /// 		false
 /// 	),
@@ -1017,9 +1017,9 @@ where
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
-	/// coalesces into other `RangeBounds` in the map which touch it.
+	/// merges into other `RangeBounds` in the map which touch it.
 	///
-	/// The `Value` of the coalesced `RangeBounds` is set to the given
+	/// The `Value` of the merged `RangeBounds` is set to the given
 	/// `Value`.
 	///
 	/// If successful then a reference to the newly inserted
@@ -1030,7 +1030,7 @@ where
 	/// [`OverlapError`] is returned and the map is not updated.
 	/// `RangeBounds` is returned.
 	///
-	/// If the coalesced `RangeBounds` cannot be created with the
+	/// If the merged `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
@@ -1045,19 +1045,19 @@ where
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_touching(4..6, true),
+	/// 	range_bounds_map.insert_merge_touching(4..6, true),
 	/// 	Ok(&(1..6))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_touching(4..8, false),
+	/// 	range_bounds_map.insert_merge_touching(4..8, false),
 	/// 	Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_touching(10..16, false),
+	/// 	range_bounds_map.insert_merge_touching(10..16, false),
 	/// 	Ok(&(10..16))
 	/// );
 	///
@@ -1067,7 +1067,7 @@ where
 	/// );
 	/// ```
 	#[tested]
-	pub fn insert_coalesce_touching(
+	pub fn insert_merge_touching(
 		&mut self,
 		range_bounds: K,
 		value: V,
@@ -1146,16 +1146,16 @@ where
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
-	/// coalesces into other `RangeBounds` in the map which overlap
+	/// merges into other `RangeBounds` in the map which overlap
 	/// it.
 	///
-	/// The `Value` of the coalesced `RangeBounds` is set to the given
+	/// The `Value` of the merged `RangeBounds` is set to the given
 	/// `Value`.
 	///
 	/// If successful then a reference to the newly inserted
 	/// `RangeBounds` is returned.
 	///
-	/// If the coalesced `RangeBounds` cannot be created with the
+	/// If the merged `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
@@ -1168,19 +1168,19 @@ where
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_overlapping(-4..1, true),
+	/// 	range_bounds_map.insert_merge_overlapping(-4..1, true),
 	/// 	Ok(&(-4..1))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_overlapping(2..8, true),
+	/// 	range_bounds_map.insert_merge_overlapping(2..8, true),
 	/// 	Ok(&(1..8))
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_coalesce_overlapping(10..16, false),
+	/// 	range_bounds_map.insert_merge_overlapping(10..16, false),
 	/// 	Ok(&(10..16))
 	/// );
 	///
@@ -1190,7 +1190,7 @@ where
 	/// );
 	/// ```
 	#[tested]
-	pub fn insert_coalesce_overlapping(
+	pub fn insert_merge_overlapping(
 		&mut self,
 		range_bounds: K,
 		value: V,
@@ -1244,16 +1244,16 @@ where
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
-	/// coalesces into other `RangeBounds` in the map which touch or
+	/// merges into other `RangeBounds` in the map which touch or
 	/// overlap it.
 	///
-	/// The `Value` of the coalesced `RangeBounds` is set to the given
+	/// The `Value` of the merged `RangeBounds` is set to the given
 	/// `Value`.
 	///
 	/// If successful then a reference to the newly inserted
 	/// `RangeBounds` is returned.
 	///
-	/// If the coalesced `RangeBounds` cannot be created with the
+	/// If the merged `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
@@ -1267,21 +1267,21 @@ where
 	/// // Touching
 	/// assert_eq!(
 	/// 	range_bounds_map
-	/// 		.insert_coalesce_touching_or_overlapping(-4..1, true),
+	/// 		.insert_merge_touching_or_overlapping(-4..1, true),
 	/// 	Ok(&(-4..4))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	range_bounds_map
-	/// 		.insert_coalesce_touching_or_overlapping(2..8, true),
+	/// 		.insert_merge_touching_or_overlapping(2..8, true),
 	/// 	Ok(&(-4..8))
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
 	/// 	range_bounds_map
-	/// 		.insert_coalesce_touching_or_overlapping(10..16, false),
+	/// 		.insert_merge_touching_or_overlapping(10..16, false),
 	/// 	Ok(&(10..16))
 	/// );
 	///
@@ -1291,7 +1291,7 @@ where
 	/// );
 	/// ```
 	#[tested]
-	pub fn insert_coalesce_touching_or_overlapping(
+	pub fn insert_merge_touching_or_overlapping(
 		&mut self,
 		range_bounds: K,
 		value: V,
@@ -2505,14 +2505,14 @@ mod tests {
 	}
 
 	#[test]
-	fn insert_coalesce_touching_tests() {
-		assert_insert_coalesce_touching(
+	fn insert_merge_touching_tests() {
+		assert_insert_merge_touching(
 			basic(),
 			(ii(0, 4), false),
 			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
-		assert_insert_coalesce_touching(
+		assert_insert_merge_touching(
 			basic(),
 			(ee(7, 10), false),
 			Ok(&ie(7, 10)),
@@ -2523,7 +2523,7 @@ mod tests {
 				(ie(14, 16), true),
 			]),
 		);
-		assert_insert_coalesce_touching(
+		assert_insert_merge_touching(
 			basic(),
 			(ee(7, 11), true),
 			Ok(&ie(7, 11)),
@@ -2534,7 +2534,7 @@ mod tests {
 				(ie(14, 16), true),
 			]),
 		);
-		assert_insert_coalesce_touching(
+		assert_insert_merge_touching(
 			basic(),
 			(ee(12, 13), true),
 			Ok(&ee(12, 13)),
@@ -2546,7 +2546,7 @@ mod tests {
 				(ie(14, 16), true),
 			]),
 		);
-		assert_insert_coalesce_touching(
+		assert_insert_merge_touching(
 			basic(),
 			(ee(13, 14), false),
 			Ok(&ee(13, 16)),
@@ -2557,14 +2557,14 @@ mod tests {
 				(ee(13, 16), false),
 			]),
 		);
-		assert_insert_coalesce_touching(
+		assert_insert_merge_touching(
 			basic(),
 			(ee(7, 14), false),
 			Ok(&ie(7, 16)),
 			Some([(ui(4), false), (ee(5, 7), true), (ie(7, 16), false)]),
 		);
 
-		assert_insert_coalesce_touching(
+		assert_insert_merge_touching(
 			special(),
 			(mee(6, 7), true),
 			Err(OverlapOrTryFromBoundsError::TryFromBounds(
@@ -2572,13 +2572,13 @@ mod tests {
 			)),
 			None::<[_; 0]>,
 		);
-		assert_insert_coalesce_touching(
+		assert_insert_merge_touching(
 			special(),
 			(mii(6, 7), true),
 			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
-		assert_insert_coalesce_touching(
+		assert_insert_merge_touching(
 			special(),
 			(mee(12, 15), true),
 			Err(OverlapOrTryFromBoundsError::TryFromBounds(
@@ -2586,14 +2586,14 @@ mod tests {
 			)),
 			None::<[_; 0]>,
 		);
-		assert_insert_coalesce_touching(
+		assert_insert_merge_touching(
 			special(),
 			(mii(12, 15), true),
 			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
 	}
-	fn assert_insert_coalesce_touching<const N: usize, I, K, V>(
+	fn assert_insert_merge_touching<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
 		to_insert: (K, V),
 		result: Result<&K, OverlapOrTryFromBoundsError>,
@@ -2606,7 +2606,7 @@ mod tests {
 	{
 		let clone = before.clone();
 		assert_eq!(
-			before.insert_coalesce_touching(to_insert.0, to_insert.1),
+			before.insert_merge_touching(to_insert.0, to_insert.1),
 			result
 		);
 		match after {
@@ -2618,8 +2618,8 @@ mod tests {
 	}
 
 	#[test]
-	fn insert_coalesce_overlapping_tests() {
-		assert_insert_coalesce_overlapping(
+	fn insert_merge_overlapping_tests() {
+		assert_insert_merge_overlapping(
 			basic(),
 			(ii(0, 2), true),
 			Ok(&(ui(4))),
@@ -2630,7 +2630,7 @@ mod tests {
 				(ie(14, 16), true),
 			]),
 		);
-		assert_insert_coalesce_overlapping(
+		assert_insert_merge_overlapping(
 			basic(),
 			(ie(14, 16), false),
 			Ok(&ie(14, 16)),
@@ -2641,13 +2641,13 @@ mod tests {
 				(ie(14, 16), false),
 			]),
 		);
-		assert_insert_coalesce_overlapping(
+		assert_insert_merge_overlapping(
 			basic(),
 			(ii(6, 11), false),
 			Ok(&ei(5, 11)),
 			Some([(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)]),
 		);
-		assert_insert_coalesce_overlapping(
+		assert_insert_merge_overlapping(
 			basic(),
 			(ii(15, 18), true),
 			Ok(&ii(14, 18)),
@@ -2658,45 +2658,45 @@ mod tests {
 				(ii(14, 18), true),
 			]),
 		);
-		assert_insert_coalesce_overlapping(
+		assert_insert_merge_overlapping(
 			basic(),
 			(uu(), false),
 			Ok(&uu()),
 			Some([(uu(), false)]),
 		);
 
-		assert_insert_coalesce_overlapping(
+		assert_insert_merge_overlapping(
 			special(),
 			(mii(10, 18), true),
 			Ok(&mii(8, 18)),
 			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 18), true)]),
 		);
-		assert_insert_coalesce_overlapping(
+		assert_insert_merge_overlapping(
 			special(),
 			(mee(10, 18), true),
 			Err(TryFromBoundsError),
 			None::<[_; 0]>,
 		);
-		assert_insert_coalesce_overlapping(
+		assert_insert_merge_overlapping(
 			special(),
 			(mee(8, 12), true),
 			Ok(&mii(8, 12)),
 			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 12), true)]),
 		);
-		assert_insert_coalesce_overlapping(
+		assert_insert_merge_overlapping(
 			special(),
 			(mee(7, 8), false),
 			Ok(&mee(7, 8)),
 			Some([(mii(4, 6), false), (mee(7, 8), false), (mii(8, 12), false)]),
 		);
-		assert_insert_coalesce_overlapping(
+		assert_insert_merge_overlapping(
 			special(),
 			(mii(7, 8), false),
 			Ok(&mii(7, 12)),
 			Some([(mii(4, 6), false), (mii(7, 12), false)]),
 		);
 	}
-	fn assert_insert_coalesce_overlapping<const N: usize, I, K, V>(
+	fn assert_insert_merge_overlapping<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
 		to_insert: (K, V),
 		result: Result<&K, TryFromBoundsError>,
@@ -2709,7 +2709,7 @@ mod tests {
 	{
 		let clone = before.clone();
 		assert_eq!(
-			before.insert_coalesce_overlapping(to_insert.0, to_insert.1),
+			before.insert_merge_overlapping(to_insert.0, to_insert.1),
 			result
 		);
 		match after {
@@ -2721,16 +2721,16 @@ mod tests {
 	}
 
 	#[test]
-	fn insert_coalesce_touching_or_overlapping_tests() {
-		assert_insert_coalesce_touching_or_overlapping(
+	fn insert_merge_touching_or_overlapping_tests() {
+		assert_insert_merge_touching_or_overlapping(
 			RangeBoundsMap::try_from([(1..4, false)]).unwrap(),
 			(-4..1, true),
 			Ok(&(-4..4)),
 			Some([(-4..4, true)]),
 		);
 
-		//copied from insert_coalesce_overlapping_tests
-		assert_insert_coalesce_touching_or_overlapping(
+		//copied from insert_merge_overlapping_tests
+		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ii(0, 2), true),
 			Ok(&(ui(4))),
@@ -2741,7 +2741,7 @@ mod tests {
 				(ie(14, 16), true),
 			]),
 		);
-		assert_insert_coalesce_touching_or_overlapping(
+		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ie(14, 16), false),
 			Ok(&ie(14, 16)),
@@ -2752,13 +2752,13 @@ mod tests {
 				(ie(14, 16), false),
 			]),
 		);
-		assert_insert_coalesce_touching_or_overlapping(
+		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ii(6, 11), false),
 			Ok(&ei(5, 11)),
 			Some([(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)]),
 		);
-		assert_insert_coalesce_touching_or_overlapping(
+		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ii(15, 18), true),
 			Ok(&ii(14, 18)),
@@ -2769,66 +2769,66 @@ mod tests {
 				(ii(14, 18), true),
 			]),
 		);
-		assert_insert_coalesce_touching_or_overlapping(
+		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(uu(), false),
 			Ok(&uu()),
 			Some([(uu(), false)]),
 		);
-		//the only difference from the insert_coalesce_overlapping
-		assert_insert_coalesce_touching_or_overlapping(
+		//the only difference from the insert_merge_overlapping
+		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ii(7, 14), false),
 			Ok(&ee(5, 16)),
 			Some([(ui(4), false), (ee(5, 16), false)]),
 		);
 
-		//copied from insert_coalesce_overlapping_tests
-		assert_insert_coalesce_touching_or_overlapping(
+		//copied from insert_merge_overlapping_tests
+		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mii(10, 18), true),
 			Ok(&mii(8, 18)),
 			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 18), true)]),
 		);
-		assert_insert_coalesce_touching_or_overlapping(
+		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mee(10, 18), true),
 			Err(TryFromBoundsError),
 			None::<[_; 0]>,
 		);
-		assert_insert_coalesce_touching_or_overlapping(
+		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mee(8, 12), true),
 			Ok(&mii(8, 12)),
 			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 12), true)]),
 		);
-		assert_insert_coalesce_touching_or_overlapping(
+		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mee(7, 8), false),
 			Err(TryFromBoundsError),
 			None::<[_; 0]>,
 		);
-		assert_insert_coalesce_touching_or_overlapping(
+		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mii(7, 8), false),
 			Ok(&mii(7, 12)),
 			Some([(mii(4, 6), false), (mii(7, 12), false)]),
 		);
-		//copied from insert_coalesce_touching_tests
-		assert_insert_coalesce_touching_or_overlapping(
+		//copied from insert_merge_touching_tests
+		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mee(6, 7), true),
 			Err(TryFromBoundsError),
 			None::<[_; 0]>,
 		);
-		assert_insert_coalesce_touching_or_overlapping(
+		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mee(12, 15), true),
 			Err(TryFromBoundsError),
 			None::<[_; 0]>,
 		);
 	}
-	fn assert_insert_coalesce_touching_or_overlapping<const N: usize, I, K, V>(
+	fn assert_insert_merge_touching_or_overlapping<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
 		to_insert: (K, V),
 		result: Result<&K, TryFromBoundsError>,
@@ -2841,10 +2841,8 @@ mod tests {
 	{
 		let clone = before.clone();
 		assert_eq!(
-			before.insert_coalesce_touching_or_overlapping(
-				to_insert.0,
-				to_insert.1
-			),
+			before
+				.insert_merge_touching_or_overlapping(to_insert.0, to_insert.1),
 			result
 		);
 		match after {

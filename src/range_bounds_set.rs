@@ -528,7 +528,7 @@ where
 		self.map.contains_range_bounds(range_bounds)
 	}
 
-	/// Adds a new `RangeBounds` to the set and coalesces into other
+	/// Adds a new `RangeBounds` to the set and merges into other
 	/// `RangeBounds` in the set which touch it.
 	///
 	/// If successful then a reference to the newly inserted
@@ -538,7 +538,7 @@ where
 	/// already in the set rather than just touching, then an
 	/// [`OverlapError`] is returned and the set is not updated.
 	///
-	/// If the coalesced `RangeBounds` cannot be created with the
+	/// If the merged `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
@@ -553,19 +553,19 @@ where
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	range_bounds_set.insert_coalesce_touching(4..6),
+	/// 	range_bounds_set.insert_merge_touching(4..6),
 	/// 	Ok(&(1..6))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_set.insert_coalesce_touching(4..8),
+	/// 	range_bounds_set.insert_merge_touching(4..8),
 	/// 	Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_set.insert_coalesce_touching(10..16),
+	/// 	range_bounds_set.insert_merge_touching(10..16),
 	/// 	Ok(&(10..16))
 	/// );
 	///
@@ -575,23 +575,23 @@ where
 	/// );
 	/// ```
 	#[trivial]
-	pub fn insert_coalesce_touching(
+	pub fn insert_merge_touching(
 		&mut self,
 		range_bounds: K,
 	) -> Result<&K, OverlapOrTryFromBoundsError>
 	where
 		K: TryFromBounds<I>,
 	{
-		self.map.insert_coalesce_touching(range_bounds, ())
+		self.map.insert_merge_touching(range_bounds, ())
 	}
 
-	/// Adds a new `RangeBounds` to the set and coalesces into other
+	/// Adds a new `RangeBounds` to the set and merges into other
 	/// `RangeBounds` in the set which overlap it.
 	///
 	/// If successful then a reference to the newly inserted
 	/// `RangeBounds` is returned.
 	///
-	/// If the coalesced `RangeBounds` cannot be created with the
+	/// If the merged `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
@@ -604,19 +604,19 @@ where
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	range_bounds_set.insert_coalesce_overlapping(-4..1),
+	/// 	range_bounds_set.insert_merge_overlapping(-4..1),
 	/// 	Ok(&(-4..1))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_set.insert_coalesce_overlapping(2..8),
+	/// 	range_bounds_set.insert_merge_overlapping(2..8),
 	/// 	Ok(&(1..8))
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_set.insert_coalesce_overlapping(10..16),
+	/// 	range_bounds_set.insert_merge_overlapping(10..16),
 	/// 	Ok(&(10..16))
 	/// );
 	///
@@ -626,23 +626,23 @@ where
 	/// );
 	/// ```
 	#[trivial]
-	pub fn insert_coalesce_overlapping(
+	pub fn insert_merge_overlapping(
 		&mut self,
 		range_bounds: K,
 	) -> Result<&K, TryFromBoundsError>
 	where
 		K: TryFromBounds<I>,
 	{
-		self.map.insert_coalesce_overlapping(range_bounds, ())
+		self.map.insert_merge_overlapping(range_bounds, ())
 	}
 
-	/// Adds a new `RangeBounds` to the set and coalesces into other
+	/// Adds a new `RangeBounds` to the set and merges into other
 	/// `RangeBounds` in the set which touch or overlap it.
 	///
 	/// If successful then a reference to the newly inserted
 	/// `RangeBounds` is returned.
 	///
-	/// If the coalesced `RangeBounds` cannot be created with the
+	/// If the merged `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
@@ -655,22 +655,19 @@ where
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	range_bounds_set
-	/// 		.insert_coalesce_touching_or_overlapping(-4..1),
+	/// 	range_bounds_set.insert_merge_touching_or_overlapping(-4..1),
 	/// 	Ok(&(-4..4))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_set
-	/// 		.insert_coalesce_touching_or_overlapping(2..8),
+	/// 	range_bounds_set.insert_merge_touching_or_overlapping(2..8),
 	/// 	Ok(&(-4..8))
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_set
-	/// 		.insert_coalesce_touching_or_overlapping(10..16),
+	/// 	range_bounds_set.insert_merge_touching_or_overlapping(10..16),
 	/// 	Ok(&(10..16))
 	/// );
 	///
@@ -680,7 +677,7 @@ where
 	/// );
 	/// ```
 	#[trivial]
-	pub fn insert_coalesce_touching_or_overlapping(
+	pub fn insert_merge_touching_or_overlapping(
 		&mut self,
 		range_bounds: K,
 	) -> Result<&K, TryFromBoundsError>
@@ -688,7 +685,7 @@ where
 		K: TryFromBounds<I>,
 	{
 		self.map
-			.insert_coalesce_touching_or_overlapping(range_bounds, ())
+			.insert_merge_touching_or_overlapping(range_bounds, ())
 	}
 
 	/// Adds a new `RangeBounds` to the set and overwrites any other

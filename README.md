@@ -105,9 +105,9 @@ there exists no value between them. For example, `2..4` and
 `4..6` are touching but `2..4` and `6..8` are not, neither are
 `2..6` and `4..8`.
 
-### Coalesce
+### Merging
 
-When a `RangeBounds` "coalesces" other `RangeBounds` it absorbs them
+When a `RangeBounds` "merges" other `RangeBounds` it absorbs them
 to become larger.
 
 # Improvements/Caveats
