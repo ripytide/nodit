@@ -171,15 +171,22 @@ where
 	/// ```
 	#[trivial]
 	pub fn is_empty(&self) -> bool {
-		self.len() == 0
+		self.map.is_empty()
 	}
 
 	/// Adds a new `RangeBounds` to the set without modifying other
 	/// `RangeBounds` in the set.
 	///
-	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
+	/// If the given `RangeBounds` overlaps one or more `RangeBounds`
 	/// already in the set rather than just touching, then an
 	/// [`OverlapError`] is returned and the set is not updated.
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -205,6 +212,13 @@ where
 	/// Returns `true` if the given `RangeBounds` overlaps any of the
 	/// `RangeBounds` in the set, and `false` if not.
 	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::RangeBoundsSet;
@@ -228,7 +242,14 @@ where
 	}
 
 	/// Returns an iterator over every `RangeBounds` in the set which
-	/// overlap the given `range_bounds` in ascending order.
+	/// overlap the given `RangeBounds` in ascending order.
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -316,7 +337,14 @@ where
 	}
 
 	/// Removes every `RangeBounds` in the set which overlaps the
-	/// given `range_bounds` and returns them in an iterator.
+	/// given `RangeBounds` and returns them in an iterator.
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -354,6 +382,13 @@ where
 	/// If the remaining `RangeBounds` left in the map after the cut
 	/// are not able be created with the [`TryFromBounds`] trait then
 	/// a [`TryFromBoundsError`] will be returned.
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -395,6 +430,13 @@ where
 
 	/// Identical to [`RangeBoundsSet::cut()`] except it returns an
 	/// iterator of `Result<RangeBounds, TryFromBoundsError>`
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -438,6 +480,13 @@ where
 	/// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
 	/// Bound::Unbounded)`.
 	///
+	/// # Panics
+	///
+	/// Panics if the given `outer_range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
 	/// # Examples
 	/// ```
 	/// use std::ops::Bound;
@@ -472,6 +521,13 @@ where
 	/// Identical to [`RangeBoundsSet::gaps()`] except it returns an
 	/// iterator of `Result<RangeBounds, TryFromBoundsError>`.
 	///
+	/// # Panics
+	///
+	/// Panics if the given `outer_range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
 	/// # Examples
 	/// ```
 	/// use std::ops::Bound;
@@ -502,6 +558,13 @@ where
 
 	/// Returns `true` if the set covers every point in the given
 	/// `RangeBounds`, and `false` if it doesn't.
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -534,13 +597,20 @@ where
 	/// If successful then a reference to the newly inserted
 	/// `RangeBounds` is returned.
 	///
-	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
+	/// If the given `RangeBounds` overlaps one or more `RangeBounds`
 	/// already in the set rather than just touching, then an
 	/// [`OverlapError`] is returned and the set is not updated.
 	///
 	/// If the merged `RangeBounds` cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -595,6 +665,13 @@ where
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::RangeBoundsSet;
@@ -646,6 +723,13 @@ where
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::RangeBoundsSet;
@@ -689,7 +773,7 @@ where
 	}
 
 	/// Adds a new `RangeBounds` to the set and overwrites any other
-	/// `RangeBounds` that overlap the new `RangeBounds`.
+	/// `RangeBounds` that overlap the given `RangeBounds`.
 	///
 	/// This is equivalent to using [`RangeBoundsSet::cut()`]
 	/// followed by [`RangeBoundsSet::insert_strict()`].
@@ -697,6 +781,13 @@ where
 	/// If the remaining `RangeBounds` left after the cut are not able
 	/// to be created with the [`TryFromBounds`] trait then a
 	/// [`TryFromBoundsError`] will be returned.
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -837,10 +928,17 @@ where
 
 	/// Similar to [`RangeBoundsSet::overlapping()`] except the
 	/// `(Bound, Bound)`s returned in the iterator have been
-	/// trimmed/cut by the given `range_bounds`.
+	/// trimmed/cut by the given `RangeBounds`.
 	///
 	/// This is sort of the analogue to the AND function between a
 	/// `RangeBounds` AND a [`RangeBoundsSet`].
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -877,6 +975,13 @@ where
 	/// Identical to [`RangeBoundsSet::overlapping_trimmed()`] except
 	/// it returns an iterator of `Result<RangeBounds,
 	/// TryFromBoundsError>`.
+	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```

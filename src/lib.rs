@@ -101,6 +101,32 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ## Key Definitions:
 //!
+//! ### Invalid RangeBounds
+//!
+//! Within this crate, not all `RangeBounds` are considered valid
+//! `RangeBounds`. The definition of the validity of a `RangeBounds` used
+//! within this crate is that a `RangeBounds` is only valid if it contains
+//! at least one value of the underlying domain.
+//!
+//! For example, `4..6` is considered valid as it contains the values `4`
+//! and `5`, however, `4..4` is considered invalid as it contains no
+//! values. Another example of invalid `RangeBounds` are those with
+//! `start_bound()`s with greater values than their `end_bound()`s, such
+//! as `5..2` or `100..=40`.
+//!
+//! Here are a few examples of `RangeBounds` and whether they are valid:
+//!
+//! | `RangeBounds`  | Valid |
+//! | -------------- | ----- |
+//! | 0..0           | NO    |
+//! | 0..1           | YES   |
+//! | 9..8           | NO    |
+//! | (0.4)..=(-0.2) | NO    |
+//! | ..(-3)         | YES   |
+//! | 0.0003..       | YES   |
+//! | ..             | YES   |
+//! | 400..=400      | YES   |
+//!
 //! ### Overlap
 //!
 //! Two `RangeBounds` are "overlapping" if there exists a point that is
@@ -117,6 +143,11 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! When a `RangeBounds` "merges" other `RangeBounds` it absorbs them
 //! to become larger.
+//!
+//! ### Further Reading
+//!
+//! See Wikipedia's article on Intervals:
+//! <https://en.wikipedia.org/wiki/Interval_(mathematics)>
 //!
 //! # Improvements/Caveats
 //!
@@ -153,6 +184,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! - <https://docs.rs/rangemap>
 //!   Very similar to this crate but can only use [`Range`]s and
 //!   [`RangeInclusive`]s as keys in it's `map` and `set` structs (separately).
+//! - <https://docs.rs/btree-range-map>
 //! - <https://docs.rs/ranges>
 //!   Cool library for fully-generic ranges (unlike std::ops ranges), along
 //!   with a `Ranges` datastructure for storing them (Vec-based
