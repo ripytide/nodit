@@ -171,7 +171,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn is_empty(&self) -> bool {
-		self.len() == 0
+		self.map.is_empty()
 	}
 
 	/// Adds a new `RangeBounds` to the set without modifying other

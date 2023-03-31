@@ -327,7 +327,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn is_empty(&self) -> bool {
-		self.len() == 0
+		self.starts.is_empty()
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map without
@@ -337,10 +337,12 @@ where
 	/// already in the map rather than just touching, then an
 	/// [`OverlapError`] is returned and the map is not updated.
 	///
-	/// # Panics
+    /// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
-	/// `RangeBounds`. See [`Invalid RangeBounds`] for more details.
+    /// Panics if the given `range_bounds` is an invalid
+    /// `RangeBounds`. See [`Invalid
+    /// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+    /// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -354,8 +356,6 @@ where
 	/// 	Err(OverlapError)
 	/// );
 	/// assert_eq!(range_bounds_map.len(), 1);
-	///
-	/// [`Invalid RangeBounds`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds
 	/// ```
 	#[tested]
 	pub fn insert_strict(
