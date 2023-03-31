@@ -114,7 +114,7 @@ Here are a few examples of `RangeBounds` and whether they are valid:
 | 0..1           | YES   |
 | 9..8           | NO    |
 | (0.4)..=(-0.2) | NO    |
-| ..-3           | YES   |
+| ..(-3)         | YES   |
 | 0.0003..       | YES   |
 | ..             | YES   |
 | 400..=400      | YES   |
