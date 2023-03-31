@@ -38,7 +38,7 @@
 # open questions
 
 - should we implement FromIterator? If so which insert should we use?
-  (At the moment we do implement it using insert_platonic())
+  (At the moment we do implement it using insert_strict())
 - should append\_\* functions not change the base if they fail half way?
 
 #### PUBLISH

@@ -10,12 +10,12 @@ use range_bounds_map::*;
 const REPEAT: usize = 120;
 
 #[bench]
-fn bench_insert_platonic(b: &mut Bencher) {
+fn bench_insert_strict(b: &mut Bencher) {
 	b.iter(|| {
 		let mut map = RangeBoundsMap::new();
 		for i in 0..REPEAT {
 			let r = i..=i;
-			map.insert_platonic(r, i).expect("insert failed");
+			map.insert_strict(r, i).expect("insert failed");
 		}
 	});
 }

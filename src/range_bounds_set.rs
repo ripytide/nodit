@@ -95,8 +95,8 @@ use crate::{
 /// // Now we can make a [`RangeBoundsSet`] of [`ExEx`]s
 /// let mut set = RangeBoundsSet::new();
 ///
-/// set.insert_platonic(ExEx::new(0.0, 5.0)).unwrap();
-/// set.insert_platonic(ExEx::new(5.0, 7.5)).unwrap();
+/// set.insert_strict(ExEx::new(0.0, 5.0)).unwrap();
+/// set.insert_strict(ExEx::new(5.0, 7.5)).unwrap();
 ///
 /// assert_eq!(set.contains_point(&NotNan::new(5.0).unwrap()), false);
 ///
@@ -148,7 +148,7 @@ where
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///
 	/// assert_eq!(range_bounds_set.len(), 0);
-	/// range_bounds_set.insert_platonic(0..1).unwrap();
+	/// range_bounds_set.insert_strict(0..1).unwrap();
 	/// assert_eq!(range_bounds_set.len(), 1);
 	/// ```
 	#[trivial]
@@ -166,7 +166,7 @@ where
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///
 	/// assert_eq!(range_bounds_set.is_empty(), true);
-	/// range_bounds_set.insert_platonic(0..1).unwrap();
+	/// range_bounds_set.insert_strict(0..1).unwrap();
 	/// assert_eq!(range_bounds_set.is_empty(), false);
 	/// ```
 	#[trivial]
@@ -187,19 +187,19 @@ where
 	///
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///
-	/// assert_eq!(range_bounds_set.insert_platonic(5..10), Ok(()));
+	/// assert_eq!(range_bounds_set.insert_strict(5..10), Ok(()));
 	/// assert_eq!(
-	/// 	range_bounds_set.insert_platonic(5..10),
+	/// 	range_bounds_set.insert_strict(5..10),
 	/// 	Err(OverlapError)
 	/// );
 	/// assert_eq!(range_bounds_set.len(), 1);
 	/// ```
 	#[trivial]
-	pub fn insert_platonic(
+	pub fn insert_strict(
 		&mut self,
 		range_bounds: K,
 	) -> Result<(), OverlapError> {
-		self.map.insert_platonic(range_bounds, ())
+		self.map.insert_strict(range_bounds, ())
 	}
 
 	/// Returns `true` if the given `RangeBounds` overlaps any of the
@@ -211,7 +211,7 @@ where
 	///
 	/// let mut range_bounds_set = RangeBoundsSet::new();
 	///
-	/// range_bounds_set.insert_platonic(5..10);
+	/// range_bounds_set.insert_strict(5..10);
 	///
 	/// assert_eq!(range_bounds_set.overlaps(&(1..=3)), false);
 	/// assert_eq!(range_bounds_set.overlaps(&(4..5)), false);
@@ -692,7 +692,7 @@ where
 	/// `RangeBounds` that overlap the new `RangeBounds`.
 	///
 	/// This is equivalent to using [`RangeBoundsSet::cut()`]
-	/// followed by [`RangeBoundsSet::insert_platonic()`].
+	/// followed by [`RangeBoundsSet::insert_strict()`].
 	///
 	/// If the remaining `RangeBounds` left after the cut are not able
 	/// to be created with the [`TryFromBounds`] trait then a
@@ -756,7 +756,7 @@ where
 	}
 
 	/// Moves all elements from `other` into `self` by
-	/// [`RangeBoundsSet::insert_platonic()`] in acending order,
+	/// [`RangeBoundsSet::insert_strict()`] in acending order,
 	/// leaving `other` empty.
 	///
 	/// If any of the `RangeBounds` in `other` overlap `self` then
@@ -776,16 +776,16 @@ where
 	/// 	RangeBoundsSet::try_from([1..4, 4..8, 10..38, 40..42])
 	/// 		.unwrap();
 	///
-	/// assert_eq!(base.append_platonic(&mut add), Ok(()));
+	/// assert_eq!(base.append_strict(&mut add), Ok(()));
 	/// assert_eq!(base, expected);
 	/// assert!(add.is_empty());
 	/// ```
 	#[trivial]
-	pub fn append_platonic(
+	pub fn append_strict(
 		&mut self,
 		other: &mut RangeBoundsSet<I, K>,
 	) -> Result<(), OverlapError> {
-		self.map.append_platonic(
+		self.map.append_strict(
 			&mut other
 				.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
 				.map(|key| (key, ()))
@@ -921,7 +921,7 @@ where
 	fn try_from(pairs: [K; N]) -> Result<Self, Self::Error> {
 		let mut range_bounds_set = RangeBoundsSet::new();
 		for range_bounds in pairs {
-			range_bounds_set.insert_platonic(range_bounds)?;
+			range_bounds_set.insert_strict(range_bounds)?;
 		}
 
 		return Ok(range_bounds_set);
@@ -937,7 +937,7 @@ where
 	fn try_from(pairs: Vec<K>) -> Result<Self, Self::Error> {
 		let mut range_bounds_set = RangeBoundsSet::new();
 		for range_bounds in pairs {
-			range_bounds_set.insert_platonic(range_bounds)?;
+			range_bounds_set.insert_strict(range_bounds)?;
 		}
 
 		return Ok(range_bounds_set);
@@ -954,7 +954,7 @@ where
 		let mut output = RangeBoundsSet::new();
 
 		for range_bounds in iter {
-			output.insert_platonic(range_bounds).unwrap();
+			output.insert_strict(range_bounds).unwrap();
 		}
 
 		return output;
@@ -1065,7 +1065,7 @@ where
 		let mut range_bounds_set = RangeBoundsSet::new();
 		while let Some(range_bounds) = access.next_element()? {
 			range_bounds_set
-				.insert_platonic(range_bounds)
+				.insert_strict(range_bounds)
 				.map_err(|_| serde::de::Error::custom("RangeBounds overlap"))?;
 		}
 		Ok(range_bounds_set)

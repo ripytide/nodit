@@ -107,8 +107,8 @@ use crate::TryFromBounds;
 /// // Now we can make a [`RangeBoundsMap`] of [`ExEx`]s to `u8`
 /// let mut map = RangeBoundsMap::new();
 ///
-/// map.insert_platonic(ExEx::new(0.0, 5.0), 8).unwrap();
-/// map.insert_platonic(ExEx::new(5.0, 7.5), 32).unwrap();
+/// map.insert_strict(ExEx::new(0.0, 5.0), 8).unwrap();
+/// map.insert_strict(ExEx::new(5.0, 7.5), 32).unwrap();
 ///
 /// assert_eq!(map.contains_point(&NotNan::new(5.0).unwrap()), false);
 ///
@@ -304,7 +304,7 @@ where
 	/// let mut range_bounds_map = RangeBoundsMap::new();
 	///
 	/// assert_eq!(range_bounds_map.len(), 0);
-	/// range_bounds_map.insert_platonic(0..1, false).unwrap();
+	/// range_bounds_map.insert_strict(0..1, false).unwrap();
 	/// assert_eq!(range_bounds_map.len(), 1);
 	/// ```
 	#[trivial]
@@ -322,7 +322,7 @@ where
 	/// let mut range_bounds_map = RangeBoundsMap::new();
 	///
 	/// assert_eq!(range_bounds_map.is_empty(), true);
-	/// range_bounds_map.insert_platonic(0..1, false).unwrap();
+	/// range_bounds_map.insert_strict(0..1, false).unwrap();
 	/// assert_eq!(range_bounds_map.is_empty(), false);
 	/// ```
 	#[trivial]
@@ -343,15 +343,15 @@ where
 	///
 	/// let mut range_bounds_map = RangeBoundsMap::new();
 	///
-	/// assert_eq!(range_bounds_map.insert_platonic(5..10, 9), Ok(()));
+	/// assert_eq!(range_bounds_map.insert_strict(5..10, 9), Ok(()));
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_platonic(5..10, 2),
+	/// 	range_bounds_map.insert_strict(5..10, 2),
 	/// 	Err(OverlapError)
 	/// );
 	/// assert_eq!(range_bounds_map.len(), 1);
 	/// ```
 	#[tested]
-	pub fn insert_platonic(
+	pub fn insert_strict(
 		&mut self,
 		range_bounds: K,
 		value: V,
@@ -384,7 +384,7 @@ where
 	///
 	/// let mut range_bounds_map = RangeBoundsMap::new();
 	///
-	/// range_bounds_map.insert_platonic(5..10, false);
+	/// range_bounds_map.insert_strict(5..10, false);
 	///
 	/// assert_eq!(range_bounds_map.overlaps(&(1..=3)), false);
 	/// assert_eq!(range_bounds_map.overlaps(&(4..5)), false);
@@ -764,7 +764,7 @@ where
 		if to_insert.iter().all(|(x, _)| K::is_valid(x)) {
 			let mut removed = self.remove_overlapping(range_bounds);
 			for ((start, end), value) in to_insert.into_iter() {
-				self.insert_platonic(
+				self.insert_strict(
 					K::try_from_bounds(start, end).unwrap(),
 					value,
 				)
@@ -1327,7 +1327,7 @@ where
 	/// `RangeBounds`.
 	///
 	/// This is equivalent to using [`RangeBoundsMap::cut()`]
-	/// followed by [`RangeBoundsMap::insert_platonic()`]. Hence the
+	/// followed by [`RangeBoundsMap::insert_strict()`]. Hence the
 	/// same `V: Clone` trait bound applies.
 	///
 	/// If the remaining `RangeBounds` left after the cut are not able
@@ -1359,7 +1359,7 @@ where
 		K: TryFromBounds<I>,
 	{
 		let _ = self.cut(&range_bounds)?;
-		self.insert_platonic(range_bounds, value).unwrap();
+		self.insert_strict(range_bounds, value).unwrap();
 
 		return Ok(());
 	}
@@ -1412,7 +1412,7 @@ where
 	}
 
 	/// Moves all elements from `other` into `self` by
-	/// [`RangeBoundsMap::insert_platonic()`] in ascending order,
+	/// [`RangeBoundsMap::insert_strict()`] in ascending order,
 	/// leaving `other` empty.
 	///
 	/// If any of the `RangeBounds` in `other` overlap `self` then
@@ -1440,19 +1440,19 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(base.append_platonic(&mut add), Ok(()));
+	/// assert_eq!(base.append_strict(&mut add), Ok(()));
 	/// assert_eq!(base, expected);
 	/// assert!(add.is_empty());
 	/// ```
 	#[trivial]
-	pub fn append_platonic(
+	pub fn append_strict(
 		&mut self,
 		other: &mut RangeBoundsMap<I, K, V>,
 	) -> Result<(), OverlapError> {
 		for (range_bounds, value) in
 			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
 		{
-			self.insert_platonic(range_bounds, value)?;
+			self.insert_strict(range_bounds, value)?;
 		}
 
 		return Ok(());
@@ -1518,7 +1518,7 @@ where
 
 		for (possible_key, value) in split_off {
 			match possible_key {
-				Ok(key) => output.insert_platonic(key, value).unwrap(),
+				Ok(key) => output.insert_strict(key, value).unwrap(),
 				Err(TryFromBoundsError) => {
 					*self = before;
 					return Err(TryFromBoundsError);
@@ -1646,7 +1646,7 @@ where
 	fn try_from(pairs: [(K, V); N]) -> Result<Self, Self::Error> {
 		let mut range_bounds_map = RangeBoundsMap::new();
 		for (range_bounds, value) in pairs {
-			range_bounds_map.insert_platonic(range_bounds, value)?;
+			range_bounds_map.insert_strict(range_bounds, value)?;
 		}
 
 		return Ok(range_bounds_map);
@@ -1662,7 +1662,7 @@ where
 	fn try_from(pairs: Vec<(K, V)>) -> Result<Self, Self::Error> {
 		let mut range_bounds_map = RangeBoundsMap::new();
 		for (range_bounds, value) in pairs {
-			range_bounds_map.insert_platonic(range_bounds, value)?;
+			range_bounds_map.insert_strict(range_bounds, value)?;
 		}
 
 		return Ok(range_bounds_map);
@@ -1679,7 +1679,7 @@ where
 		let mut output = RangeBoundsMap::new();
 
 		for (range_bounds, value) in iter {
-			output.insert_platonic(range_bounds, value).unwrap();
+			output.insert_strict(range_bounds, value).unwrap();
 		}
 
 		return output;
@@ -1796,7 +1796,7 @@ where
 		let mut range_bounds_map = RangeBoundsMap::new();
 		while let Some((range_bounds, value)) = access.next_entry()? {
 			range_bounds_map
-				.insert_platonic(range_bounds, value)
+				.insert_strict(range_bounds, value)
 				.map_err(|_| serde::de::Error::custom("RangeBounds overlap"))?;
 		}
 		Ok(range_bounds_map)
@@ -2130,20 +2130,20 @@ mod tests {
 	}
 
 	#[test]
-	fn insert_platonic_tests() {
-		assert_insert_platonic(
+	fn insert_strict_tests() {
+		assert_insert_strict(
 			basic(),
 			(ii(0, 4), false),
 			Err(OverlapError),
 			None::<[_; 0]>,
 		);
-		assert_insert_platonic(
+		assert_insert_strict(
 			basic(),
 			(ii(5, 6), false),
 			Err(OverlapError),
 			None::<[_; 0]>,
 		);
-		assert_insert_platonic(
+		assert_insert_strict(
 			basic(),
 			(ee(7, 8), false),
 			Ok(()),
@@ -2155,13 +2155,13 @@ mod tests {
 				(ie(14, 16), true),
 			]),
 		);
-		assert_insert_platonic(
+		assert_insert_strict(
 			basic(),
 			(ii(4, 5), true),
 			Err(OverlapError),
 			None::<[_; 0]>,
 		);
-		assert_insert_platonic(
+		assert_insert_strict(
 			basic(),
 			(ei(4, 5), true),
 			Ok(()),
@@ -2174,14 +2174,14 @@ mod tests {
 			]),
 		);
 	}
-	fn assert_insert_platonic<const N: usize>(
+	fn assert_insert_strict<const N: usize>(
 		mut before: RangeBoundsMap<u8, TestBounds, bool>,
 		to_insert: (TestBounds, bool),
 		result: Result<(), OverlapError>,
 		after: Option<[(TestBounds, bool); N]>,
 	) {
 		let clone = before.clone();
-		assert_eq!(before.insert_platonic(to_insert.0, to_insert.1), result);
+		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
 		match after {
 			Some(after) => {
 				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
@@ -2207,7 +2207,7 @@ mod tests {
 		for overlap_range in all_valid_test_bounds() {
 			for inside_range in all_valid_test_bounds() {
 				let mut range_bounds_map = RangeBoundsMap::new();
-				range_bounds_map.insert_platonic(inside_range, ()).unwrap();
+				range_bounds_map.insert_strict(inside_range, ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
 				if overlaps(&overlap_range, &inside_range) {
@@ -2236,8 +2236,8 @@ mod tests {
 				all_non_overlapping_test_bound_pairs()
 			{
 				let mut range_bounds_map = RangeBoundsMap::new();
-				range_bounds_map.insert_platonic(inside_range1, ()).unwrap();
-				range_bounds_map.insert_platonic(inside_range2, ()).unwrap();
+				range_bounds_map.insert_strict(inside_range1, ()).unwrap();
+				range_bounds_map.insert_strict(inside_range2, ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
 				if overlaps(&overlap_range, &inside_range1) {
@@ -2289,7 +2289,7 @@ mod tests {
 		for overlap_range in all_valid_test_bounds() {
 			for inside_range in all_valid_test_bounds() {
 				let mut range_bounds_map = RangeBoundsMap::new();
-				range_bounds_map.insert_platonic(inside_range, ()).unwrap();
+				range_bounds_map.insert_strict(inside_range, ()).unwrap();
 
 				let result = range_bounds_map
 					.overlapping_trimmed(&overlap_range)
@@ -2311,8 +2311,8 @@ mod tests {
 				all_non_overlapping_test_bound_pairs()
 			{
 				let mut range_bounds_map = RangeBoundsMap::new();
-				range_bounds_map.insert_platonic(inside_range1, ()).unwrap();
-				range_bounds_map.insert_platonic(inside_range2, ()).unwrap();
+				range_bounds_map.insert_strict(inside_range1, ()).unwrap();
+				range_bounds_map.insert_strict(inside_range2, ()).unwrap();
 
 				let result = range_bounds_map
 					.overlapping_trimmed(&overlap_range)
