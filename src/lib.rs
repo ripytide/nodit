@@ -30,14 +30,14 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! ```rust
 //! use range_bounds_map::RangeBoundsMap;
 //!
-//! let mut range_bounds_map = RangeBoundsMap::new();
+//! let mut map = RangeBoundsMap::new();
 //!
-//! range_bounds_map.insert_strict(0..5, true);
-//! range_bounds_map.insert_strict(5..10, false);
+//! map.insert_strict(0..5, true);
+//! map.insert_strict(5..10, false);
 //!
-//! assert_eq!(range_bounds_map.overlaps(&(-2..12)), true);
-//! assert_eq!(range_bounds_map.contains_point(&20), false);
-//! assert_eq!(range_bounds_map.contains_point(&5), true);
+//! assert_eq!(map.overlaps(&(-2..12)), true);
+//! assert_eq!(map.contains_point(&20), false);
+//! assert_eq!(map.contains_point(&5), true);
 //! ```
 //!
 //! ## Example using a custom [`RangeBounds`] type
@@ -76,7 +76,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! }
 //!
 //! // Next we can create a custom typed RangeBoundsMap
-//! let reservation_map = RangeBoundsMap::try_from([
+//! let reservation_map = RangeBoundsMap::from_slice_strict([
 //! 	(Reservation::Finite(10, 20), "Ferris".to_string()),
 //! 	(Reservation::Infinite(20), "Corro".to_string()),
 //! ])
