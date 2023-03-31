@@ -1717,9 +1717,8 @@ where
 	/// `Value`) pairs from the slice into the map using
 	/// [`RangeBoundsMap::insert_strict()`].
 	///
-	/// If any of the given `RangeBounds` overlap any of the other
-	/// `RangeBounds` in the slice, then an [`OverlapError`] is
-	/// returned.
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsMap::insert_strict()`] for details.
 	///
 	/// # Panics
 	///
@@ -1746,6 +1745,166 @@ where
 		let mut map = RangeBoundsMap::new();
 		for (range_bounds, value) in slice {
 			map.insert_strict(range_bounds, value).unwrap();
+		}
+		return Ok(map);
+	}
+
+	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
+	/// `Value`) pairs from the slice into the map using
+	/// [`RangeBoundsMap::insert_merge_touching()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsMap::insert_merge_touching()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	///
+	/// let map = RangeBoundsMap::from_slice_merge_touching([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	/// ```
+	#[trivial]
+	pub fn from_slice_merge_touching<const N: usize>(
+		slice: [(K, V); N],
+	) -> Result<RangeBoundsMap<I, K, V>, OverlapError>
+	where
+		K: TryFromBounds<I>,
+	{
+		let mut map = RangeBoundsMap::new();
+		for (range_bounds, value) in slice {
+			map.insert_merge_touching(range_bounds, value).unwrap();
+		}
+		return Ok(map);
+	}
+
+	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
+	/// `Value`) pairs from the slice into the map using
+	/// [`RangeBoundsMap::insert_merge_overlapping()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsMap::insert_merge_overlapping()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	///
+	/// let map = RangeBoundsMap::from_slice_merge_overlapping([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	/// ```
+	#[trivial]
+	pub fn from_slice_merge_overlapping<const N: usize>(
+		slice: [(K, V); N],
+	) -> Result<RangeBoundsMap<I, K, V>, OverlapError>
+	where
+		K: TryFromBounds<I>,
+	{
+		let mut map = RangeBoundsMap::new();
+		for (range_bounds, value) in slice {
+			map.insert_merge_overlapping(range_bounds, value).unwrap();
+		}
+		return Ok(map);
+	}
+
+	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
+	/// `Value`) pairs from the slice into the map using
+	/// [`RangeBoundsMap::insert_merge_touching_or_overlapping()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsMap::insert_merge_touching_or_overlapping()`] for
+	/// details.
+	///
+	/// # Panics
+	///
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	///
+	/// let map =
+	/// 	RangeBoundsMap::from_slice_merge_touching_or_overlapping([
+	/// 		(1..4, false),
+	/// 		(4..8, true),
+	/// 		(8..100, false),
+	/// 	])
+	/// 	.unwrap();
+	/// ```
+	#[trivial]
+	pub fn from_slice_merge_touching_or_overlapping<const N: usize>(
+		slice: [(K, V); N],
+	) -> Result<RangeBoundsMap<I, K, V>, OverlapError>
+	where
+		K: TryFromBounds<I>,
+	{
+		let mut map = RangeBoundsMap::new();
+		for (range_bounds, value) in slice {
+			map.insert_merge_touching_or_overlapping(range_bounds, value)
+				.unwrap();
+		}
+		return Ok(map);
+	}
+
+	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
+	/// `Value`) pairs from the slice into the map using
+	/// [`RangeBoundsMap::insert_overwrite()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsMap::overwrite()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	///
+	/// let map = RangeBoundsMap::from_slice_overwrite([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	/// ```
+	#[trivial]
+	pub fn from_slice_overwrite<const N: usize>(
+		slice: [(K, V); N],
+	) -> Result<RangeBoundsMap<I, K, V>, OverlapError>
+	where
+		V: Clone,
+		K: TryFromBounds<I>,
+	{
+		let mut map = RangeBoundsMap::new();
+		for (range_bounds, value) in slice {
+			map.insert_overwrite(range_bounds, value).unwrap();
 		}
 		return Ok(map);
 	}
