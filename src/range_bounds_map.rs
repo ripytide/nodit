@@ -1738,6 +1738,56 @@ where
 	}
 }
 
+impl<const N: usize, I, K, V> TryFrom<[(K, V); N]> for RangeBoundsMap<I, K, V>
+where
+	K: RangeBounds<I>,
+	I: Ord + Clone,
+{
+	type Error = OverlapError;
+	#[trivial]
+	fn try_from(pairs: [(K, V); N]) -> Result<Self, Self::Error> {
+		let mut range_bounds_map = RangeBoundsMap::new();
+		for (range_bounds, value) in pairs {
+			range_bounds_map.insert_strict(range_bounds, value)?;
+		}
+
+		return Ok(range_bounds_map);
+	}
+}
+impl<I, K, V> TryFrom<Vec<(K, V)>> for RangeBoundsMap<I, K, V>
+where
+	K: RangeBounds<I>,
+	I: Ord + Clone,
+{
+	type Error = OverlapError;
+	#[trivial]
+	fn try_from(pairs: Vec<(K, V)>) -> Result<Self, Self::Error> {
+		let mut range_bounds_map = RangeBoundsMap::new();
+		for (range_bounds, value) in pairs {
+			range_bounds_map.insert_strict(range_bounds, value)?;
+		}
+
+		return Ok(range_bounds_map);
+	}
+}
+
+impl<I, K, V> FromIterator<(K, V)> for RangeBoundsMap<I, K, V>
+where
+	K: RangeBounds<I>,
+	I: Ord + Clone,
+{
+	#[trivial]
+	fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+		let mut output = RangeBoundsMap::new();
+
+		for (range_bounds, value) in iter {
+			output.insert_strict(range_bounds, value).unwrap();
+		}
+
+		return output;
+	}
+}
+
 impl<I, K, V> IntoIterator for RangeBoundsMap<I, K, V>
 where
 	K: RangeBounds<I>,
