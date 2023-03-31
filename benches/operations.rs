@@ -15,7 +15,7 @@ const REPEAT: usize = 120;
 fn build_identity_map(n: usize) -> RangeBoundsMap<usize, Range<usize>, usize> {
 	let mut map = RangeBoundsMap::new();
 	for i in 0..n {
-		map.insert_platonic(i..i + 1, i).expect("insert failed");
+		map.insert_strict(i..i + 1, i).expect("insert failed");
 	}
 	map
 }

@@ -32,8 +32,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! let mut range_bounds_map = RangeBoundsMap::new();
 //!
-//! range_bounds_map.insert_platonic(0..5, true);
-//! range_bounds_map.insert_platonic(5..10, false);
+//! range_bounds_map.insert_strict(0..5, true);
+//! range_bounds_map.insert_strict(5..10, false);
 //!
 //! assert_eq!(range_bounds_map.overlaps(&(-2..12)), true);
 //! assert_eq!(range_bounds_map.contains_point(&20), false);
