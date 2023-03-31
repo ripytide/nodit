@@ -20,8 +20,6 @@
 
 - replace `RangeBounds` with `K` where applicatble in docs
 - replace rust types URL links with direct rust links
-- add a # Panics section to every method that can panic, probably most
-  given invalid RangeBounds
 
 # features
 

@@ -337,6 +337,11 @@ where
 	/// already in the map rather than just touching, then an
 	/// [`OverlapError`] is returned and the map is not updated.
 	///
+	/// # Panics
+	///
+	/// Panics if the given `range_bounds` is an invalid
+	/// `RangeBounds`. See [`Invalid RangeBounds`] for more details.
+	///
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::{OverlapError, RangeBoundsMap};
@@ -349,6 +354,8 @@ where
 	/// 	Err(OverlapError)
 	/// );
 	/// assert_eq!(range_bounds_map.len(), 1);
+	///
+	/// [`Invalid RangeBounds`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds
 	/// ```
 	#[tested]
 	pub fn insert_strict(
@@ -364,7 +371,7 @@ where
 		let end = BoundOrd::end(range_bounds.end_bound());
 
 		if start > end {
-			panic!("Invalid search range bounds!");
+			panic!("Invalid range_bounds!");
 		}
 
 		self.starts.insert(
@@ -431,7 +438,7 @@ where
 		Q: RangeBounds<I>,
 	{
 		if !is_valid_range_bounds(range_bounds) {
-			panic!("Invalid range bounds!");
+			panic!("Invalid range_bounds!");
 		}
 
 		let start = BoundOrd::start(range_bounds.start_bound().cloned());
@@ -1333,7 +1340,7 @@ where
 	/// If the remaining `RangeBounds` left after the cut are not able
 	/// to be created with the [`TryFromBounds`] trait then a
 	/// [`TryFromBoundsError`] will be returned.
-    ///
+	///
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;

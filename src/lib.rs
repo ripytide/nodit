@@ -101,6 +101,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ## Key Definitions:
 //!
+//! ### Invalid RangeBounds
+//!
 //! ### Overlap
 //!
 //! Two `RangeBounds` are "overlapping" if there exists a point that is
