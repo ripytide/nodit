@@ -1016,55 +1016,6 @@ where
 	}
 }
 
-impl<const N: usize, I, K> TryFrom<[K; N]> for RangeBoundsSet<I, K>
-where
-	K: RangeBounds<I>,
-	I: Ord + Clone,
-{
-	type Error = OverlapError;
-	#[trivial]
-	fn try_from(pairs: [K; N]) -> Result<Self, Self::Error> {
-		let mut range_bounds_set = RangeBoundsSet::new();
-		for range_bounds in pairs {
-			range_bounds_set.insert_strict(range_bounds)?;
-		}
-
-		return Ok(range_bounds_set);
-	}
-}
-impl<I, K> TryFrom<Vec<K>> for RangeBoundsSet<I, K>
-where
-	K: RangeBounds<I>,
-	I: Ord + Clone,
-{
-	type Error = OverlapError;
-	#[trivial]
-	fn try_from(pairs: Vec<K>) -> Result<Self, Self::Error> {
-		let mut range_bounds_set = RangeBoundsSet::new();
-		for range_bounds in pairs {
-			range_bounds_set.insert_strict(range_bounds)?;
-		}
-
-		return Ok(range_bounds_set);
-	}
-}
-
-impl<I, K> FromIterator<K> for RangeBoundsSet<I, K>
-where
-	K: RangeBounds<I>,
-	I: Ord + Clone,
-{
-	#[trivial]
-	fn from_iter<T: IntoIterator<Item = K>>(iter: T) -> Self {
-		let mut output = RangeBoundsSet::new();
-
-		for range_bounds in iter {
-			output.insert_strict(range_bounds).unwrap();
-		}
-
-		return output;
-	}
-}
 impl<I, K> IntoIterator for RangeBoundsSet<I, K>
 where
 	K: RangeBounds<I>,
