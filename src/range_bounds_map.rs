@@ -166,7 +166,7 @@ pub struct OverlapError;
 /// let mut map =
 /// 	RangeBoundsMap::from_slice_strict([(2..8, true)]).unwrap();
 ///
-/// assert!(range_bounds_map.cut(&(4..=6)).is_err());
+/// assert!(map.cut(&(4..=6)).is_err());
 /// ```
 ///
 /// # Example with `insert_merge_*` functions.
@@ -252,7 +252,7 @@ pub struct OverlapError;
 /// .unwrap();
 ///
 /// assert_eq!(
-/// 	range_bounds_map.insert_merge_touching(
+/// 	map.insert_merge_touching(
 /// 		MultiBounds::Exclusive(4, 6),
 /// 		false
 /// 	),
@@ -303,9 +303,9 @@ where
 	///
 	/// let mut map = RangeBoundsMap::new();
 	///
-	/// assert_eq!(range_bounds_map.len(), 0);
-	/// range_bounds_map.insert_strict(0..1, false).unwrap();
-	/// assert_eq!(range_bounds_map.len(), 1);
+	/// assert_eq!(map.len(), 0);
+	/// map.insert_strict(0..1, false).unwrap();
+	/// assert_eq!(map.len(), 1);
 	/// ```
 	#[trivial]
 	pub fn len(&self) -> usize {
@@ -321,9 +321,9 @@ where
 	///
 	/// let mut map = RangeBoundsMap::new();
 	///
-	/// assert_eq!(range_bounds_map.is_empty(), true);
-	/// range_bounds_map.insert_strict(0..1, false).unwrap();
-	/// assert_eq!(range_bounds_map.is_empty(), false);
+	/// assert_eq!(map.is_empty(), true);
+	/// map.insert_strict(0..1, false).unwrap();
+	/// assert_eq!(map.is_empty(), false);
 	/// ```
 	#[trivial]
 	pub fn is_empty(&self) -> bool {
@@ -350,12 +350,9 @@ where
 	///
 	/// let mut map = RangeBoundsMap::new();
 	///
-	/// assert_eq!(range_bounds_map.insert_strict(5..10, 9), Ok(()));
-	/// assert_eq!(
-	/// 	range_bounds_map.insert_strict(5..10, 2),
-	/// 	Err(OverlapError)
-	/// );
-	/// assert_eq!(range_bounds_map.len(), 1);
+	/// assert_eq!(map.insert_strict(5..10, 9), Ok(()));
+	/// assert_eq!(map.insert_strict(5..10, 2), Err(OverlapError));
+	/// assert_eq!(map.len(), 1);
 	/// ```
 	#[tested]
 	pub fn insert_strict(
@@ -395,13 +392,13 @@ where
 	///
 	/// let mut map = RangeBoundsMap::new();
 	///
-	/// range_bounds_map.insert_strict(5..10, false);
+	/// map.insert_strict(5..10, false);
 	///
-	/// assert_eq!(range_bounds_map.overlaps(&(1..=3)), false);
-	/// assert_eq!(range_bounds_map.overlaps(&(4..5)), false);
+	/// assert_eq!(map.overlaps(&(1..=3)), false);
+	/// assert_eq!(map.overlaps(&(4..5)), false);
 	///
-	/// assert_eq!(range_bounds_map.overlaps(&(4..=5)), true);
-	/// assert_eq!(range_bounds_map.overlaps(&(4..6)), true);
+	/// assert_eq!(map.overlaps(&(4..=5)), true);
+	/// assert_eq!(map.overlaps(&(4..6)), true);
 	/// ```
 	#[trivial]
 	pub fn overlaps<Q>(&self, range_bounds: &Q) -> bool
@@ -433,7 +430,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut overlapping = range_bounds_map.overlapping(&(2..8));
+	/// let mut overlapping = map.overlapping(&(2..8));
 	///
 	/// assert_eq!(
 	/// 	overlapping.collect::<Vec<_>>(),
@@ -508,9 +505,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(range_bounds_map.get_at_point(&3), Some(&false));
-	/// assert_eq!(range_bounds_map.get_at_point(&4), Some(&true));
-	/// assert_eq!(range_bounds_map.get_at_point(&101), None);
+	/// assert_eq!(map.get_at_point(&3), Some(&false));
+	/// assert_eq!(map.get_at_point(&4), Some(&true));
+	/// assert_eq!(map.get_at_point(&101), None);
 	/// ```
 	#[trivial]
 	pub fn get_at_point(&self, point: &I) -> Option<&V> {
@@ -531,9 +528,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(range_bounds_map.contains_point(&3), true);
-	/// assert_eq!(range_bounds_map.contains_point(&4), true);
-	/// assert_eq!(range_bounds_map.contains_point(&101), false);
+	/// assert_eq!(map.contains_point(&3), true);
+	/// assert_eq!(map.contains_point(&4), true);
+	/// assert_eq!(map.contains_point(&101), false);
 	/// ```
 	#[trivial]
 	pub fn contains_point(&self, point: &I) -> bool {
@@ -550,11 +547,11 @@ where
 	/// let mut map =
 	/// 	RangeBoundsMap::from_slice_strict([(1..4, false)]).unwrap();
 	///
-	/// if let Some(x) = range_bounds_map.get_at_point_mut(&2) {
+	/// if let Some(x) = map.get_at_point_mut(&2) {
 	/// 	*x = true;
 	/// }
 	///
-	/// assert_eq!(range_bounds_map.get_at_point(&1), Some(&true));
+	/// assert_eq!(map.get_at_point(&1), Some(&true));
 	/// ```
 	#[tested]
 	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
@@ -584,15 +581,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(
-	/// 	range_bounds_map.get_entry_at_point(&3),
-	/// 	Some((&(1..4), &false))
-	/// );
-	/// assert_eq!(
-	/// 	range_bounds_map.get_entry_at_point(&4),
-	/// 	Some((&(4..8), &true))
-	/// );
-	/// assert_eq!(range_bounds_map.get_entry_at_point(&101), None);
+	/// assert_eq!(map.get_entry_at_point(&3), Some((&(1..4), &false)));
+	/// assert_eq!(map.get_entry_at_point(&4), Some((&(4..8), &true)));
+	/// assert_eq!(map.get_entry_at_point(&101), None);
 	/// ```
 	#[trivial]
 	pub fn get_entry_at_point(&self, point: &I) -> Option<(&K, &V)> {
@@ -619,7 +610,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut iter = range_bounds_map.iter();
+	/// let mut iter = map.iter();
 	///
 	/// assert_eq!(iter.next(), Some((&(1..4), &false)));
 	/// assert_eq!(iter.next(), Some((&(4..8), &true)));
@@ -653,17 +644,14 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut removed = range_bounds_map.remove_overlapping(&(2..8));
+	/// let mut removed = map.remove_overlapping(&(2..8));
 	///
 	/// assert_eq!(
 	/// 	removed.collect::<Vec<_>>(),
 	/// 	[(1..4, false), (4..8, true)]
 	/// );
 	///
-	/// assert_eq!(
-	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
-	/// 	[(&(8..100), &false)]
-	/// );
+	/// assert_eq!(map.iter().collect::<Vec<_>>(), [(&(8..100), &false)]);
 	/// ```
 	#[tested]
 	pub fn remove_overlapping<Q>(
@@ -917,7 +905,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut gaps = range_bounds_map.gaps(&(2..));
+	/// let mut gaps = map.gaps(&(2..));
 	///
 	/// assert_eq!(
 	/// 	gaps.collect::<Vec<_>>(),
@@ -1018,7 +1006,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut gaps_same = range_bounds_map.gaps_same(&(2..));
+	/// let mut gaps_same = map.gaps_same(&(2..));
 	///
 	/// assert_eq!(
 	/// 	gaps_same.collect::<Vec<_>>(),
@@ -1061,15 +1049,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(range_bounds_map.contains_range_bounds(&(1..3)), true);
-	/// assert_eq!(
-	/// 	range_bounds_map.contains_range_bounds(&(2..6)),
-	/// 	false
-	/// );
-	/// assert_eq!(
-	/// 	range_bounds_map.contains_range_bounds(&(6..50)),
-	/// 	true
-	/// );
+	/// assert_eq!(map.contains_range_bounds(&(1..3)), true);
+	/// assert_eq!(map.contains_range_bounds(&(2..6)), false);
+	/// assert_eq!(map.contains_range_bounds(&(6..50)), true);
 	/// ```
 	#[trivial]
 	pub fn contains_range_bounds<Q>(&self, range_bounds: &Q) -> bool
@@ -1114,25 +1096,22 @@ where
 	/// 	RangeBoundsMap::from_slice_strict([(1..4, false)]).unwrap();
 	///
 	/// // Touching
-	/// assert_eq!(
-	/// 	range_bounds_map.insert_merge_touching(4..6, true),
-	/// 	Ok(&(1..6))
-	/// );
+	/// assert_eq!(map.insert_merge_touching(4..6, true), Ok(&(1..6)));
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_merge_touching(4..8, false),
+	/// 	map.insert_merge_touching(4..8, false),
 	/// 	Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_merge_touching(10..16, false),
+	/// 	map.insert_merge_touching(10..16, false),
 	/// 	Ok(&(10..16))
 	/// );
 	///
 	/// assert_eq!(
-	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
+	/// 	map.iter().collect::<Vec<_>>(),
 	/// 	[(&(1..6), &true), (&(10..16), &false)]
 	/// );
 	/// ```
@@ -1245,24 +1224,21 @@ where
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_merge_overlapping(-4..1, true),
+	/// 	map.insert_merge_overlapping(-4..1, true),
 	/// 	Ok(&(-4..1))
 	/// );
 	///
 	/// // Overlapping
-	/// assert_eq!(
-	/// 	range_bounds_map.insert_merge_overlapping(2..8, true),
-	/// 	Ok(&(1..8))
-	/// );
+	/// assert_eq!(map.insert_merge_overlapping(2..8, true), Ok(&(1..8)));
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map.insert_merge_overlapping(10..16, false),
+	/// 	map.insert_merge_overlapping(10..16, false),
 	/// 	Ok(&(10..16))
 	/// );
 	///
 	/// assert_eq!(
-	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
+	/// 	map.iter().collect::<Vec<_>>(),
 	/// 	[(&(-4..1), &true), (&(1..8), &true), (&(10..16), &false)]
 	/// );
 	/// ```
@@ -1350,27 +1326,24 @@ where
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	range_bounds_map
-	/// 		.insert_merge_touching_or_overlapping(-4..1, true),
+	/// 	map.insert_merge_touching_or_overlapping(-4..1, true),
 	/// 	Ok(&(-4..4))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map
-	/// 		.insert_merge_touching_or_overlapping(2..8, true),
+	/// 	map.insert_merge_touching_or_overlapping(2..8, true),
 	/// 	Ok(&(-4..8))
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	range_bounds_map
-	/// 		.insert_merge_touching_or_overlapping(10..16, false),
+	/// 	map.insert_merge_touching_or_overlapping(10..16, false),
 	/// 	Ok(&(10..16))
 	/// );
 	///
 	/// assert_eq!(
-	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
+	/// 	map.iter().collect::<Vec<_>>(),
 	/// 	[(&(-4..8), &true), (&(10..16), &false)]
 	/// );
 	/// ```
@@ -1432,10 +1405,10 @@ where
 	/// let mut map =
 	/// 	RangeBoundsMap::from_slice_strict([(2..8, false)]).unwrap();
 	///
-	/// assert_eq!(range_bounds_map.insert_overwrite(4..6, true), Ok(()));
+	/// assert_eq!(map.insert_overwrite(4..6, true), Ok(()));
 	///
 	/// assert_eq!(
-	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
+	/// 	map.iter().collect::<Vec<_>>(),
 	/// 	[(&(2..4), &false), (&(4..6), &true), (&(6..8), &false)]
 	/// );
 	/// ```
@@ -1469,10 +1442,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(
-	/// 	range_bounds_map.first_entry(),
-	/// 	Some((&(1..4), &false))
-	/// );
+	/// assert_eq!(map.first_entry(), Some((&(1..4), &false)));
 	/// ```
 	#[trivial]
 	pub fn first_entry(&self) -> Option<(&K, &V)> {
@@ -1494,7 +1464,7 @@ where
 	/// .unwrap();
 	///
 	/// assert_eq!(
-	/// 	range_bounds_map.last_entry(),
+	/// 	map.last_entry(),
 	/// 	Some((&(8..100), &false))
 	/// );
 	#[trivial]
@@ -1651,8 +1621,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut overlapping_trimmed =
-	/// 	range_bounds_map.overlapping_trimmed(&(2..20));
+	/// let mut overlapping_trimmed = map.overlapping_trimmed(&(2..20));
 	///
 	/// assert_eq!(
 	/// 	overlapping_trimmed.collect::<Vec<_>>(),
@@ -1714,7 +1683,7 @@ where
 	/// .unwrap();
 	///
 	/// let mut overlapping_trimmed_same =
-	/// 	range_bounds_map.overlapping_trimmed_same(&(2..=20));
+	/// 	map.overlapping_trimmed_same(&(2..=20));
 	///
 	/// assert_eq!(
 	/// 	overlapping_trimmed_same.collect::<Vec<_>>(),
@@ -1744,20 +1713,20 @@ where
 		})
 	}
 
-    /// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
-    /// `Value`) pairs from the slice into the map using
-    /// [`RangeBoundsMap::insert_strict()`].
-    ///
+	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
+	/// `Value`) pairs from the slice into the map using
+	/// [`RangeBoundsMap::insert_strict()`].
+	///
 	/// If any of the given `RangeBounds` overlap any of the other
 	/// `RangeBounds` in the slice, then an [`OverlapError`] is
 	/// returned.
 	///
 	/// # Panics
 	///
-    /// Panics if any of the given `RangeBounds` is an invalid
-    /// `RangeBounds`. See [`Invalid
-    /// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
-    /// for more details.
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -2605,13 +2574,12 @@ mod tests {
 		assert_gaps(basic(), ii(8, 8), [ii(8, 8)]);
 	}
 	fn assert_gaps<const N: usize>(
-		range_bounds_map: RangeBoundsMap<u8, TestBounds, bool>,
+		map: RangeBoundsMap<u8, TestBounds, bool>,
 		outer_range_bounds: TestBounds,
 		result: [TestBounds; N],
 	) {
 		assert_eq!(
-			range_bounds_map
-				.gaps(&outer_range_bounds)
+			map.gaps(&outer_range_bounds)
 				.map(|(start, end)| (start.cloned(), end.cloned()))
 				.collect::<Vec<_>>(),
 			result

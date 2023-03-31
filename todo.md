@@ -20,6 +20,10 @@
 
 - replace `RangeBounds` with `K` where applicatble in docs
 - replace rust types URL links with direct rust links
+- normalize the description of the project beteen:
+  - the first line of the crate levele docs/readme
+  - the description meta-data section on github
+  - the descriptio meta-data field in the Cargo.toml
 
 # features
 
