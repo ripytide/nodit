@@ -333,7 +333,7 @@ where
 	/// Adds a new (`RangeBounds`, `Value`) pair to the map without
 	/// modifying other entries.
 	///
-	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
+	/// If the given `RangeBounds` overlaps one or more `RangeBounds`
 	/// already in the map rather than just touching, then an
 	/// [`OverlapError`] is returned and the map is not updated.
 	///
@@ -401,7 +401,7 @@ where
 	}
 
 	/// Returns an iterator over every (`RangeBounds`, `Value`) pair
-	/// in the map which overlap the given `range_bounds` in
+	/// in the map which overlap the given `RangeBounds` in
 	/// ascending order.
 	///
 	/// # Examples
@@ -614,7 +614,7 @@ where
 	}
 
 	/// Removes every (`RangeBounds`, `Value`) pair in the map which
-	/// overlaps the given `range_bounds` and returns them in
+	/// overlaps the given `RangeBounds` and returns them in
 	/// an iterator.
 	///
 	/// # Examples
@@ -1025,7 +1025,7 @@ where
 	/// If successful then a reference to the newly inserted
 	/// `RangeBounds` is returned.
 	///
-	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
+	/// If the given `RangeBounds` overlaps one or more `RangeBounds`
 	/// already in the map rather than just touching, then an
 	/// [`OverlapError`] is returned and the map is not updated.
 	/// `RangeBounds` is returned.
@@ -1333,7 +1333,7 @@ where
 	/// If the remaining `RangeBounds` left after the cut are not able
 	/// to be created with the [`TryFromBounds`] trait then a
 	/// [`TryFromBoundsError`] will be returned.
-	///
+    ///
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
@@ -1531,7 +1531,7 @@ where
 
 	/// Similar to [`RangeBoundsMap::overlapping()`] except the
 	/// `(Bound, Bound)`s returned in the iterator have been
-	/// trimmed/cut by the given `range_bounds`.
+	/// trimmed/cut by the given `RangeBounds`.
 	///
 	/// This is sort of the analogue to the AND function between a
 	/// `RangeBounds` AND a [`RangeBoundsMap`].

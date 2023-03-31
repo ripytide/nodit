@@ -177,7 +177,7 @@ where
 	/// Adds a new `RangeBounds` to the set without modifying other
 	/// `RangeBounds` in the set.
 	///
-	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
+	/// If the given `RangeBounds` overlaps one or more `RangeBounds`
 	/// already in the set rather than just touching, then an
 	/// [`OverlapError`] is returned and the set is not updated.
 	///
@@ -228,7 +228,7 @@ where
 	}
 
 	/// Returns an iterator over every `RangeBounds` in the set which
-	/// overlap the given `range_bounds` in ascending order.
+	/// overlap the given `RangeBounds` in ascending order.
 	///
 	/// # Examples
 	/// ```
@@ -316,7 +316,7 @@ where
 	}
 
 	/// Removes every `RangeBounds` in the set which overlaps the
-	/// given `range_bounds` and returns them in an iterator.
+	/// given `RangeBounds` and returns them in an iterator.
 	///
 	/// # Examples
 	/// ```
@@ -534,7 +534,7 @@ where
 	/// If successful then a reference to the newly inserted
 	/// `RangeBounds` is returned.
 	///
-	/// If the new `RangeBounds` overlaps one or more `RangeBounds`
+	/// If the given `RangeBounds` overlaps one or more `RangeBounds`
 	/// already in the set rather than just touching, then an
 	/// [`OverlapError`] is returned and the set is not updated.
 	///
@@ -689,7 +689,7 @@ where
 	}
 
 	/// Adds a new `RangeBounds` to the set and overwrites any other
-	/// `RangeBounds` that overlap the new `RangeBounds`.
+	/// `RangeBounds` that overlap the given `RangeBounds`.
 	///
 	/// This is equivalent to using [`RangeBoundsSet::cut()`]
 	/// followed by [`RangeBoundsSet::insert_strict()`].
@@ -837,7 +837,7 @@ where
 
 	/// Similar to [`RangeBoundsSet::overlapping()`] except the
 	/// `(Bound, Bound)`s returned in the iterator have been
-	/// trimmed/cut by the given `range_bounds`.
+	/// trimmed/cut by the given `RangeBounds`.
 	///
 	/// This is sort of the analogue to the AND function between a
 	/// `RangeBounds` AND a [`RangeBoundsSet`].
