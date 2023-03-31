@@ -1050,7 +1050,7 @@ where
 	) -> Result<RangeBoundsSet<I, K>, OverlapError> {
 		let mut set = RangeBoundsSet::new();
 		for range_bounds in slice {
-			set.insert_strict(range_bounds);
+			set.insert_strict(range_bounds).unwrap();
 		}
 		return Ok(set);
 	}

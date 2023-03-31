@@ -1754,7 +1754,7 @@ where
 	) -> Result<RangeBoundsMap<I, K, V>, OverlapError> {
 		let mut map = RangeBoundsMap::new();
 		for (range_bounds, value) in slice {
-			map.insert_strict(range_bounds, value);
+			map.insert_strict(range_bounds, value).unwrap();
 		}
 		return Ok(map);
 	}
@@ -2369,11 +2369,14 @@ mod tests {
 				range_bounds_map.insert_strict(inside_range, ()).unwrap();
 
 				let mut result = RangeBoundsMap::new();
-				for resulting_entry in range_bounds_map
-					.overlapping_trimmed(&overlap_range)
-					.map(|(key, value)| (cloned_bounds(key), value.clone()))
+				for (resulting_range_bounds, resulting_value) in
+					range_bounds_map
+						.overlapping_trimmed(&overlap_range)
+						.map(|(key, value)| (cloned_bounds(key), value.clone()))
 				{
-					result.insert_strict(resulting_entry.0, resulting_entry.1);
+					result
+						.insert_strict(resulting_range_bounds, resulting_value)
+						.unwrap();
 				}
 
 				for i in NUMBERS_DOMAIN {
@@ -2395,11 +2398,14 @@ mod tests {
 				range_bounds_map.insert_strict(inside_range2, ()).unwrap();
 
 				let mut result = RangeBoundsMap::new();
-				for resulting_entry in range_bounds_map
-					.overlapping_trimmed(&overlap_range)
-					.map(|(key, value)| (cloned_bounds(key), value.clone()))
+				for (resulting_range_bounds, resulting_value) in
+					range_bounds_map
+						.overlapping_trimmed(&overlap_range)
+						.map(|(key, value)| (cloned_bounds(key), value.clone()))
 				{
-					result.insert_strict(resulting_entry.0, resulting_entry.1);
+					result
+						.insert_strict(resulting_range_bounds, resulting_value)
+						.unwrap();
 				}
 
 				for i in NUMBERS_DOMAIN {
