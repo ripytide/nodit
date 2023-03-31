@@ -3,7 +3,7 @@
 - try to remove unnecessary uses of cloned()
 - use expand, expand_cloned and cloned_bounds everywhere
 - replace instances of |(key, \_)| with fn first()
-- rename overwrite to insert_forceful
+- rename insert_overwrite to insert_forceful
 - make all iterators cutsom types as is standardised in libraries for
   some reason(?)
 - take a look around idiomatic rust for a bit

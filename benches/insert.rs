@@ -66,12 +66,12 @@ fn bench_insert_merge_touching_or_overlapping(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_overwrite(b: &mut Bencher) {
+fn bench_insert_overwrite(b: &mut Bencher) {
 	b.iter(|| {
 		let mut map = RangeBoundsMap::new();
 		for i in 0..REPEAT {
 			let r = i..i + 2;
-			map.overwrite(r, i).expect("insert failed");
+			map.insert_overwrite(r, i).expect("insert failed");
 		}
 	});
 }

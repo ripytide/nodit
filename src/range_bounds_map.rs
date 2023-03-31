@@ -1341,7 +1341,7 @@ where
 	/// let mut range_bounds_map =
 	/// 	RangeBoundsMap::try_from([(2..8, false)]).unwrap();
 	///
-	/// assert_eq!(range_bounds_map.overwrite(4..6, true), Ok(()));
+	/// assert_eq!(range_bounds_map.insert_overwrite(4..6, true), Ok(()));
 	///
 	/// assert_eq!(
 	/// 	range_bounds_map.iter().collect::<Vec<_>>(),
@@ -1349,7 +1349,7 @@ where
 	/// );
 	/// ```
 	#[trivial]
-	pub fn overwrite(
+	pub fn insert_overwrite(
 		&mut self,
 		range_bounds: K,
 		value: V,

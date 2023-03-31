@@ -705,7 +705,7 @@ where
 	/// let mut range_bounds_set =
 	/// 	RangeBoundsSet::try_from([2..8]).unwrap();
 	///
-	/// assert_eq!(range_bounds_set.overwrite(4..6), Ok(()));
+	/// assert_eq!(range_bounds_set.insert_overwrite(4..6), Ok(()));
 	///
 	/// assert_eq!(
 	/// 	range_bounds_set.iter().collect::<Vec<_>>(),
@@ -713,14 +713,14 @@ where
 	/// );
 	/// ```
 	#[trivial]
-	pub fn overwrite(
+	pub fn insert_overwrite(
 		&mut self,
 		range_bounds: K,
 	) -> Result<(), TryFromBoundsError>
 	where
 		K: TryFromBounds<I>,
 	{
-		self.map.overwrite(range_bounds, ())
+		self.map.insert_overwrite(range_bounds, ())
 	}
 
 	/// Returns the first `RangeBounds` in the set, if any.
