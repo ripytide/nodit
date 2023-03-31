@@ -50,7 +50,7 @@ use crate::TryFromBounds;
 /// use range_bounds_map::RangeBoundsMap;
 ///
 /// // Make a map of ranges to booleans
-/// let mut map = RangeBoundsMap::try_from([
+/// let mut map = RangeBoundsMap::from_slice_strict([
 /// 	(4..8, false),
 /// 	(8..18, true),
 /// 	(20..100, false),
@@ -164,7 +164,7 @@ pub struct OverlapError;
 /// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 ///
 /// let mut range_bounds_map =
-/// 	RangeBoundsMap::try_from([(2..8, true)]).unwrap();
+/// 	RangeBoundsMap::from_slice_strict([(2..8, true)]).unwrap();
 ///
 /// assert!(range_bounds_map.cut(&(4..=6)).is_err());
 /// ```
@@ -245,7 +245,7 @@ pub struct OverlapError;
 /// 	}
 /// }
 ///
-/// let mut range_bounds_map = RangeBoundsMap::try_from([(
+/// let mut range_bounds_map = RangeBoundsMap::from_slice_strict([(
 /// 	MultiBounds::Inclusive(2, 4),
 /// 	true,
 /// )])
@@ -426,7 +426,7 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -501,7 +501,7 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -524,7 +524,7 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -548,7 +548,7 @@ where
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut range_bounds_map =
-	/// 	RangeBoundsMap::try_from([(1..4, false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(1..4, false)]).unwrap();
 	///
 	/// if let Some(x) = range_bounds_map.get_at_point_mut(&2) {
 	/// 	*x = true;
@@ -577,7 +577,7 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -612,7 +612,7 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -646,7 +646,7 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let mut range_bounds_map = RangeBoundsMap::try_from([
+	/// let mut range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -719,16 +719,18 @@ where
 	///
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
-	/// let mut base = RangeBoundsMap::try_from([
+	/// let mut base = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
 	/// ])
 	/// .unwrap();
 	///
-	/// let after_cut =
-	/// 	RangeBoundsMap::try_from([(1..2, false), (40..100, false)])
-	/// 		.unwrap();
+	/// let after_cut = RangeBoundsMap::from_slice_strict([
+	/// 	(1..2, false),
+	/// 	(40..100, false),
+	/// ])
+	/// .unwrap();
 	///
 	/// assert_eq!(
 	/// 	base.cut(&(2..40)).unwrap().collect::<Vec<_>>(),
@@ -846,16 +848,18 @@ where
 	/// ```
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
-	/// let mut base = RangeBoundsMap::try_from([
+	/// let mut base = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
 	/// ])
 	/// .unwrap();
 	///
-	/// let after_cut =
-	/// 	RangeBoundsMap::try_from([(1..2, false), (40..100, false)])
-	/// 		.unwrap();
+	/// let after_cut = RangeBoundsMap::from_slice_strict([
+	/// 	(1..2, false),
+	/// 	(40..100, false),
+	/// ])
+	/// .unwrap();
 	///
 	/// assert_eq!(
 	/// 	base.cut_same(&(2..40)).unwrap().collect::<Vec<_>>(),
@@ -906,7 +910,7 @@ where
 	///
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..3, false),
 	/// 	(5..7, true),
 	/// 	(9..100, false),
@@ -1007,7 +1011,7 @@ where
 	///
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..3, false),
 	/// 	(5..7, true),
 	/// 	(9..100, false),
@@ -1050,7 +1054,7 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..3, false),
 	/// 	(5..8, true),
 	/// 	(8..100, false),
@@ -1108,7 +1112,7 @@ where
 	/// };
 	///
 	/// let mut range_bounds_map =
-	/// 	RangeBoundsMap::try_from([(1..4, false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(1..4, false)]).unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
@@ -1238,7 +1242,7 @@ where
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut range_bounds_map =
-	/// 	RangeBoundsMap::try_from([(1..4, false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(1..4, false)]).unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
@@ -1343,7 +1347,7 @@ where
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut range_bounds_map =
-	/// 	RangeBoundsMap::try_from([(1..4, false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(1..4, false)]).unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
@@ -1427,7 +1431,7 @@ where
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut range_bounds_map =
-	/// 	RangeBoundsMap::try_from([(2..8, false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(2..8, false)]).unwrap();
 	///
 	/// assert_eq!(range_bounds_map.insert_overwrite(4..6, true), Ok(()));
 	///
@@ -1459,7 +1463,7 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -1483,7 +1487,7 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -1512,15 +1516,19 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let mut base =
-	/// 	RangeBoundsMap::try_from([(1..4, false), (4..8, true)])
-	/// 		.unwrap();
+	/// let mut base = RangeBoundsMap::from_slice_strict([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// ])
+	/// .unwrap();
 	///
-	/// let mut add =
-	/// 	RangeBoundsMap::try_from([(10..38, true), (40..42, false)])
-	/// 		.unwrap();
+	/// let mut add = RangeBoundsMap::from_slice_strict([
+	/// 	(10..38, true),
+	/// 	(40..42, false),
+	/// ])
+	/// .unwrap();
 	///
-	/// let expected = RangeBoundsMap::try_from([
+	/// let expected = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(10..38, true),
@@ -1564,7 +1572,7 @@ where
 	///
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
-	/// let mut a = RangeBoundsMap::try_from([
+	/// let mut a = RangeBoundsMap::from_slice_strict([
 	/// 	(1..2, false),
 	/// 	(4..8, true),
 	/// 	(10..16, true),
@@ -1637,7 +1645,7 @@ where
 	///
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -1699,7 +1707,7 @@ where
 	/// ```
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
-	/// let range_bounds_map = RangeBoundsMap::try_from([
+	/// let range_bounds_map = RangeBoundsMap::from_slice_strict([
 	/// 	(1..4, false),
 	/// 	(4..8, true),
 	/// 	(8..100, false),
@@ -1735,6 +1743,20 @@ where
 				value,
 			)
 		})
+	}
+
+	/// Allocate a `RangeBoundsMap` and move the given `RangeBounds`
+	/// in the slice into the map using
+	/// [`RangeBoundsMap::insert_strict()`].
+	#[trivial]
+	pub fn from_slice_strict<const N: usize>(
+		slice: [(K, V); N],
+	) -> Result<RangeBoundsMap<I, K, V>, OverlapError> {
+		let mut map = RangeBoundsMap::new();
+		for (range_bounds, value) in slice {
+			map.insert_strict(range_bounds, value);
+		}
+		return Ok(map);
 	}
 }
 
@@ -2119,7 +2141,7 @@ mod tests {
 		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 	fn basic() -> RangeBoundsMap<u8, TestBounds, bool> {
-		RangeBoundsMap::try_from([
+		RangeBoundsMap::from_slice_strict([
 			(ui(4), false),
 			(ee(5, 7), true),
 			(ii(7, 7), false),
@@ -2129,7 +2151,7 @@ mod tests {
 	}
 
 	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
-		RangeBoundsMap::try_from([
+		RangeBoundsMap::from_slice_strict([
 			(mii(4, 6), false),
 			(mee(7, 8), true),
 			(mii(8, 12), false),
@@ -2236,7 +2258,10 @@ mod tests {
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
 		match after {
 			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+				assert_eq!(
+					before,
+					RangeBoundsMap::from_slice_strict(after).unwrap()
+				)
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2343,10 +2368,13 @@ mod tests {
 				let mut range_bounds_map = RangeBoundsMap::new();
 				range_bounds_map.insert_strict(inside_range, ()).unwrap();
 
-				let result = range_bounds_map
+				let mut result = RangeBoundsMap::new();
+				for resulting_entry in range_bounds_map
 					.overlapping_trimmed(&overlap_range)
 					.map(|(key, value)| (cloned_bounds(key), value.clone()))
-					.collect::<RangeBoundsMap<u8, TestBounds, ()>>();
+				{
+					result.insert_strict(resulting_entry.0, resulting_entry.1);
+				}
 
 				for i in NUMBERS_DOMAIN {
 					assert_eq!(
@@ -2366,10 +2394,13 @@ mod tests {
 				range_bounds_map.insert_strict(inside_range1, ()).unwrap();
 				range_bounds_map.insert_strict(inside_range2, ()).unwrap();
 
-				let result = range_bounds_map
+				let mut result = RangeBoundsMap::new();
+				for resulting_entry in range_bounds_map
 					.overlapping_trimmed(&overlap_range)
 					.map(|(key, value)| (cloned_bounds(key), value.clone()))
-					.collect::<RangeBoundsMap<u8, TestBounds, ()>>();
+				{
+					result.insert_strict(resulting_entry.0, resulting_entry.1);
+				}
 
 				for i in NUMBERS_DOMAIN {
 					assert_eq!(
@@ -2423,7 +2454,10 @@ mod tests {
 		);
 		match after {
 			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+				assert_eq!(
+					before,
+					RangeBoundsMap::from_slice_strict(after).unwrap()
+				)
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2523,7 +2557,10 @@ mod tests {
 		}
 		match after {
 			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+				assert_eq!(
+					before,
+					RangeBoundsMap::from_slice_strict(after).unwrap()
+				)
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2663,7 +2700,10 @@ mod tests {
 		);
 		match after {
 			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+				assert_eq!(
+					before,
+					RangeBoundsMap::from_slice_strict(after).unwrap()
+				)
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2766,7 +2806,10 @@ mod tests {
 		);
 		match after {
 			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+				assert_eq!(
+					before,
+					RangeBoundsMap::from_slice_strict(after).unwrap()
+				)
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2775,7 +2818,7 @@ mod tests {
 	#[test]
 	fn insert_merge_touching_or_overlapping_tests() {
 		assert_insert_merge_touching_or_overlapping(
-			RangeBoundsMap::try_from([(1..4, false)]).unwrap(),
+			RangeBoundsMap::from_slice_strict([(1..4, false)]).unwrap(),
 			(-4..1, true),
 			Ok(&(-4..4)),
 			Some([(-4..4, true)]),
@@ -2899,7 +2942,10 @@ mod tests {
 		);
 		match after {
 			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::try_from(after).unwrap())
+				assert_eq!(
+					before,
+					RangeBoundsMap::from_slice_strict(after).unwrap()
+				)
 			}
 			None => assert_eq!(before, clone),
 		}

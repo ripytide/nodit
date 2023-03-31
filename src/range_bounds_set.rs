@@ -46,7 +46,8 @@ use crate::{
 ///
 /// // Make a new set
 /// let mut set =
-/// 	RangeBoundsSet::try_from([4..8, 8..18, 20..100]).unwrap();
+/// 	RangeBoundsSet::from_slice_strict([4..8, 8..18, 20..100])
+/// 		.unwrap();
 ///
 /// if set.contains_point(&99) {
 /// 	println!("Set contains value at 99 :)");
@@ -256,7 +257,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// let mut overlapping = range_bounds_set.overlapping(&(2..8));
 	///
@@ -284,7 +286,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// assert_eq!(range_bounds_set.get_at_point(&3), Some(&(1..4)));
 	/// assert_eq!(range_bounds_set.get_at_point(&4), Some(&(4..8)));
@@ -303,7 +306,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// assert_eq!(range_bounds_set.contains_point(&3), true);
 	/// assert_eq!(range_bounds_set.contains_point(&4), true);
@@ -322,7 +326,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// let mut iter = range_bounds_set.iter();
 	///
@@ -351,7 +356,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let mut range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// let mut removed = range_bounds_set.remove_overlapping(&(2..8));
 	///
@@ -397,10 +403,11 @@ where
 	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
 	///
 	/// let mut base =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// let after_cut =
-	/// 	RangeBoundsSet::try_from([1..2, 40..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..2, 40..100]).unwrap();
 	///
 	/// assert_eq!(
 	/// 	base.cut(&(2..40)).unwrap().collect::<Vec<_>>(),
@@ -443,10 +450,11 @@ where
 	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
 	///
 	/// let mut base =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// let after_cut =
-	/// 	RangeBoundsSet::try_from([1..2, 40..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..2, 40..100]).unwrap();
 	///
 	/// assert_eq!(
 	/// 	base.cut_same(&(2..40)).unwrap().collect::<Vec<_>>(),
@@ -494,7 +502,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..3, 5..7, 9..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..3, 5..7, 9..100])
+	/// 		.unwrap();
 	///
 	/// let mut gaps = range_bounds_set.gaps(&(2..));
 	///
@@ -535,7 +544,8 @@ where
 	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..3, 5..7, 9..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..3, 5..7, 9..100])
+	/// 		.unwrap();
 	///
 	/// let mut gaps_same = range_bounds_set.gaps_same(&(2..));
 	///
@@ -571,7 +581,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..3, 5..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..3, 5..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// assert_eq!(range_bounds_set.contains_range_bounds(&(1..3)), true);
 	/// assert_eq!(
@@ -619,7 +630,7 @@ where
 	/// };
 	///
 	/// let mut range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4]).unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
@@ -677,7 +688,7 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let mut range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4]).unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
@@ -735,7 +746,7 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let mut range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4]).unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
@@ -794,7 +805,7 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let mut range_bounds_set =
-	/// 	RangeBoundsSet::try_from([2..8]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([2..8]).unwrap();
 	///
 	/// assert_eq!(range_bounds_set.insert_overwrite(4..6), Ok(()));
 	///
@@ -821,7 +832,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// assert_eq!(range_bounds_set.first(), Some(&(1..4)));
 	/// ```
@@ -837,7 +849,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// assert_eq!(range_bounds_set.last(), Some(&(8..100)));
 	/// ```
@@ -859,13 +872,19 @@ where
 	/// ```
 	/// use range_bounds_map::RangeBoundsSet;
 	///
-	/// let mut base = RangeBoundsSet::try_from([1..4, 4..8]).unwrap();
+	/// let mut base =
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8]).unwrap();
 	///
-	/// let mut add = RangeBoundsSet::try_from([10..38, 40..42]).unwrap();
+	/// let mut add =
+	/// 	RangeBoundsSet::from_slice_strict([10..38, 40..42]).unwrap();
 	///
-	/// let expected =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 10..38, 40..42])
-	/// 		.unwrap();
+	/// let expected = RangeBoundsSet::from_slice_strict([
+	/// 	1..4,
+	/// 	4..8,
+	/// 	10..38,
+	/// 	40..42,
+	/// ])
+	/// .unwrap();
 	///
 	/// assert_eq!(base.append_strict(&mut add), Ok(()));
 	/// assert_eq!(base, expected);
@@ -876,12 +895,13 @@ where
 		&mut self,
 		other: &mut RangeBoundsSet<I, K>,
 	) -> Result<(), OverlapError> {
-		self.map.append_strict(
-			&mut other
-				.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
-				.map(|key| (key, ()))
-				.collect(),
-		)
+		for range_bounds in
+			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
+		{
+			self.insert_strict(range_bounds)?;
+		}
+
+		return Ok(());
 	}
 
 	/// Splits the set in two at the given `start_bound()`. Returns
@@ -899,7 +919,8 @@ where
 	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
 	///
 	/// let mut a =
-	/// 	RangeBoundsSet::try_from([1..2, 4..8, 10..16]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..2, 4..8, 10..16])
+	/// 		.unwrap();
 	///
 	/// // Fails because that would leave an Inclusive-Inclusive
 	/// // `RangeBounds` in `a`
@@ -921,9 +942,12 @@ where
 	where
 		K: TryFromBounds<I> + Clone,
 	{
-		self.map
-			.split_off(start_bound)
-			.map(|map| map.into_iter().map(first).collect())
+		let mut set = RangeBoundsSet::new();
+		for (range_bounds, _) in self.map.split_off(start_bound)? {
+			set.insert_strict(range_bounds).unwrap();
+		}
+
+		Ok(set)
 	}
 
 	/// Similar to [`RangeBoundsSet::overlapping()`] except the
@@ -947,7 +971,8 @@ where
 	/// use range_bounds_map::RangeBoundsSet;
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// let mut overlapping_trimmed =
 	/// 	range_bounds_set.overlapping_trimmed(&(2..20));
@@ -988,7 +1013,8 @@ where
 	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
 	///
 	/// let range_bounds_set =
-	/// 	RangeBoundsSet::try_from([1..4, 4..8, 8..100]).unwrap();
+	/// 	RangeBoundsSet::from_slice_strict([1..4, 4..8, 8..100])
+	/// 		.unwrap();
 	///
 	/// let mut overlapping_trimmed_same =
 	/// 	range_bounds_set.overlapping_trimmed_same(&(2..=20));
@@ -1013,6 +1039,20 @@ where
 		K: TryFromBounds<I>,
 	{
 		self.map.overlapping_trimmed_same(range_bounds).map(first)
+	}
+
+	/// Allocate a `RangeBoundsSet` and move the given `RangeBounds`
+	/// in the slice into the set using
+	/// [`RangeBoundsMap::insert_strict()`].
+	#[trivial]
+	pub fn from_slice_strict<const N: usize>(
+		slice: [K; N],
+	) -> Result<RangeBoundsSet<I, K>, OverlapError> {
+		let mut set = RangeBoundsSet::new();
+		for range_bounds in slice {
+			set.insert_strict(range_bounds);
+		}
+		return Ok(set);
 	}
 }
 

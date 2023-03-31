@@ -76,7 +76,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! }
 //!
 //! // Next we can create a custom typed RangeBoundsMap
-//! let reservation_map = RangeBoundsMap::try_from([
+//! let reservation_map = RangeBoundsMap::from_slice_strict([
 //! 	(Reservation::Finite(10, 20), "Ferris".to_string()),
 //! 	(Reservation::Infinite(20), "Corro".to_string()),
 //! ])
