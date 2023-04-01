@@ -32,7 +32,6 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
-use crate::start_range_bounds_ord_wrapper::StartRangeBoundsOrdWrapper;
 use crate::TryFromBounds;
 
 /// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
@@ -127,12 +126,12 @@ use crate::TryFromBounds;
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RangeBoundsMap<I, K, V>
 where
-	I: PartialOrd,
+	I: Ord,
 {
-	inner: BTreeMap<StartRangeBoundsOrdWrapper<I, K>, V>,
+	starts: BTreeMap<BoundOrd<I>, (K, V)>,
 }
 
 /// An error type to represent a [`RangeBounds`] overlapping another
@@ -2126,7 +2125,7 @@ pub struct Overlapping<'a, I, K, V, Q> {
 }
 impl<'a, I, K, V, Q> Iterator for Overlapping<'a, I, K, V, Q>
 where
-	I: PartialOrd,
+	I: Ord,
 	K: RangeBounds<I>,
 	Q: RangeBounds<I>,
 {
@@ -2178,7 +2177,7 @@ impl<I, K, V> Iterator for IntoIter<I, K, V> {
 
 impl<I, K, V> Default for RangeBoundsMap<I, K, V>
 where
-	I: PartialOrd,
+	I: Ord,
 {
 	#[trivial]
 	fn default() -> Self {
@@ -2275,7 +2274,7 @@ fn config<'a, I, A, B>(a: &'a A, b: &'a B) -> Config
 where
 	A: RangeBounds<I>,
 	B: RangeBounds<I>,
-	I: PartialOrd,
+	I: Ord,
 {
 	let (a_start, a_end) = expand(a);
 	let (b_start, b_end) = expand(b);
@@ -2319,7 +2318,7 @@ fn sorted_config<'a, I, A, B>(a: &'a A, b: &'a B) -> SortedConfig<&'a I>
 where
 	A: RangeBounds<I>,
 	B: RangeBounds<I>,
-	I: PartialOrd,
+	I: Ord,
 {
     let ae = expand(a);
     let be = expand(b);
@@ -2338,7 +2337,7 @@ where
 fn contains_bound_ord<I, A>(range_bounds: &A, bound_ord: BoundOrd<&I>) -> bool
 where
 	A: RangeBounds<I>,
-	I: PartialOrd,
+	I: Ord,
 {
 	let start_bound_ord = BoundOrd::start(range_bounds.start_bound());
 	let end_bound_ord = BoundOrd::end(range_bounds.end_bound());
@@ -2361,7 +2360,7 @@ fn cut_range_bounds<'a, I, B, C>(
 where
 	B: RangeBounds<I>,
 	C: RangeBounds<I>,
-	I: PartialOrd + Clone,
+	I: Ord + Clone,
 {
 	let base_all @ (base_start, base_end) = (
 		base_range_bounds.start_bound(),
@@ -2442,7 +2441,7 @@ fn overlaps<I, A, B>(a: &A, b: &B) -> bool
 where
 	A: RangeBounds<I>,
 	B: RangeBounds<I>,
-	I: PartialOrd,
+	I: Ord,
 {
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
@@ -2452,7 +2451,7 @@ fn touches<I, A, B>(a: &A, b: &B) -> bool
 where
 	A: RangeBounds<I>,
 	B: RangeBounds<I>,
-	I: PartialOrd,
+	I: Ord,
 {
 	match sorted_config(a, b) {
 		SortedConfig::NonOverlapping(a, b) => match (a.1, b.0) {

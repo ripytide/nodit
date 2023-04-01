@@ -75,42 +75,49 @@ where
 {
 	#[rustfmt::skip]
     #[tested]
-	fn cmp(&self, other: &Self) ->Ordering {
+	fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
-            (BoundOrd::Included(start1), BoundOrd::Included(start2)) => start1.partial_cmp(start2),
-            (BoundOrd::Included(start1), BoundOrd::StartExcluded(start2)) => partial_cmp_with_priority(start1, start2, true),
-            (BoundOrd::Included(start1), BoundOrd::EndExcluded(start2)) => partial_cmp_with_priority(start1, start2, false),
-            (BoundOrd::Included(_), BoundOrd::EndUnbounded) => Some(Ordering::Less),
-            (BoundOrd::Included(_), BoundOrd::StartUnbounded) => Some(Ordering::Greater),
+            (BoundOrd::Included(start1), BoundOrd::Included(start2)) => start1.cmp(start2),
+            (BoundOrd::Included(start1), BoundOrd::StartExcluded(start2)) => cmp_with_priority(start1, start2, true),
+            (BoundOrd::Included(start1), BoundOrd::EndExcluded(start2)) => cmp_with_priority(start1, start2, false),
+            (BoundOrd::Included(_), BoundOrd::EndUnbounded) => Ordering::Less,
+            (BoundOrd::Included(_), BoundOrd::StartUnbounded) => Ordering::Greater,
 
-            (BoundOrd::StartExcluded(start1), BoundOrd::StartExcluded(start2)) => start1.partial_cmp(start2),
-            (BoundOrd::StartExcluded(start1), BoundOrd::Included(start2)) => partial_cmp_with_priority(start1, start2, false),
-            (BoundOrd::StartExcluded(start1), BoundOrd::EndExcluded(start2)) => partial_cmp_with_priority(start1, start2, false),
-            (BoundOrd::StartExcluded(_), BoundOrd::StartUnbounded) => Some(Ordering::Greater),
-            (BoundOrd::StartExcluded(_), BoundOrd::EndUnbounded) => Some(Ordering::Less),
+            (BoundOrd::StartExcluded(start1), BoundOrd::StartExcluded(start2)) => start1.cmp(start2),
+            (BoundOrd::StartExcluded(start1), BoundOrd::Included(start2)) => cmp_with_priority(start1, start2, false),
+            (BoundOrd::StartExcluded(start1), BoundOrd::EndExcluded(start2)) => cmp_with_priority(start1, start2, false),
+            (BoundOrd::StartExcluded(_), BoundOrd::StartUnbounded) => Ordering::Greater,
+            (BoundOrd::StartExcluded(_), BoundOrd::EndUnbounded) => Ordering::Less,
 
-            (BoundOrd::StartUnbounded, BoundOrd::Included(_)) => Some(Ordering::Less),
-            (BoundOrd::StartUnbounded, BoundOrd::StartExcluded(_)) => Some(Ordering::Less),
-            (BoundOrd::StartUnbounded, BoundOrd::EndExcluded(_)) => Some(Ordering::Less),
-            (BoundOrd::StartUnbounded, BoundOrd::StartUnbounded) => Some(Ordering::Equal),
-            (BoundOrd::StartUnbounded, BoundOrd::EndUnbounded) => Some(Ordering::Less),
+            (BoundOrd::StartUnbounded, BoundOrd::Included(_)) => Ordering::Less,
+            (BoundOrd::StartUnbounded, BoundOrd::StartExcluded(_)) => Ordering::Less,
+            (BoundOrd::StartUnbounded, BoundOrd::EndExcluded(_)) => Ordering::Less,
+            (BoundOrd::StartUnbounded, BoundOrd::StartUnbounded) => Ordering::Equal,
+            (BoundOrd::StartUnbounded, BoundOrd::EndUnbounded) => Ordering::Less,
 
-            (BoundOrd::EndExcluded(start1), BoundOrd::EndExcluded(start2)) => start1.partial_cmp(start2),
-            (BoundOrd::EndExcluded(start1), BoundOrd::Included(start2)) => partial_cmp_with_priority(start1, start2, true),
-            (BoundOrd::EndExcluded(start1), BoundOrd::StartExcluded(start2)) => partial_cmp_with_priority(start1, start2, true),
-            (BoundOrd::EndExcluded(_), BoundOrd::StartUnbounded) => Some(Ordering::Greater),
-            (BoundOrd::EndExcluded(_), BoundOrd::EndUnbounded) => Some(Ordering::Less),
+            (BoundOrd::EndExcluded(start1), BoundOrd::EndExcluded(start2)) => start1.cmp(start2),
+            (BoundOrd::EndExcluded(start1), BoundOrd::Included(start2)) => cmp_with_priority(start1, start2, true),
+            (BoundOrd::EndExcluded(start1), BoundOrd::StartExcluded(start2)) => cmp_with_priority(start1, start2, true),
+            (BoundOrd::EndExcluded(_), BoundOrd::StartUnbounded) => Ordering::Greater,
+            (BoundOrd::EndExcluded(_), BoundOrd::EndUnbounded) => Ordering::Less,
 
-            (BoundOrd::EndUnbounded, BoundOrd::Included(_)) => Some(Ordering::Greater),
-            (BoundOrd::EndUnbounded, BoundOrd::StartExcluded(_)) => Some(Ordering::Greater),
-            (BoundOrd::EndUnbounded, BoundOrd::EndExcluded(_)) => Some(Ordering::Greater),
-            (BoundOrd::EndUnbounded, BoundOrd::EndUnbounded) => Some(Ordering::Equal),
-            (BoundOrd::EndUnbounded, BoundOrd::StartUnbounded) => Some(Ordering::Greater),
+            (BoundOrd::EndUnbounded, BoundOrd::Included(_)) => Ordering::Greater,
+            (BoundOrd::EndUnbounded, BoundOrd::StartExcluded(_)) => Ordering::Greater,
+            (BoundOrd::EndUnbounded, BoundOrd::EndExcluded(_)) => Ordering::Greater,
+            (BoundOrd::EndUnbounded, BoundOrd::EndUnbounded) => Ordering::Equal,
+            (BoundOrd::EndUnbounded, BoundOrd::StartUnbounded) => Ordering::Greater,
         }
 }
 }
 
-impl<T> PartialOrd for BoundOrd<T> where T: Ord {}
+impl<T> PartialOrd for BoundOrd<T>
+where
+	T: Ord,
+{
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		Some(self.cmp(other))
+	}
+}
 
 impl<T> PartialEq for BoundOrd<T>
 where
@@ -126,23 +133,19 @@ impl<T> Eq for BoundOrd<T> where T: Ord {}
 /// If they are equal say the item with priority is larger
 /// where false means left has priority and true means right.
 #[parent_tested]
-fn partial_cmp_with_priority<T>(
-	left: &T,
-	right: &T,
-	priority: bool,
-) -> Option<Ordering>
+fn cmp_with_priority<T>(left: &T, right: &T, priority: bool) -> Ordering
 where
-	T: PartialOrd,
+	T: Ord,
 {
-	let result = left.partial_cmp(right)?;
+	let result = left.cmp(right);
 
-	Some(match result {
+	match result {
 		Ordering::Equal => match priority {
 			false => Ordering::Greater,
 			true => Ordering::Less,
 		},
 		x => x,
-	})
+	}
 }
 
 impl<T> From<BoundOrd<T>> for Bound<T> {

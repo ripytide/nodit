@@ -112,7 +112,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct RangeBoundsSet<I, K>
 where
-	I: PartialOrd,
+	I: Ord,
 {
 	map: RangeBoundsMap<I, K, ()>,
 }
@@ -1411,7 +1411,7 @@ impl<I, K> Iterator for IntoIter<I, K> {
 
 impl<I, K> Default for RangeBoundsSet<I, K>
 where
-	I: PartialOrd,
+	I: Ord,
 {
 	#[trivial]
 	fn default() -> Self {
