@@ -222,6 +222,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 #![feature(is_some_and)]
 #![feature(let_chains)]
+#![feature(btree_cursors)]
 #![allow(clippy::tabs_in_doc_comments)]
 #![allow(clippy::needless_return)]
 pub(crate) mod bound_ord;

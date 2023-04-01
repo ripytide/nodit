@@ -43,6 +43,14 @@
   (At the moment we do implement it using insert_strict())
 - should append\_\* functions not change the base if they fail half way?
 
+# btree_cursors thoughts
+
+- the docs annoy me with sometimes including "Basic usage:" and
+  sometimes not, this may not be unique just the btree_cursors
+  function docs though.
+- no examples in the docs for Cursors and CursorsMut unlike Entry docs
+  for some other collections which have nice docs.
+
 #### PUBLISH
 
 # after publish tasks

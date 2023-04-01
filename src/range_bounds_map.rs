@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::collections::btree_map::IntoValues;
+use std::collections::btree_map::{Cursor, IntoValues};
 use std::collections::BTreeMap;
 use std::fmt::{self, Debug};
 use std::iter::once;
@@ -362,10 +362,6 @@ where
 	) -> Result<(), OverlapError> {
 		if self.overlaps(&range_bounds) {
 			return Err(OverlapError);
-		}
-
-		if !is_valid_range_bounds(&range_bounds) {
-			panic!("Invalid range_bounds!");
 		}
 
 		self.starts.insert(
@@ -2119,6 +2115,32 @@ where
 	}
 }
 
+/// An owning iterator over the entries of a [`RangeBoundsMap`].
+///
+/// This `struct` is returned from the [`RangeBoundsMap::overlapping()`]
+/// method, see its documentation for more details.
+pub struct Overlapping<'a, I, K, V, Q> {
+	query_range_bounds: &'a Q,
+	cursor: Cursor<'a, BoundOrd<I>, (K, V)>,
+}
+impl<'a, I, K, V, Q> Iterator for Overlapping<'a, I, K, V, Q>
+where
+	I: PartialOrd,
+	K: RangeBounds<I>,
+	Q: RangeBounds<I>,
+{
+	type Item = (&'a K, &'a V);
+    fn next(&mut self) -> Option<Self::Item> {
+		let (key, value) = self.cursor.value()?;
+
+		if overlaps(self.query_range_bounds, key) {
+			return Some((key, value));
+		} else {
+			return None;
+		}
+	}
+}
+
 impl<I, K, V> IntoIterator for RangeBoundsMap<I, K, V>
 where
 	K: RangeBounds<I>,
@@ -3453,7 +3475,8 @@ mod tests {
 
 	// Test Helper Functions
 	//======================
-	fn all_non_overlapping_test_bound_entries() -> Vec<(TestBounds, TestBounds)> {
+	fn all_non_overlapping_test_bound_entries() -> Vec<(TestBounds, TestBounds)>
+	{
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
