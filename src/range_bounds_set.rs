@@ -109,7 +109,7 @@ use crate::{
 /// ```
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct RangeBoundsSet<I, K>
 where
 	I: PartialOrd,

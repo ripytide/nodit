@@ -228,6 +228,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 pub(crate) mod bound_ord;
 pub mod range_bounds_map;
 pub mod range_bounds_set;
+pub(crate) mod start_range_bounds_ord_wrapper;
 pub mod try_from_bounds;
 
 pub use crate::range_bounds_map::{

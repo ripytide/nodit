@@ -32,6 +32,7 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
+use crate::start_range_bounds_ord_wrapper::StartRangeBoundsOrdWrapper;
 use crate::TryFromBounds;
 
 /// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
@@ -126,12 +127,12 @@ use crate::TryFromBounds;
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct RangeBoundsMap<I, K, V>
 where
 	I: PartialOrd,
 {
-	starts: BTreeMap<BoundOrd<I>, (K, V)>,
+	inner: BTreeMap<StartRangeBoundsOrdWrapper<I, K>, V>,
 }
 
 /// An error type to represent a [`RangeBounds`] overlapping another
@@ -2130,10 +2131,11 @@ where
 	Q: RangeBounds<I>,
 {
 	type Item = (&'a K, &'a V);
-    fn next(&mut self) -> Option<Self::Item> {
+	fn next(&mut self) -> Option<Self::Item> {
 		let (key, value) = self.cursor.value()?;
 
 		if overlaps(self.query_range_bounds, key) {
+			self.cursor.move_next();
 			return Some((key, value));
 		} else {
 			return None;
