@@ -59,3 +59,4 @@
   the docs, and generally check for dead links on docs and readme
 - tell people in issues of other rangemap libraries about my library
   stonks advertising
+- remove unused dependencies

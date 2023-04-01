@@ -22,12 +22,32 @@ use std::ops::RangeBounds;
 
 use crate::bound_ord::BoundOrd;
 
-pub enum CustomRangeBoundsOrdWrapper<I, K> {
-	BoundOrd(BoundOrd<I>),
+#[derive(Debug, Clone)]
+pub enum CustomRangeBoundsOrdWrapper<K> {
 	RangeBounds(K),
 }
 
-impl<I, K> Ord for CustomRangeBoundsOrdWrapper<I, K>
+impl<K> CustomRangeBoundsOrdWrapper<K> {
+	pub fn unwrap_range_bounds_ref(&self) -> &K {
+		match self {
+			CustomRangeBoundsOrdWrapper::RangeBounds(range_bounds) => {
+				return range_bounds;
+			}
+			_ => panic!("unwrap failed"),
+		}
+	}
+
+	pub fn unwrap_range_bounds(self) -> K {
+		match self {
+			CustomRangeBoundsOrdWrapper::RangeBounds(range_bounds) => {
+				return range_bounds;
+			}
+			_ => panic!("unwrap failed"),
+		}
+	}
+}
+
+impl<I, K> Ord for CustomRangeBoundsOrdWrapper<K>
 where
 	I: Ord,
 	K: RangeBounds<I>,
@@ -80,7 +100,7 @@ where
 	}
 }
 
-impl<I, K> PartialOrd for CustomRangeBoundsOrdWrapper<I, K>
+impl<I, K> PartialOrd for CustomRangeBoundsOrdWrapper<K>
 where
 	I: Ord,
 	K: RangeBounds<I>,
@@ -90,14 +110,14 @@ where
 	}
 }
 
-impl<I, K> Eq for CustomRangeBoundsOrdWrapper<I, K>
+impl<I, K> Eq for CustomRangeBoundsOrdWrapper<K>
 where
 	I: Ord,
 	K: RangeBounds<I>,
 {
 }
 
-impl<I, K> PartialEq for CustomRangeBoundsOrdWrapper<I, K>
+impl<I, K> PartialEq for CustomRangeBoundsOrdWrapper<K>
 where
 	I: Ord,
 	K: RangeBounds<I>,
