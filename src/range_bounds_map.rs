@@ -330,7 +330,7 @@ where
 		self.starts.is_empty()
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) pair to the map without
+	/// Adds a new (`RangeBounds`, `Value`) entry to the map without
 	/// modifying other entries.
 	///
 	/// If the given `RangeBounds` overlaps one or more `RangeBounds`
@@ -408,7 +408,7 @@ where
 		self.overlapping(range_bounds).next().is_some()
 	}
 
-	/// Returns an iterator over every (`RangeBounds`, `Value`) pair
+	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
 	/// in the map which overlap the given `RangeBounds` in
 	/// ascending order.
 	///
@@ -567,7 +567,7 @@ where
 		return None;
 	}
 
-	/// Returns an (`RangeBounds`, `Value`) pair corresponding to the
+	/// Returns an (`RangeBounds`, `Value`) entry corresponding to the
 	/// `RangeBounds` that overlaps the given point, if any.
 	///
 	/// # Examples
@@ -596,7 +596,7 @@ where
 			.next();
 	}
 
-	/// Returns an iterator over every (`RangeBounds`, `Value`) pair
+	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
 	/// in the map in ascending order.
 	///
 	/// # Examples
@@ -622,7 +622,7 @@ where
 		self.starts.iter().map(|(_, (key, value))| (key, value))
 	}
 
-	/// Removes every (`RangeBounds`, `Value`) pair in the map which
+	/// Removes every (`RangeBounds`, `Value`) entry in the map which
 	/// overlaps the given `RangeBounds` and returns them in
 	/// an iterator.
 	///
@@ -690,7 +690,7 @@ where
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
 	/// of a `RangeBounds` in the map it will split into two different
-	/// (`RangeBounds`, `Value`) pairs using `Clone`. Or if you
+	/// (`RangeBounds`, `Value`) entries using `Clone`. Or if you
 	/// partially cut a `RangeBounds` then `V` must be cloned to be
 	/// returned in the iterator.
 	///
@@ -1062,7 +1062,7 @@ where
 		self.gaps(range_bounds).next().is_none()
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
+	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
 	/// merges into other `RangeBounds` in the map which touch it.
 	///
 	/// The `Value` of the merged `RangeBounds` is set to the given
@@ -1194,7 +1194,7 @@ where
 			.filter(|x| touches(range_bounds, *x));
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
+	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
 	/// merges into other `RangeBounds` in the map which overlap
 	/// it.
 	///
@@ -1296,7 +1296,7 @@ where
 		return (Bound::from(start_bound), Bound::from(end_bound));
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
+	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
 	/// merges into other `RangeBounds` in the map which touch or
 	/// overlap it.
 	///
@@ -1379,7 +1379,7 @@ where
 		return Ok(&self.starts.get(&BoundOrd::start(start_bound)).unwrap().0);
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) pair to the map and
+	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
 	/// overwrites any other `RangeBounds` that overlap the new
 	/// `RangeBounds`.
 	///
@@ -1428,7 +1428,7 @@ where
 		return Ok(());
 	}
 
-	/// Returns the first (`RangeBounds`, `Value`) pair in the map, if
+	/// Returns the first (`RangeBounds`, `Value`) entry in the map, if
 	/// any.
 	///
 	/// # Examples
@@ -1449,7 +1449,7 @@ where
 		self.iter().next()
 	}
 
-	/// Returns the last (`RangeBounds`, `Value`) pair in the map, if
+	/// Returns the last (`RangeBounds`, `Value`) entry in the map, if
 	/// any.
 	///
 	/// # Examples
@@ -1928,7 +1928,7 @@ where
 	}
 
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
-	/// `Value`) pairs from the slice into the map using
+	/// `Value`) entries from the slice into the map using
 	/// [`RangeBoundsMap::insert_strict()`].
 	///
 	/// May return an `Err` while inserting. See
@@ -1963,7 +1963,7 @@ where
 		return Ok(map);
 	}
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
-	/// `Value`) pairs from the slice into the map using
+	/// `Value`) entries from the slice into the map using
 	/// [`RangeBoundsMap::insert_merge_touching()`].
 	///
 	/// May return an `Err` while inserting. See
@@ -2001,7 +2001,7 @@ where
 		return Ok(map);
 	}
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
-	/// `Value`) pairs from the slice into the map using
+	/// `Value`) entries from the slice into the map using
 	/// [`RangeBoundsMap::insert_merge_overlapping()`].
 	///
 	/// May return an `Err` while inserting. See
@@ -2039,7 +2039,7 @@ where
 		return Ok(map);
 	}
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
-	/// `Value`) pairs from the slice into the map using
+	/// `Value`) entries from the slice into the map using
 	/// [`RangeBoundsMap::insert_merge_touching_or_overlapping()`].
 	///
 	/// May return an `Err` while inserting. See
@@ -2079,7 +2079,7 @@ where
 		return Ok(map);
 	}
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
-	/// `Value`) pairs from the slice into the map using
+	/// `Value`) entries from the slice into the map using
 	/// [`RangeBoundsMap::insert_overwrite()`].
 	///
 	/// May return an `Err` while inserting. See
@@ -2668,7 +2668,7 @@ mod tests {
 		//case two
 		for overlap_range in all_valid_test_bounds() {
 			for (inside_range1, inside_range2) in
-				all_non_overlapping_test_bound_pairs()
+				all_non_overlapping_test_bound_entries()
 			{
 				let mut map = RangeBoundsMap::new();
 				map.insert_strict(inside_range1, ()).unwrap();
@@ -2748,7 +2748,7 @@ mod tests {
 		//case two
 		for overlap_range in all_valid_test_bounds() {
 			for (inside_range1, inside_range2) in
-				all_non_overlapping_test_bound_pairs()
+				all_non_overlapping_test_bound_entries()
 			{
 				let mut map = RangeBoundsMap::new();
 				map.insert_strict(inside_range1, ()).unwrap();
@@ -3453,7 +3453,7 @@ mod tests {
 
 	// Test Helper Functions
 	//======================
-	fn all_non_overlapping_test_bound_pairs() -> Vec<(TestBounds, TestBounds)> {
+	fn all_non_overlapping_test_bound_entries() -> Vec<(TestBounds, TestBounds)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
@@ -3470,7 +3470,7 @@ mod tests {
 		let mut output = Vec::new();
 
 		//bounded-bounded
-		output.append(&mut all_finite_bounded_pairs());
+		output.append(&mut all_finite_bounded_entries());
 		//bounded-unbounded
 		for start_bound in all_finite_bounded() {
 			output.push((start_bound, u()));
@@ -3485,7 +3485,7 @@ mod tests {
 		return output;
 	}
 
-	fn all_finite_bounded_pairs() -> Vec<(Bound<u8>, Bound<u8>)> {
+	fn all_finite_bounded_entries() -> Vec<(Bound<u8>, Bound<u8>)> {
 		let mut output = Vec::new();
 		for i in NUMBERS {
 			for j in NUMBERS {
