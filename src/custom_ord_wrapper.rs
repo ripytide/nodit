@@ -18,47 +18,84 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::cmp::Ordering;
+use std::ops::RangeBounds;
 
-pub enum CustomOrdWrapper<C, T> {
-	CustomOrd(C),
-	Value(T),
+use crate::bound_ord::BoundOrd;
+
+pub enum CustomRangeBoundsOrdWrapper<I, K> {
+	//non real
+	BoundOrd(BoundOrd<I>),
+
+	//real
+	RangeBounds(K),
 }
 
-impl<C, T> Ord for CustomOrdWrapper<C, T>
+impl<I, K> Ord for CustomRangeBoundsOrdWrapper<I, K>
 where
-	C: Fn(&T) -> Ordering,
+	I: Ord + Clone,
+	K: RangeBounds<I>,
 {
 	fn cmp(&self, other: &Self) -> Ordering {
 		match (self, other) {
 			(
-				CustomOrdWrapper::CustomOrd(custom_ord),
-				CustomOrdWrapper::Value(value),
-			) => custom_ord(value),
+				CustomRangeBoundsOrdWrapper::RangeBounds(range_bounds),
+				CustomRangeBoundsOrdWrapper::BoundOrd(bound_ord),
+			) => cmp_range_bounds_with_bound_ord(range_bounds, bound_ord),
 			(
-				CustomOrdWrapper::Value(value),
-				CustomOrdWrapper::CustomOrd(custom_ord),
-			) => custom_ord(value),
-			_ => panic!(
-				"You must have exactly ONE Value and ONE CustomOrd when comparing CustomOrdWrapper's"
-			),
+				CustomRangeBoundsOrdWrapper::BoundOrd(bound_ord),
+				CustomRangeBoundsOrdWrapper::RangeBounds(range_bounds),
+			) => cmp_range_bounds_with_bound_ord(range_bounds, bound_ord)
+				.reverse(),
+			_ => {
+				panic!(
+					"You cannot compare a Non-Real CustomOrdWrapper with another Non-Real CustomOrdWrapper!"
+				);
+			}
 		}
 	}
 }
 
-impl<C, T> PartialOrd for CustomOrdWrapper<C, T>
+fn cmp_range_bounds_with_bound_ord<I, K>(
+	range_bounds: &K,
+	bound_ord: &BoundOrd<I>,
+) -> Ordering
 where
-	C: Fn(&T) -> Ordering,
+	I: Ord + Clone,
+	K: RangeBounds<I>,
+{
+	let start_bound_ord = BoundOrd::start(range_bounds.start_bound().cloned());
+	let end_bound_ord = BoundOrd::end(range_bounds.end_bound().cloned());
+
+	if bound_ord < &start_bound_ord {
+		Ordering::Greater
+	} else if bound_ord > &end_bound_ord {
+		Ordering::Less
+	} else {
+		Ordering::Equal
+	}
+}
+
+impl<I, K> PartialOrd for CustomRangeBoundsOrdWrapper<I, K>
+where
+	I: Ord + Clone,
+	K: RangeBounds<I>,
 {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Some(self.cmp(other))
 	}
 }
 
-impl<C, T> Eq for CustomOrdWrapper<C, T> where C: Fn(&T) -> Ordering {}
-
-impl<C, T> PartialEq for CustomOrdWrapper<C, T>
+impl<I, K> Eq for CustomRangeBoundsOrdWrapper<I, K>
 where
-	C: Fn(&T) -> Ordering,
+	I: Ord + Clone,
+	K: RangeBounds<I>,
+{
+}
+
+impl<I, K> PartialEq for CustomRangeBoundsOrdWrapper<I, K>
+where
+	I: Ord + Clone,
+	K: RangeBounds<I>,
 {
 	fn eq(&self, other: &Self) -> bool {
 		self.cmp(other).is_eq()

@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::cmp::Ordering;
 use std::collections::btree_map::{Cursor, IntoValues};
 use std::collections::BTreeMap;
 use std::fmt::{self, Debug};
@@ -32,6 +33,7 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
+use crate::custom_ord_wrapper::CustomOrdWrapper;
 use crate::TryFromBounds;
 
 /// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
@@ -444,6 +446,14 @@ where
 		if !is_valid_range_bounds(range_bounds) {
 			panic!("Invalid range_bounds!");
 		}
+
+		let start_bound_ord = BoundOrd::start(range_bounds.start_bound());
+		let end_bound_ord = BoundOrd::end(range_bounds.end_bound());
+
+		let start_bound_custom_ord =
+			CustomOrdWrapper::CustomOrd(|other_range_bounds| {
+				overlapping_comparison(start_bound_ord, other_range_bounds)
+			});
 
 		let start = BoundOrd::start(range_bounds.start_bound().cloned());
 		let end = BoundOrd::end(range_bounds.end_bound().cloned());
