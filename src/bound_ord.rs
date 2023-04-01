@@ -67,6 +67,18 @@ impl<T> BoundOrd<T> {
 			Bound::Unbounded => BoundOrd::EndUnbounded,
 		}
 	}
+
+	#[trivial]
+	pub fn as_ref(&self) -> BoundOrd<&T> {
+		//I can't believe this is neccessary but apparently so
+		match self {
+			BoundOrd::Included(x) => BoundOrd::Included(x),
+			BoundOrd::StartExcluded(x) => BoundOrd::StartExcluded(x),
+			BoundOrd::StartUnbounded => BoundOrd::StartUnbounded,
+			BoundOrd::EndExcluded(x) => BoundOrd::EndExcluded(x),
+			BoundOrd::EndUnbounded => BoundOrd::EndUnbounded,
+		}
+	}
 }
 
 impl<T> Ord for BoundOrd<T>
