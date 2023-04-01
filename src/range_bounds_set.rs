@@ -812,14 +812,13 @@ where
 		self.map.last_entry().map(|(key, _)| key)
 	}
 
-	/// Moves all elements from `other` into `self` by
-	/// [`RangeBoundsSet::insert_strict()`] in acending order,
+	/// Moves all elements from `other` into `self` using
+	/// [`RangeBoundsSet::insert_strict()`] in ascending order,
 	/// leaving `other` empty.
 	///
-	/// If any of the `RangeBounds` in `other` overlap `self` then
-	/// that `RangeBounds` is not inserted and the function returns.
-	/// This will mean all `RangeBounds` after the failed one will not
-	/// be inserted into `self`.
+	/// If the underlying [`RangeBoundsMap::insert_strict()`] returns
+	/// an `Err` at any point, then the element it failed on and all
+	/// those following are dropped, but not inserted into `self`.
 	///
 	/// # Examples
 	/// ```
@@ -852,6 +851,209 @@ where
 			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
 		{
 			self.insert_strict(range_bounds)?;
+		}
+
+		return Ok(());
+	}
+	/// Moves all elements from `other` into `self` using
+	/// [`RangeBoundsSet::insert_merge_touching()`] in ascending order,
+	/// leaving `other` empty.
+	///
+	/// If the underlying [`RangeBoundsMap::insert_merge_touching()`] returns
+	/// an `Err` at any point, then the element it failed on and all
+	/// those following are dropped, but not inserted into `self`.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut base =
+	/// 	RangeBoundsSet::from_slice_merge_touching([1..4, 4..8])
+	/// 		.unwrap();
+	///
+	/// let mut add =
+	/// 	RangeBoundsSet::from_slice_merge_touching([10..38, 40..42])
+	/// 		.unwrap();
+	///
+	/// let expected = RangeBoundsSet::from_slice_merge_touching([
+	/// 	1..4,
+	/// 	4..8,
+	/// 	10..38,
+	/// 	40..42,
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(base.append_merge_touching(&mut add), Ok(()));
+	/// assert_eq!(base, expected);
+	/// assert!(add.is_empty());
+	/// ```
+	#[trivial]
+	pub fn append_merge_touching(
+		&mut self,
+		other: &mut RangeBoundsSet<I, K>,
+	) -> Result<(), OverlapOrTryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		for range_bounds in
+			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
+		{
+			self.insert_merge_touching(range_bounds)?;
+		}
+
+		return Ok(());
+	}
+	/// Moves all elements from `other` into `self` using
+	/// [`RangeBoundsSet::insert_merge_overlapping()`] in ascending order,
+	/// leaving `other` empty.
+	///
+	/// If the underlying [`RangeBoundsMap::insert_merge_overlapping()`] returns
+	/// an `Err` at any point, then the element it failed on and all
+	/// those following are dropped, but not inserted into `self`.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut base =
+	/// 	RangeBoundsSet::from_slice_merge_overlapping([1..4, 4..8])
+	/// 		.unwrap();
+	///
+	/// let mut add = RangeBoundsSet::from_slice_merge_overlapping([
+	/// 	10..38,
+	/// 	40..42,
+	/// ])
+	/// .unwrap();
+	///
+	/// let expected = RangeBoundsSet::from_slice_merge_overlapping([
+	/// 	1..4,
+	/// 	4..8,
+	/// 	10..38,
+	/// 	40..42,
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(base.append_merge_overlapping(&mut add), Ok(()));
+	/// assert_eq!(base, expected);
+	/// assert!(add.is_empty());
+	/// ```
+	#[trivial]
+	pub fn append_merge_overlapping(
+		&mut self,
+		other: &mut RangeBoundsSet<I, K>,
+	) -> Result<(), TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		for range_bounds in
+			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
+		{
+			self.insert_merge_overlapping(range_bounds)?;
+		}
+
+		return Ok(());
+	}
+	/// Moves all elements from `other` into `self` using
+	/// [`RangeBoundsSet::insert_merge_touching_or_overlapping()`] in ascending order,
+	/// leaving `other` empty.
+	///
+	/// If the underlying [`RangeBoundsMap::insert_merge_touching_or_overlapping()`] returns
+	/// an `Err` at any point, then the element it failed on and all
+	/// those following are dropped, but not inserted into `self`.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut base =
+	/// 	RangeBoundsSet::from_slice_merge_touching_or_overlapping([
+	/// 		1..4,
+	/// 		4..8,
+	/// 	])
+	/// 	.unwrap();
+	///
+	/// let mut add =
+	/// 	RangeBoundsSet::from_slice_merge_touching_or_overlapping([
+	/// 		10..38,
+	/// 		40..42,
+	/// 	])
+	/// 	.unwrap();
+	///
+	/// let expected =
+	/// 	RangeBoundsSet::from_slice_merge_touching_or_overlapping([
+	/// 		1..4,
+	/// 		4..8,
+	/// 		10..38,
+	/// 		40..42,
+	/// 	])
+	/// 	.unwrap();
+	///
+	/// assert_eq!(
+	/// 	base.append_merge_touching_or_overlapping(&mut add),
+	/// 	Ok(())
+	/// );
+	/// assert_eq!(base, expected);
+	/// assert!(add.is_empty());
+	/// ```
+	#[trivial]
+	pub fn append_merge_touching_or_overlapping(
+		&mut self,
+		other: &mut RangeBoundsSet<I, K>,
+	) -> Result<(), TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		for range_bounds in
+			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
+		{
+			self.insert_merge_touching_or_overlapping(range_bounds)?;
+		}
+
+		return Ok(());
+	}
+	/// Moves all elements from `other` into `self` using
+	/// [`RangeBoundsSet::insert_overwrite()`] in ascending order,
+	/// leaving `other` empty.
+	///
+	/// If the underlying [`RangeBoundsMap::insert_overwrite()`] returns
+	/// an `Err` at any point, then the element it failed on and all
+	/// those following are dropped, but not inserted into `self`.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::RangeBoundsSet;
+	///
+	/// let mut base =
+	/// 	RangeBoundsSet::from_slice_overwrite([1..4, 4..8]).unwrap();
+	///
+	/// let mut add =
+	/// 	RangeBoundsSet::from_slice_overwrite([10..38, 40..42])
+	/// 		.unwrap();
+	///
+	/// let expected = RangeBoundsSet::from_slice_overwrite([
+	/// 	1..4,
+	/// 	4..8,
+	/// 	10..38,
+	/// 	40..42,
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(base.append_overwrite(&mut add), Ok(()));
+	/// assert_eq!(base, expected);
+	/// assert!(add.is_empty());
+	/// ```
+	#[trivial]
+	pub fn append_overwrite(
+		&mut self,
+		other: &mut RangeBoundsSet<I, K>,
+	) -> Result<(), TryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
+		for range_bounds in
+			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
+		{
+			self.insert_overwrite(range_bounds)?;
 		}
 
 		return Ok(());
