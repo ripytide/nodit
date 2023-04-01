@@ -126,7 +126,7 @@ use crate::TryFromBounds;
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RangeBoundsMap<I, K, V>
 where
 	I: Ord,
