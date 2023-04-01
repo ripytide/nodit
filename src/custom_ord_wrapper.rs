@@ -19,10 +19,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::cmp::Ordering;
 
-pub trait CustomOrd<T> {
-	fn cmp(&self, a: &T) -> Ordering;
-}
-
 pub enum CustomOrdWrapper<C, T> {
 	CustomOrd(C),
 	Value(T),
@@ -30,18 +26,18 @@ pub enum CustomOrdWrapper<C, T> {
 
 impl<C, T> Ord for CustomOrdWrapper<C, T>
 where
-	C: CustomOrd<T>,
+	C: Fn(&T) -> Ordering,
 {
 	fn cmp(&self, other: &Self) -> Ordering {
 		match (self, other) {
 			(
 				CustomOrdWrapper::CustomOrd(custom_ord),
 				CustomOrdWrapper::Value(value),
-			) => custom_ord.cmp(value),
+			) => custom_ord(value),
 			(
 				CustomOrdWrapper::Value(value),
 				CustomOrdWrapper::CustomOrd(custom_ord),
-			) => custom_ord.cmp(value),
+			) => custom_ord(value),
 			_ => panic!(
 				"You must have exactly ONE Value and ONE CustomOrd when comparing CustomOrdWrapper's"
 			),
@@ -51,18 +47,18 @@ where
 
 impl<C, T> PartialOrd for CustomOrdWrapper<C, T>
 where
-	C: CustomOrd<T>,
+	C: Fn(&T) -> Ordering,
 {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Some(self.cmp(other))
 	}
 }
 
-impl<C, T> Eq for CustomOrdWrapper<C, T> where C: CustomOrd<T> {}
+impl<C, T> Eq for CustomOrdWrapper<C, T> where C: Fn(&T) -> Ordering {}
 
 impl<C, T> PartialEq for CustomOrdWrapper<C, T>
 where
-	C: CustomOrd<T>,
+	C: Fn(&T) -> Ordering,
 {
 	fn eq(&self, other: &Self) -> bool {
 		self.cmp(other).is_eq()
