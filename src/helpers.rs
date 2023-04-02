@@ -17,12 +17,30 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::ops::{RangeBounds, Bound};
+use std::cmp::Ordering;
+use std::ops::{Bound, RangeBounds};
 
-use labels::{trivial, tested};
+use labels::{tested, trivial};
 
 use crate::bound_ord::BoundOrd;
 
+//todo why is pub(crate) needed?
+pub(crate) fn cmp_range_bounds_with_bound_ord<A, B>(
+	range_bounds: &A,
+	bound_ord: BoundOrd<&B>,
+) -> Ordering
+where
+	A: RangeBounds<B>,
+	B: Ord,
+{
+	if bound_ord < BoundOrd::start(range_bounds.start_bound()) {
+		Ordering::Greater
+	} else if bound_ord > BoundOrd::end(range_bounds.end_bound()) {
+		Ordering::Less
+	} else {
+		Ordering::Equal
+	}
+}
 
 #[derive(Debug, PartialEq)]
 enum Config {

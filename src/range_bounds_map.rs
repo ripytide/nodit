@@ -22,8 +22,8 @@ use std::iter::once;
 use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 
-use btree_monstousity::BTreeMap;
 use btree_monstousity::btree_map::SearchBoundCustom;
+use btree_monstousity::BTreeMap;
 use itertools::Itertools;
 use labels::{parent_tested, tested, trivial};
 use serde::de::{MapAccess, Visitor};
@@ -31,7 +31,7 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
-use crate::helpers::is_valid_range_bounds;
+use crate::helpers::{cmp_range_bounds_with_bound_ord, is_valid_range_bounds};
 use crate::TryFromBounds;
 
 /// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
@@ -431,16 +431,20 @@ where
 		Q: RangeBounds<I>,
 	{
 		let lower_comp = |inner_range_bounds: &K| {
-			BoundOrd::start(range_bounds.start_bound())
-				.cmp(&BoundOrd::start(inner_range_bounds.start_bound()))
+			cmp_range_bounds_with_bound_ord(
+				inner_range_bounds,
+				BoundOrd::start(range_bounds.start_bound()),
+			)
 		};
 		let upper_comp = |inner_range_bounds: &K| {
-			BoundOrd::start(range_bounds.start_bound())
-				.cmp(&BoundOrd::start(inner_range_bounds.start_bound()))
+			cmp_range_bounds_with_bound_ord(
+				inner_range_bounds,
+				BoundOrd::end(range_bounds.end_bound()),
+			)
 		};
 
-        let lower_bound = SearchBoundCustom::Included;
-        let upper_bound = SearchBoundCustom::Included;
+		let lower_bound = SearchBoundCustom::Included;
+		let upper_bound = SearchBoundCustom::Included;
 
 		self.inner
 			.range(lower_comp, lower_bound, upper_comp, upper_bound)
