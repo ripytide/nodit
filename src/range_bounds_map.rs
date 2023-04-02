@@ -17,13 +17,13 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::collections::btree_map::IntoIter as IntoIterBTreeMap;
-use std::collections::BTreeMap;
 use std::fmt::{self, Debug};
 use std::iter::once;
 use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 
+use btree_monstousity::BTreeMap;
+use btree_monstousity::btree_map::SearchBoundCustom;
 use itertools::Itertools;
 use labels::{parent_tested, tested, trivial};
 use serde::de::{MapAccess, Visitor};
@@ -31,9 +31,6 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
-use crate::custom_range_bounds_ord_wrapper::{
-	BoundOrdBodge, CustomRangeBoundsOrdWrapper,
-};
 use crate::helpers::is_valid_range_bounds;
 use crate::TryFromBounds;
 
@@ -130,7 +127,8 @@ use crate::TryFromBounds;
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 pub struct RangeBoundsMap<I, K, V> {
-	inner: BTreeMap<CustomRangeBoundsOrdWrapper<I, K>, V>,
+	inner: BTreeMap<K, V>,
+	phantom: PhantomData<I>,
 }
 
 /// An error type to represent a [`RangeBounds`] overlapping another
@@ -273,7 +271,7 @@ pub enum OverlapOrTryFromBoundsError {
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
-	I: Ord + Clone,
+	I: Ord,
 	K: RangeBounds<I>,
 {
 	/// Makes a new, empty `RangeBoundsMap`.
@@ -291,6 +289,7 @@ where
 	pub fn new() -> Self {
 		RangeBoundsMap {
 			inner: BTreeMap::new(),
+			phantom: PhantomData,
 		}
 	}
 
@@ -427,38 +426,24 @@ where
 	pub fn overlapping<Q>(
 		&self,
 		range_bounds: Q,
-	) -> (
-		Bound<I>,
-		Bound<I>,
-		impl DoubleEndedIterator<Item = (&K, &V)>,
-	)
+	) -> impl DoubleEndedIterator<Item = (&K, &V)>
 	where
 		Q: RangeBounds<I>,
 	{
-		let start_bound = range_bounds.start_bound().cloned();
+		let lower_comp = |inner_range_bounds: &K| {
+			BoundOrd::start(range_bounds.start_bound())
+				.cmp(&BoundOrd::start(inner_range_bounds.start_bound()))
+		};
+		let upper_comp = |inner_range_bounds: &K| {
+			BoundOrd::start(range_bounds.start_bound())
+				.cmp(&BoundOrd::start(inner_range_bounds.start_bound()))
+		};
 
-		let end_bound = range_bounds.end_bound().cloned();
+        let lower_bound = SearchBoundCustom::Included;
+        let upper_bound = SearchBoundCustom::Included;
 
-		let start_bodge = Box::new(BoundOrdBodge {
-			bound_ord: BoundOrd::start(start_bound),
-		});
-		let end_bodge = Box::new(BoundOrdBodge {
-			bound_ord: BoundOrd::start(end_bound),
-		});
-
-		let result = self
-			.inner
-			.range((
-				Bound::Included(CustomRangeBoundsOrdWrapper::OrdBodge(
-					start_bodge.clone(),
-				)),
-				Bound::Included(CustomRangeBoundsOrdWrapper::OrdBodge(
-					end_bodge.clone(),
-				)),
-			))
-			.map(move |(key, value)| (key.rxr(), value));
-
-		return (start_bound, end_bound, result);
+		self.inner
+			.range(lower_comp, lower_bound, upper_comp, upper_bound)
 	}
 
 	/// Returns a reference to the `Value` corresponding to the

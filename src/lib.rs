@@ -228,7 +228,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 pub(crate) mod bound_ord;
-pub(crate) mod custom_range_bounds_ord_wrapper;
 pub(crate) mod helpers;
 
 pub mod range_bounds_map;
