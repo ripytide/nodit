@@ -18,17 +18,27 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::cmp::Ordering;
+use std::fmt::Debug;
+use std::marker::PhantomData;
 use std::ops::RangeBounds;
 
 use crate::bound_ord::BoundOrd;
 
-#[derive(Debug, Clone)]
-pub enum CustomRangeBoundsOrdWrapper<K> {
+pub trait OrdBodge<K> {
+	fn cmp(&self, other: &K) -> Ordering;
+}
+
+pub enum CustomRangeBoundsOrdWrapper<I, K> {
 	RangeBounds(K),
+	OrdBodge(Box<dyn OrdBodge<K>>, PhantomData<I>),
 }
 
-impl<K> CustomRangeBoundsOrdWrapper<K> {
-	pub fn unwrap_range_bounds_ref(&self) -> &K {
+impl<I, K> CustomRangeBoundsOrdWrapper<I, K> {
+	//todo rename these after finished
+	//re-enable warnings
+	//do clippy
+	//check doctests
+	pub fn rxr(&self) -> &K {
 		match self {
 			CustomRangeBoundsOrdWrapper::RangeBounds(range_bounds) => {
 				return range_bounds;
@@ -37,7 +47,7 @@ impl<K> CustomRangeBoundsOrdWrapper<K> {
 		}
 	}
 
-	pub fn unwrap_range_bounds(self) -> K {
+	pub fn rx(self) -> K {
 		match self {
 			CustomRangeBoundsOrdWrapper::RangeBounds(range_bounds) => {
 				return range_bounds;
@@ -47,60 +57,17 @@ impl<K> CustomRangeBoundsOrdWrapper<K> {
 	}
 }
 
-impl<I, K> Ord for CustomRangeBoundsOrdWrapper<K>
+impl<I, K> Ord for CustomRangeBoundsOrdWrapper<I, K>
 where
 	I: Ord,
 	K: RangeBounds<I>,
 {
 	fn cmp(&self, other: &Self) -> Ordering {
-		match (self, other) {
-			(
-				CustomRangeBoundsOrdWrapper::RangeBounds(range_bounds),
-				CustomRangeBoundsOrdWrapper::BoundOrd(bound_ord),
-			) => cmp_range_bounds_with_bound_ord(
-				range_bounds,
-				bound_ord.as_ref(),
-			),
-			(
-				CustomRangeBoundsOrdWrapper::BoundOrd(bound_ord),
-				CustomRangeBoundsOrdWrapper::RangeBounds(range_bounds),
-			) => cmp_range_bounds_with_bound_ord(
-				range_bounds,
-				bound_ord.as_ref(),
-			)
-			.reverse(),
-			_ => {
-				panic!(
-					"Must have ONE of each real RangeBounds and non-real BoundOrd!"
-				);
-			}
-		}
+		todo!()
 	}
 }
 
-fn cmp_range_bounds_with_bound_ord<I, K>(
-	range_bounds: &K,
-	bound_ord: BoundOrd<&I>,
-) -> Ordering
-where
-	I: Ord,
-	K: RangeBounds<I>,
-{
-	//optimisation remove cloning here and all trait bounds that are
-	//reliant on this
-	let start_bound_ord = BoundOrd::start(range_bounds.start_bound());
-	let end_bound_ord = BoundOrd::end(range_bounds.end_bound());
-
-	if bound_ord < start_bound_ord {
-		Ordering::Greater
-	} else if bound_ord > end_bound_ord {
-		Ordering::Less
-	} else {
-		Ordering::Equal
-	}
-}
-
-impl<I, K> PartialOrd for CustomRangeBoundsOrdWrapper<K>
+impl<I, K> PartialOrd for CustomRangeBoundsOrdWrapper<I, K>
 where
 	I: Ord,
 	K: RangeBounds<I>,
@@ -110,14 +77,14 @@ where
 	}
 }
 
-impl<I, K> Eq for CustomRangeBoundsOrdWrapper<K>
+impl<I, K> Eq for CustomRangeBoundsOrdWrapper<I, K>
 where
 	I: Ord,
 	K: RangeBounds<I>,
 {
 }
 
-impl<I, K> PartialEq for CustomRangeBoundsOrdWrapper<K>
+impl<I, K> PartialEq for CustomRangeBoundsOrdWrapper<I, K>
 where
 	I: Ord,
 	K: RangeBounds<I>,

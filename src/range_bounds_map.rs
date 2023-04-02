@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::collections::btree_map::IntoValues;
+use std::collections::btree_map::IntoIter as IntoIterBTreeMap;
 use std::collections::BTreeMap;
 use std::fmt::{self, Debug};
 use std::iter::once;
@@ -32,6 +32,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
 use crate::custom_range_bounds_ord_wrapper::CustomRangeBoundsOrdWrapper;
+use crate::helpers::is_valid_range_bounds;
 use crate::TryFromBounds;
 
 /// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
@@ -126,9 +127,8 @@ use crate::TryFromBounds;
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
-#[derive(Debug, Clone, PartialEq)]
-pub struct RangeBoundsMap<K, V> {
-	inner: BTreeMap<CustomRangeBoundsOrdWrapper<K>, V>,
+pub struct RangeBoundsMap<I, K, V> {
+	inner: BTreeMap<CustomRangeBoundsOrdWrapper<I, K>, V>,
 }
 
 /// An error type to represent a [`RangeBounds`] overlapping another
@@ -269,12 +269,7 @@ pub enum OverlapOrTryFromBoundsError {
 	TryFromBounds(TryFromBoundsError),
 }
 
-impl<I, K, V> RangeBoundsMap<K, V>
-where
-	K: RangeBounds<I> + TryFromBounds<I> + Clone + Copy,
-	I: Ord + Clone + Copy,
-	V: Clone,
-{
+impl<I, K, V> RangeBoundsMap<I, K, V> {
 	/// Makes a new, empty `RangeBoundsMap`.
 	///
 	/// # Examples
@@ -358,13 +353,7 @@ where
 		range_bounds: K,
 		value: V,
 	) -> Result<(), OverlapError> {
-		if self.overlaps(range_bounds) {
-			return Err(OverlapError);
-		}
-
-		self.inner.insert(range_bounds, value);
-
-		return Ok(());
+		todo!()
 	}
 
 	/// Returns `true` if the given `RangeBounds` overlaps any of the
@@ -396,7 +385,7 @@ where
 	where
 		Q: RangeBounds<I>,
 	{
-		self.overlapping(range_bounds).next().is_some()
+		todo!()
 	}
 
 	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
@@ -429,22 +418,11 @@ where
 	/// );
 	/// ```
 	#[tested]
-	pub fn overlapping<Q>(
-		&self,
-		range_bounds: Q,
-	) -> impl DoubleEndedIterator<Item = (&K, &V)>
+	pub fn overlapping<Q>(&self, range_bounds: Q)
 	where
 		Q: RangeBounds<I>,
 	{
-		if !is_valid_range_bounds(&range_bounds) {
-			panic!("Invalid range_bounds!");
-		}
-
-		let mut cursor = self.inner.upper_bound(Bound::Exluded(
-			CustomRangeBoundsOrdWrapper::BoundOrd(BoundOrd::start(
-				range_bounds.start_bound(),
-			)),
-		));
+		todo!()
 	}
 
 	/// Returns a reference to the `Value` corresponding to the
@@ -468,7 +446,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn get_at_point(&self, point: &I) -> Option<&V> {
-		self.get_entry_at_point(point).map(|(_, value)| value)
+		todo!()
 	}
 
 	/// Returns `true` if the map contains a `RangeBounds` that
@@ -491,7 +469,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn contains_point(&self, point: &I) -> bool {
-		self.get_at_point(point).is_some()
+		todo!()
 	}
 
 	/// Returns a mutable reference to the `Value` corresponding to
@@ -512,9 +490,7 @@ where
 	/// ```
 	#[tested]
 	pub fn get_at_point_mut(&mut self, point: I) -> Option<&mut V> {
-		return self.inner.get_mut(&CustomRangeBoundsOrdWrapper::BoundOrd(
-			BoundOrd::Included(point),
-		));
+		todo!()
 	}
 
 	/// Returns an (`RangeBounds`, `Value`) entry corresponding to the
@@ -537,9 +513,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn get_entry_at_point(&self, point: &I) -> Option<(&K, &V)> {
-		return self.inner.get(&CustomRangeBoundsOrdWrapper::BoundOrd(
-			BoundOrd::Included(point),
-		));
+		todo!()
 	}
 
 	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
@@ -563,12 +537,10 @@ where
 	/// assert_eq!(iter.next(), Some((&(8..100), &false)));
 	/// assert_eq!(iter.next(), None);
 	/// ```
-	#[trivial]
-	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
-		self.inner
-			.iter()
-			.map(|(key, value)| (key.unwrap_range_bounds_ref(), value))
-	}
+	//#[trivial]
+	//pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
+	//todo!()
+	//}
 
 	/// Removes every (`RangeBounds`, `Value`) entry in the map which
 	/// overlaps the given `RangeBounds` and returns them in
@@ -601,35 +573,16 @@ where
 	///
 	/// assert_eq!(map.iter().collect::<Vec<_>>(), [(&(8..100), &false)]);
 	/// ```
-	#[tested]
-	pub fn remove_overlapping<Q>(
-		&mut self,
-		range_bounds: Q,
-	) -> impl DoubleEndedIterator<Item = (K, V)>
-	where
-		Q: RangeBounds<I>,
-	{
-		//optimisation do this whole function without cloning anything
-		//or collectiong anything, may depend on a nicer upstream
-		//BTreeMap remove_range function or Arcs
-
-		let to_remove: Vec<_> = self
-			.overlapping(range_bounds)
-			.map(|(key, value)| {
-				CustomRangeBoundsOrdWrapper::RangeBounds(key.clone())
-			})
-			.collect();
-
-		let mut output = Vec::new();
-
-		for key in to_remove {
-			output.push(self.inner.remove_entry(&key).unwrap());
-		}
-
-		return output
-			.into_iter()
-			.map(|(key, value)| (key.unwrap_range_bounds(), value));
-	}
+	//#[tested]
+	//pub fn remove_overlapping<Q>(
+	//&mut self,
+	//range_bounds: Q,
+	//) -> impl DoubleEndedIterator<Item = (K, V)>
+	//where
+	//Q: RangeBounds<I>,
+	//{
+	//todo!()
+	//}
 
 	/// Cuts a given `RangeBounds` out of the map and returns an
 	/// iterator of the full or partial `RangeBounds` that were cut in
@@ -683,93 +636,19 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert!(base.cut(&(60..=80)).is_err());
 	/// ```
-	#[tested]
-	pub fn cut<Q>(
-		&mut self,
-		range_bounds: Q,
-	) -> Result<
-		impl DoubleEndedIterator<Item = ((Bound<I>, Bound<I>), V)>,
-		TryFromBoundsError,
-	>
-	where
-		Q: RangeBounds<I> + Clone,
-	{
-		let mut to_insert = Vec::new();
-		let mut partial_first = None;
-		let mut partial_last = None;
-
-		{
-			// only the first and last range_bounds in overlapping stand a
-			// change of remaining after the cut so we don't need to
-			// collect the iterator and can just look at the first and
-			// last elements since range is a double ended iterator ;p
-			let mut overlapping = self.overlapping(range_bounds.clone());
-
-			if let Some(first) = overlapping.next() {
-				let cut_result = cut_range_bounds(first.0, &range_bounds);
-
-				if let Some(before) = cut_result.before_cut {
-					to_insert.push((cloned_bounds(before), first.1.clone()));
-				}
-				if let Some(after) = cut_result.after_cut {
-					to_insert.push((cloned_bounds(after), first.1.clone()));
-				}
-
-				partial_first = cut_result.inside_cut.map(cloned_bounds);
-			}
-			if let Some(last) = overlapping.next_back() {
-				let cut_result = cut_range_bounds(last.0, &range_bounds);
-
-				if cut_result.before_cut.is_some() {
-					unreachable!()
-				}
-				if let Some(after) = cut_result.after_cut {
-					to_insert.push((cloned_bounds(after), last.1.clone()));
-				}
-
-				partial_last = cut_result.inside_cut.map(cloned_bounds);
-			}
-		}
-
-		// Make sure that the inserts will work before we try to do
-		// them, so if one fails the map remains unchanged
-		if to_insert.iter().all(|(x, _)| K::is_valid(x)) {
-			let mut removed = self.remove_overlapping(range_bounds);
-			for ((start, end), value) in to_insert.into_iter() {
-				self.insert_strict(
-					K::try_from_bounds(start, end).unwrap(),
-					value,
-				)
-				.unwrap();
-			}
-
-			let mut removed_first = removed
-				.next()
-				.map(|(key, value)| (expand_cloned(&key), value));
-			let mut removed_last = removed
-				.next_back()
-				.map(|(key, value)| (expand_cloned(&key), value));
-
-			//remove the full rangebounds and replace with their partial cuts
-			//if they exist
-			if let Some(partial_first) = partial_first {
-				removed_first = removed_first.map(|(_, v)| (partial_first, v));
-			}
-			if let Some(partial_last) = partial_last {
-				removed_last = removed_last.map(|(_, v)| (partial_last, v));
-			}
-
-			// I'm in love again with this lol
-			let result = removed_first
-				.into_iter()
-				.chain(removed.map(|(key, value)| (expand_cloned(&key), value)))
-				.chain(removed_last.into_iter());
-
-			return Ok(result);
-		} else {
-			return Err(TryFromBoundsError);
-		}
-	}
+	//#[tested]
+	//pub fn cut<Q>(
+	//&mut self,
+	//range_bounds: Q,
+	//) -> Result<
+	//impl DoubleEndedIterator<Item = ((Bound<&I>, Bound<&I>), V)>,
+	//TryFromBoundsError,
+	//>
+	//where
+	//Q: RangeBounds<I> + Clone,
+	//{
+	//todo!()
+	//}
 
 	/// Identical to [`RangeBoundsMap::cut()`] except it returns an
 	/// iterator of `(Result<RangeBounds, TryFromBoundsError>,
@@ -806,24 +685,19 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert!(base.cut_same(&(60..=80)).is_err());
 	/// ```
-	#[trivial]
-	pub fn cut_same<Q>(
-		&mut self,
-		range_bounds: Q,
-	) -> Result<
-		impl DoubleEndedIterator<Item = (Result<K, TryFromBoundsError>, V)>,
-		TryFromBoundsError,
-	>
-	where
-		Q: RangeBounds<I> + Clone,
-	{
-		Ok(self.cut(range_bounds)?.map(|((start, end), value)| {
-			(
-				K::try_from_bounds(start, end).ok_or(TryFromBoundsError),
-				value,
-			)
-		}))
-	}
+	//#[trivial]
+	//pub fn cut_same<Q>(
+	//&mut self,
+	//range_bounds: Q,
+	//) -> Result<
+	//impl DoubleEndedIterator<Item = (Result<K, TryFromBoundsError>, V)>,
+	//TryFromBoundsError,
+	//>
+	//where
+	//Q: RangeBounds<I> + Clone,
+	//{
+	//todo!()
+	//}
 
 	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
 	/// maximally-sized gaps in the map that are also within the given
@@ -864,76 +738,16 @@ where
 	/// 	]
 	/// );
 	/// ```
-	#[tested]
-	pub fn gaps<'a, Q>(
-		&'a self,
-		outer_range_bounds: &'a Q,
-	) -> impl Iterator<Item = (Bound<&I>, Bound<&I>)>
-	where
-		Q: RangeBounds<I> + Clone,
-	{
-		// I'm in love with how clean/mindblowing this entire function is
-		let overlapping = self
-			.overlapping(outer_range_bounds.clone())
-			.map(|(key, _)| (key.start_bound(), key.end_bound()));
-
-		// If the start or end point of outer_range_bounds is not
-		// contained within a RangeBounds in the map then we need to
-		// generate a artificial RangeBounds to use instead.
-		//
-		// We also have to flip the artificial ones ahead of time as
-		// we actually want the range_bounds endpoints included
-		// not excluded unlike with other bounds in artificials
-
-		let artificial_start = (
-			flip_bound(outer_range_bounds.start_bound()),
-			flip_bound(outer_range_bounds.start_bound()),
-		);
-		let artificial_end = (
-			flip_bound(outer_range_bounds.end_bound()),
-			flip_bound(outer_range_bounds.end_bound()),
-		);
-		let mut artificials = once(artificial_start)
-			.chain(overlapping)
-			.chain(once(artificial_end));
-
-		let start_contained =
-			match outer_range_bounds.start_bound() {
-				Bound::Included(point) => self.contains_point(point),
-				Bound::Excluded(point) => self.contains_point(point),
-				Bound::Unbounded => self.inner.first_key_value().is_some_and(
-					|(range_bounds, _)| {
-						range_bounds.unwrap_range_bounds_ref().start_bound()
-							== Bound::Unbounded
-					},
-				),
-			};
-		let end_contained =
-			match outer_range_bounds.end_bound() {
-				Bound::Included(point) => self.contains_point(point),
-				Bound::Excluded(point) => self.contains_point(point),
-				Bound::Unbounded => self.inner.last_key_value().is_some_and(
-					|(range_bounds, _)| {
-						range_bounds.unwrap_range_bounds_ref().end_bound()
-							== Bound::Unbounded
-					},
-				),
-			};
-
-		if start_contained {
-			artificials.next();
-		}
-		if end_contained {
-			artificials.next_back();
-		}
-
-		return artificials
-			.tuple_windows()
-			.map(|((_, first_end), (second_start, _))| {
-				(flip_bound(first_end), flip_bound(second_start))
-			})
-			.filter(is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>);
-	}
+	//#[tested]
+	//pub fn gaps<Q>(
+	//&self,
+	//outer_range_bounds: Q,
+	//) -> impl Iterator<Item = (Bound<&I>, Bound<&I>)>
+	//where
+	//Q: RangeBounds<I> + Clone,
+	//{
+	//todo!()
+	//}
 
 	/// Identical to [`RangeBoundsMap::gaps()`] except it returns an
 	/// iterator of `Result<RangeBounds, TryFromBoundsError>`.
@@ -965,19 +779,16 @@ where
 	/// 	[Ok(3..5), Ok(7..9), Err(TryFromBoundsError),]
 	/// );
 	/// ```
-	#[trivial]
-	pub fn gaps_same<'a, Q>(
-		&'a self,
-		outer_range_bounds: &'a Q,
-	) -> impl Iterator<Item = Result<K, TryFromBoundsError>> + 'a
-	where
-		Q: RangeBounds<I> + Clone,
-	{
-		self.gaps(outer_range_bounds).map(|(start, end)| {
-			K::try_from_bounds(start.cloned(), end.cloned())
-				.ok_or(TryFromBoundsError)
-		})
-	}
+	//#[trivial]
+	//pub fn gaps_same<Q>(
+	//&self,
+	//outer_range_bounds: Q,
+	//) -> impl Iterator<Item = Result<K, TryFromBoundsError>>
+	//where
+	//Q: RangeBounds<I> + Clone,
+	//{
+	//todo!()
+	//}
 
 	/// Returns `true` if the map covers every point in the given
 	/// `RangeBounds`, and `false` if it doesn't.
@@ -1005,12 +816,11 @@ where
 	/// assert_eq!(map.contains_range_bounds(&(6..50)), true);
 	/// ```
 	#[trivial]
-	pub fn contains_range_bounds<Q>(&self, range_bounds: &Q) -> bool
+	pub fn contains_range_bounds<Q>(&self, range_bounds: Q) -> bool
 	where
 		Q: RangeBounds<I> + Clone,
 	{
-		// Soooo clean and mathematical 🥰!
-		self.gaps(range_bounds).next().is_none()
+		todo!()
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
@@ -1072,74 +882,15 @@ where
 		range_bounds: K,
 		value: V,
 	) -> Result<&K, OverlapOrTryFromBoundsError> {
-		if self.overlaps(range_bounds) {
-			return Err(OverlapOrTryFromBoundsError::Overlap(OverlapError));
-		}
-
-		let touching_left_start_bound = self
-			.touching_left(&range_bounds)
-			.map(|x| BoundOrd::start(x.start_bound().cloned()));
-		let touching_right_start_bound = self
-			.touching_right(&range_bounds)
-			.map(|x| BoundOrd::start(x.start_bound().cloned()));
-
-		let start_bound = match touching_left_start_bound {
-			Some(ref x) => self.inner.get(x).unwrap().0.start_bound().cloned(),
-			None => range_bounds.start_bound().cloned(),
-		};
-		let end_bound = match touching_right_start_bound {
-			Some(ref x) => self.inner.get(x).unwrap().0.end_bound(),
-			None => range_bounds.end_bound(),
-		};
-
-		let new_range_bounds =
-			K::try_from_bounds(start_bound.clone(), end_bound.cloned()).ok_or(
-				OverlapOrTryFromBoundsError::TryFromBounds(TryFromBoundsError),
-			)?;
-
-		// Out with the old!
-		if let Some(ref left) = touching_left_start_bound {
-			self.inner.remove(left);
-		}
-		if let Some(ref right) = touching_right_start_bound {
-			self.inner.remove(right);
-		}
-
-		// In with the new!
-		self.inner.insert(
-			BoundOrd::start(new_range_bounds.start_bound().cloned()),
-			(new_range_bounds, value),
-		);
-
-		return Ok(&self.inner.get(&BoundOrd::start(start_bound)).unwrap().0);
+		todo!()
 	}
 	#[parent_tested]
 	fn touching_left(&self, range_bounds: &K) -> Option<&K> {
-		return self
-			.inner
-			.range((
-				Bound::Unbounded,
-				Bound::Excluded(BoundOrd::start(
-					range_bounds.start_bound().cloned(),
-				)),
-			))
-			.next_back()
-			.map(|x| &x.1.0)
-			.filter(|x| touches(range_bounds, *x));
+		todo!()
 	}
 	#[parent_tested]
 	fn touching_right(&self, range_bounds: &K) -> Option<&K> {
-		return self
-			.inner
-			.range((
-				Bound::Excluded(BoundOrd::start(
-					range_bounds.start_bound().cloned(),
-				)),
-				Bound::Unbounded,
-			))
-			.next()
-			.map(|x| &x.1.0)
-			.filter(|x| touches(range_bounds, *x));
+		todo!()
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
@@ -1196,49 +947,7 @@ where
 		range_bounds: K,
 		value: V,
 	) -> Result<&K, TryFromBoundsError> {
-		let (start_bound, end_bound) = {
-			let overlapping_swell = self.overlapping_swell(&range_bounds);
-			(overlapping_swell.0.cloned(), overlapping_swell.1.cloned())
-		};
-
-		let new_range_bounds =
-			K::try_from_bounds(start_bound.clone(), end_bound)
-				.ok_or(TryFromBoundsError)?;
-
-		// Out with the old!
-		let _ = self.remove_overlapping(&range_bounds);
-
-		// In with the new!
-		self.inner.insert(
-			BoundOrd::start(new_range_bounds.start_bound().cloned()),
-			(new_range_bounds, value),
-		);
-
-		return Ok(&self.inner.get(&BoundOrd::start(start_bound)).unwrap().0);
-	}
-	#[parent_tested]
-	fn overlapping_swell<'a>(
-		&'a self,
-		range_bounds: &'a K,
-	) -> (Bound<&I>, Bound<&I>) {
-		let mut overlapping = self.overlapping(range_bounds).peekable();
-
-		let start_bound = match overlapping.peek() {
-			Some((first, _)) => std::cmp::min(
-				BoundOrd::start(first.start_bound()),
-				BoundOrd::start(range_bounds.start_bound()),
-			),
-			None => BoundOrd::start(range_bounds.start_bound()),
-		};
-		let end_bound = match overlapping.next_back() {
-			Some((last, _)) => std::cmp::max(
-				BoundOrd::end(last.end_bound()),
-				BoundOrd::end(range_bounds.end_bound()),
-			),
-			None => BoundOrd::start(range_bounds.end_bound()),
-		};
-
-		return (Bound::from(start_bound), Bound::from(end_bound));
+		todo!()
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
@@ -1298,27 +1007,7 @@ where
 		range_bounds: K,
 		value: V,
 	) -> Result<&K, TryFromBoundsError> {
-		let overlapping_swell = self.overlapping_swell(&range_bounds);
-		let start_bound = match self.touching_left(&range_bounds) {
-			Some(touching_left) => touching_left.start_bound().cloned(),
-			None => overlapping_swell.0.cloned(),
-		};
-		let end_bound = match self.touching_right(&range_bounds) {
-			Some(touching_right) => touching_right.end_bound().cloned(),
-			None => overlapping_swell.1.cloned(),
-		};
-
-		let new_range_bounds =
-			K::try_from_bounds(start_bound.clone(), end_bound)
-				.ok_or(TryFromBoundsError)?;
-
-		let _ = self.remove_overlapping(&new_range_bounds);
-		self.inner.insert(
-			BoundOrd::start(start_bound.clone()),
-			(new_range_bounds, value),
-		);
-
-		return Ok(&self.inner.get(&BoundOrd::start(start_bound)).unwrap().0);
+		todo!()
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
@@ -1360,10 +1049,7 @@ where
 		range_bounds: K,
 		value: V,
 	) -> Result<(), TryFromBoundsError> {
-		let _ = self.cut(&range_bounds)?;
-		self.insert_strict(range_bounds, value).unwrap();
-
-		return Ok(());
+		todo!()
 	}
 
 	/// Returns the first (`RangeBounds`, `Value`) entry in the map, if
@@ -1384,7 +1070,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn first_entry(&self) -> Option<(&K, &V)> {
-		self.iter().next()
+		todo!()
 	}
 
 	/// Returns the last (`RangeBounds`, `Value`) entry in the map, if
@@ -1407,7 +1093,7 @@ where
 	/// );
 	#[trivial]
 	pub fn last_entry(&self) -> Option<(&K, &V)> {
-		self.iter().next_back()
+		todo!()
 	}
 
 	/// Moves all elements from `other` into `self` using
@@ -1451,13 +1137,7 @@ where
 		&mut self,
 		other: &mut RangeBoundsMap<I, K, V>,
 	) -> Result<(), OverlapError> {
-		for (range_bounds, value) in
-			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
-		{
-			self.insert_strict(range_bounds, value)?;
-		}
-
-		return Ok(());
+		todo!()
 	}
 	/// Moves all elements from `other` into `self` using
 	/// [`RangeBoundsMap::insert_merge_touching()`] in ascending order,
@@ -1500,13 +1180,7 @@ where
 		&mut self,
 		other: &mut RangeBoundsMap<I, K, V>,
 	) -> Result<(), OverlapOrTryFromBoundsError> {
-		for (range_bounds, value) in
-			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
-		{
-			self.insert_merge_touching(range_bounds, value)?;
-		}
-
-		return Ok(());
+		todo!()
 	}
 	/// Moves all elements from `other` into `self` using
 	/// [`RangeBoundsMap::insert_merge_overlapping()`] in ascending order,
@@ -1549,13 +1223,7 @@ where
 		&mut self,
 		other: &mut RangeBoundsMap<I, K, V>,
 	) -> Result<(), TryFromBoundsError> {
-		for (range_bounds, value) in
-			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
-		{
-			self.insert_merge_overlapping(range_bounds, value)?;
-		}
-
-		return Ok(());
+		todo!()
 	}
 	/// Moves all elements from `other` into `self` using
 	/// [`RangeBoundsMap::insert_merge_touching_or_overlapping()`] in ascending order,
@@ -1604,13 +1272,7 @@ where
 		&mut self,
 		other: &mut RangeBoundsMap<I, K, V>,
 	) -> Result<(), TryFromBoundsError> {
-		for (range_bounds, value) in
-			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
-		{
-			self.insert_merge_touching_or_overlapping(range_bounds, value)?;
-		}
-
-		return Ok(());
+		todo!()
 	}
 	/// Moves all elements from `other` into `self` using
 	/// [`RangeBoundsMap::insert_overwrite()`] in ascending order,
@@ -1653,13 +1315,7 @@ where
 		&mut self,
 		other: &mut RangeBoundsMap<I, K, V>,
 	) -> Result<(), TryFromBoundsError> {
-		for (range_bounds, value) in
-			other.remove_overlapping(&(Bound::Unbounded::<I>, Bound::Unbounded))
-		{
-			self.insert_overwrite(range_bounds, value)?;
-		}
-
-		return Ok(());
+		todo!()
 	}
 
 	/// Splits the map in two at the given `start_bound()`. Returns
@@ -1710,23 +1366,7 @@ where
 		&mut self,
 		start_bound: Bound<I>,
 	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError> {
-		// optimisation: this is a terrible way of being atomic
-		let before = self.clone();
-
-		let split_off = self.cut_same(&(start_bound, Bound::Unbounded))?;
-		let mut output = RangeBoundsMap::new();
-
-		for (possible_key, value) in split_off {
-			match possible_key {
-				Ok(key) => output.insert_strict(key, value).unwrap(),
-				Err(TryFromBoundsError) => {
-					*self = before;
-					return Err(TryFromBoundsError);
-				}
-			}
-		}
-
-		return Ok(output);
+		todo!()
 	}
 
 	/// Similar to [`RangeBoundsMap::overlapping()`] except the
@@ -1767,33 +1407,16 @@ where
 	/// 	]
 	/// );
 	/// ```
-	#[tested]
-	pub fn overlapping_trimmed<'a, Q>(
-		&'a self,
-		range_bounds: &'a Q,
-	) -> impl DoubleEndedIterator<Item = ((Bound<&I>, Bound<&I>), &V)>
-	where
-		Q: RangeBounds<I>,
-	{
-		let mut overlapping = self.overlapping(range_bounds);
-		let first = overlapping.next();
-		let mut overlapping = overlapping.rev();
-		let last = overlapping.next();
-		let overlapping = overlapping.rev();
-
-		let trimmed_first =
-			first.and_then(|x| cut_range_bounds(x.0, range_bounds).inside_cut);
-		let trimmed_last =
-			last.and_then(|x| cut_range_bounds(x.0, range_bounds).inside_cut);
-
-		let trimmed_first_entry = trimmed_first.map(|x| (x, first.unwrap().1));
-		let trimmed_last_entry = trimmed_last.map(|x| (x, last.unwrap().1));
-
-		return trimmed_first_entry
-			.into_iter()
-			.chain(overlapping.map(|(key, value)| (expand(key), value)))
-			.chain(trimmed_last_entry.into_iter());
-	}
+	//#[tested]
+	//pub fn overlapping_trimmed<Q>(
+	//&self,
+	//range_bounds: Q,
+	//) -> impl DoubleEndedIterator<Item = ((Bound<&I>, Bound<&I>), &V)>
+	//where
+	//Q: RangeBounds<I>,
+	//{
+	//todo!()
+	//}
 
 	/// Identical to [`RangeBoundsMap::overlapping_trimmed()`] except
 	/// it returns an iterator of `(Result<RangeBounds,
@@ -1830,22 +1453,16 @@ where
 	/// 	]
 	/// );
 	/// ```
-	#[trivial]
-	pub fn overlapping_trimmed_same<'a, Q>(
-		&'a self,
-		range_bounds: &'a Q,
-	) -> impl DoubleEndedIterator<Item = (Result<K, TryFromBoundsError>, &V)>
-	where
-		Q: RangeBounds<I>,
-	{
-		self.overlapping_trimmed(range_bounds).map(|(key, value)| {
-			(
-				K::try_from_bounds(key.0.cloned(), key.1.cloned())
-					.ok_or(TryFromBoundsError),
-				value,
-			)
-		})
-	}
+	//#[trivial]
+	//pub fn overlapping_trimmed_same<Q>(
+	//&self,
+	//range_bounds: Q,
+	//) -> impl DoubleEndedIterator<Item = (Result<K, TryFromBoundsError>, &V)>
+	//where
+	//Q: RangeBounds<I>,
+	//{
+	//todo!()
+	//}
 
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
 	/// `Value`) entries from the slice into the map using
@@ -1876,11 +1493,7 @@ where
 	pub fn from_slice_strict<const N: usize>(
 		slice: [(K, V); N],
 	) -> Result<RangeBoundsMap<I, K, V>, OverlapError> {
-		let mut map = RangeBoundsMap::new();
-		for (range_bounds, value) in slice {
-			map.insert_strict(range_bounds, value)?;
-		}
-		return Ok(map);
+		todo!()
 	}
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
 	/// `Value`) entries from the slice into the map using
@@ -1911,11 +1524,7 @@ where
 	pub fn from_slice_merge_touching<const N: usize>(
 		slice: [(K, V); N],
 	) -> Result<RangeBoundsMap<I, K, V>, OverlapOrTryFromBoundsError> {
-		let mut map = RangeBoundsMap::new();
-		for (range_bounds, value) in slice {
-			map.insert_merge_touching(range_bounds, value)?;
-		}
-		return Ok(map);
+		todo!()
 	}
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
 	/// `Value`) entries from the slice into the map using
@@ -1946,11 +1555,7 @@ where
 	pub fn from_slice_merge_overlapping<const N: usize>(
 		slice: [(K, V); N],
 	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError> {
-		let mut map = RangeBoundsMap::new();
-		for (range_bounds, value) in slice {
-			map.insert_merge_overlapping(range_bounds, value)?;
-		}
-		return Ok(map);
+		todo!()
 	}
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
 	/// `Value`) entries from the slice into the map using
@@ -1983,11 +1588,7 @@ where
 	pub fn from_slice_merge_touching_or_overlapping<const N: usize>(
 		slice: [(K, V); N],
 	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError> {
-		let mut map = RangeBoundsMap::new();
-		for (range_bounds, value) in slice {
-			map.insert_merge_touching_or_overlapping(range_bounds, value)?;
-		}
-		return Ok(map);
+		todo!()
 	}
 	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
 	/// `Value`) entries from the slice into the map using
@@ -2018,1445 +1619,6 @@ where
 	pub fn from_slice_overwrite<const N: usize>(
 		slice: [(K, V); N],
 	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError> {
-		let mut map = RangeBoundsMap::new();
-		for (range_bounds, value) in slice {
-			map.insert_overwrite(range_bounds, value)?;
-		}
-		return Ok(map);
-	}
-}
-
-impl<I, K, V> IntoIterator for RangeBoundsMap<I, K, V>
-where
-	K: RangeBounds<I>,
-	I: Ord + Clone,
-{
-	type Item = (K, V);
-	type IntoIter = IntoIter<I, K, V>;
-	#[trivial]
-	fn into_iter(self) -> Self::IntoIter {
-		return IntoIter {
-			inner: self.inner.into_values(),
-		};
-	}
-}
-/// An owning iterator over the entries of a [`RangeBoundsMap`].
-///
-/// This `struct` is created by the [`into_iter`] method on
-/// [`RangeBoundsMap`] (provided by the [`IntoIterator`] trait). See
-/// its documentation for more.
-///
-/// [`into_iter`]: IntoIterator::into_iter
-/// [`IntoIterator`]: core::iter::IntoIterator
-pub struct IntoIter<I, K, V> {
-	inner: IntoValues<BoundOrd<I>, (K, V)>,
-}
-impl<I, K, V> Iterator for IntoIter<I, K, V> {
-	type Item = (K, V);
-	#[trivial]
-	fn next(&mut self) -> Option<Self::Item> {
-		self.inner.next()
-	}
-}
-
-impl<I, K, V> Default for RangeBoundsMap<I, K, V>
-where
-	I: Ord,
-{
-	#[trivial]
-	fn default() -> Self {
-		RangeBoundsMap {
-			inner: BTreeMap::default(),
-		}
-	}
-}
-
-impl<I, K, V> Serialize for RangeBoundsMap<I, K, V>
-where
-	I: Ord + Clone,
-	K: RangeBounds<I> + Serialize,
-	V: Serialize,
-{
-	#[trivial]
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: Serializer,
-	{
-		let mut map = serializer.serialize_map(Some(self.len()))?;
-		for (range_bounds, value) in self.iter() {
-			map.serialize_entry(range_bounds, value)?;
-		}
-		map.end()
-	}
-}
-
-impl<'de, I, K, V> Deserialize<'de> for RangeBoundsMap<I, K, V>
-where
-	K: Deserialize<'de> + RangeBounds<I>,
-	I: Ord + Clone,
-	V: Deserialize<'de>,
-{
-	#[trivial]
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-	where
-		D: Deserializer<'de>,
-	{
-		deserializer.deserialize_map(RangeBoundsMapVisitor {
-			i: PhantomData,
-			k: PhantomData,
-			v: PhantomData,
-		})
-	}
-}
-
-struct RangeBoundsMapVisitor<I, K, V> {
-	i: PhantomData<I>,
-	k: PhantomData<K>,
-	v: PhantomData<V>,
-}
-
-impl<'de, I, K, V> Visitor<'de> for RangeBoundsMapVisitor<I, K, V>
-where
-	I: Ord + Clone,
-	K: RangeBounds<I> + Deserialize<'de>,
-	V: Deserialize<'de>,
-{
-	type Value = RangeBoundsMap<I, K, V>;
-
-	#[trivial]
-	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		formatter.write_str("a RangeBoundsMap")
-	}
-
-	#[trivial]
-	fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
-	where
-		A: MapAccess<'de>,
-	{
-		let mut map = RangeBoundsMap::new();
-		while let Some((range_bounds, value)) = access.next_entry()? {
-			map.insert_strict(range_bounds, value)
-				.map_err(|_| serde::de::Error::custom("RangeBounds overlap"))?;
-		}
-		Ok(map)
-	}
-}
-
-#[derive(Debug, PartialEq)]
-enum Config {
-	LeftFirstNonOverlapping,
-	LeftFirstPartialOverlap,
-	LeftContainsRight,
-
-	RightFirstNonOverlapping,
-	RightFirstPartialOverlap,
-	RightContainsLeft,
-}
-
-#[tested]
-fn config<'a, I, A, B>(a: &'a A, b: &'a B) -> Config
-where
-	A: RangeBounds<I>,
-	B: RangeBounds<I>,
-	I: Ord,
-{
-	let (a_start, a_end) = expand(a);
-	let (b_start, b_end) = expand(b);
-
-	match BoundOrd::start(a_start) < BoundOrd::start(b_start) {
-		true => {
-			match (
-				contains_bound_ord(a, BoundOrd::start(b_start)),
-				contains_bound_ord(a, BoundOrd::end(b_end)),
-			) {
-				(false, false) => Config::LeftFirstNonOverlapping,
-				(true, false) => Config::LeftFirstPartialOverlap,
-				(true, true) => Config::LeftContainsRight,
-				(false, true) => unreachable!(),
-			}
-		}
-		false => {
-			match (
-				contains_bound_ord(b, BoundOrd::start(a_start)),
-				contains_bound_ord(b, BoundOrd::end(a_end)),
-			) {
-				(false, false) => Config::RightFirstNonOverlapping,
-				(true, false) => Config::RightFirstPartialOverlap,
-				(true, true) => Config::RightContainsLeft,
-				(false, true) => unreachable!(),
-			}
-		}
-	}
-}
-
-#[derive(Debug, PartialEq)]
-enum SortedConfig<I> {
-	NonOverlapping((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
-	PartialOverlap((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
-	Swallowed((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
-}
-
-#[rustfmt::skip]
-#[trivial]
-fn sorted_config<'a, I, A, B>(a: &'a A, b: &'a B) -> SortedConfig<&'a I>
-where
-	A: RangeBounds<I>,
-	B: RangeBounds<I>,
-	I: Ord,
-{
-    let ae = expand(a);
-    let be = expand(b);
-	match config(a, b) {
-        Config::LeftFirstNonOverlapping => SortedConfig::NonOverlapping(ae, be),
-		Config::LeftFirstPartialOverlap => SortedConfig::Swallowed(ae, be),
-		Config::LeftContainsRight => SortedConfig::Swallowed(ae, be),
-
-        Config::RightFirstNonOverlapping => SortedConfig::NonOverlapping(be, ae),
-        Config::RightFirstPartialOverlap => SortedConfig::PartialOverlap(be, ae),
-		Config::RightContainsLeft => SortedConfig::Swallowed(be, ae),
-	}
-}
-
-#[trivial]
-fn contains_bound_ord<I, A>(range_bounds: &A, bound_ord: BoundOrd<&I>) -> bool
-where
-	A: RangeBounds<I>,
-	I: Ord,
-{
-	let start_bound_ord = BoundOrd::start(range_bounds.start_bound());
-	let end_bound_ord = BoundOrd::end(range_bounds.end_bound());
-
-	return bound_ord >= start_bound_ord && bound_ord <= end_bound_ord;
-}
-
-#[derive(Debug)]
-struct CutResult<I> {
-	before_cut: Option<(Bound<I>, Bound<I>)>,
-	inside_cut: Option<(Bound<I>, Bound<I>)>,
-	after_cut: Option<(Bound<I>, Bound<I>)>,
-}
-
-#[tested]
-fn cut_range_bounds<'a, I, B, C>(
-	base_range_bounds: &'a B,
-	cut_range_bounds: &'a C,
-) -> CutResult<&'a I>
-where
-	B: RangeBounds<I>,
-	C: RangeBounds<I>,
-	I: Ord + Clone,
-{
-	let base_all @ (base_start, base_end) = (
-		base_range_bounds.start_bound(),
-		base_range_bounds.end_bound(),
-	);
-	let cut_all @ (cut_start, cut_end) =
-		(cut_range_bounds.start_bound(), cut_range_bounds.end_bound());
-
-	let mut result = CutResult {
-		before_cut: None,
-		inside_cut: None,
-		after_cut: None,
-	};
-
-	match config(base_range_bounds, cut_range_bounds) {
-		Config::LeftFirstNonOverlapping => {
-			result.before_cut = Some(base_all);
-		}
-		Config::LeftFirstPartialOverlap => {
-			result.before_cut = Some((base_start, flip_bound(cut_start)));
-			result.inside_cut = Some((cut_start, base_end));
-		}
-		Config::LeftContainsRight => {
-			result.before_cut = Some((base_start, flip_bound(cut_start)));
-			result.inside_cut = Some(cut_all);
-			// exception for Unbounded-ending things
-			match cut_end {
-				Bound::Unbounded => {}
-				_ => {
-					result.after_cut = Some((flip_bound(cut_end), base_end));
-				}
-			}
-		}
-
-		Config::RightFirstNonOverlapping => {
-			result.after_cut = Some(base_all);
-		}
-		Config::RightFirstPartialOverlap => {
-			result.after_cut = Some((flip_bound(cut_end), base_end));
-			result.inside_cut = Some((base_start, cut_end));
-		}
-		Config::RightContainsLeft => {
-			result.inside_cut = Some(base_all);
-		}
-	}
-
-	//only return valid range_bounds
-	return CutResult {
-		before_cut: result
-			.before_cut
-			.filter(|x| is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>(x)),
-		inside_cut: result
-			.inside_cut
-			.filter(|x| is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>(x)),
-		after_cut: result
-			.after_cut
-			.filter(|x| is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>(x)),
-	};
-}
-
-#[trivial]
-fn is_valid_range_bounds<Q, I>(range_bounds: &Q) -> bool
-where
-	Q: RangeBounds<I>,
-	I: std::cmp::PartialOrd,
-{
-	match (range_bounds.start_bound(), range_bounds.end_bound()) {
-		(Bound::Included(start), Bound::Included(end)) => start <= end,
-		(Bound::Included(start), Bound::Excluded(end)) => start < end,
-		(Bound::Excluded(start), Bound::Included(end)) => start < end,
-		(Bound::Excluded(start), Bound::Excluded(end)) => start < end,
-		_ => true,
-	}
-}
-
-#[tested]
-fn overlaps<I, A, B>(a: &A, b: &B) -> bool
-where
-	A: RangeBounds<I>,
-	B: RangeBounds<I>,
-	I: Ord,
-{
-	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
-}
-
-#[tested]
-fn touches<I, A, B>(a: &A, b: &B) -> bool
-where
-	A: RangeBounds<I>,
-	B: RangeBounds<I>,
-	I: Ord,
-{
-	match sorted_config(a, b) {
-		SortedConfig::NonOverlapping(a, b) => match (a.1, b.0) {
-			(Bound::Included(point1), Bound::Excluded(point2)) => {
-				point1 == point2
-			}
-			(Bound::Excluded(point1), Bound::Included(point2)) => {
-				point1 == point2
-			}
-			_ => false,
-		},
-		_ => false,
-	}
-}
-
-#[trivial]
-fn expand<I, K>(range_bounds: &K) -> (Bound<&I>, Bound<&I>)
-where
-	K: RangeBounds<I>,
-{
-	(range_bounds.start_bound(), range_bounds.end_bound())
-}
-
-#[trivial]
-fn expand_cloned<I, K>(range_bounds: &K) -> (Bound<I>, Bound<I>)
-where
-	K: RangeBounds<I>,
-	I: Clone,
-{
-	cloned_bounds(expand(range_bounds))
-}
-
-#[trivial]
-fn cloned_bounds<I>(
-	(start, end): (Bound<&I>, Bound<&I>),
-) -> (Bound<I>, Bound<I>)
-where
-	I: Clone,
-{
-	(start.cloned(), end.cloned())
-}
-
-#[trivial]
-fn flip_bound<I>(bound: Bound<&I>) -> Bound<&I> {
-	match bound {
-		Bound::Included(point) => Bound::Excluded(point),
-		Bound::Excluded(point) => Bound::Included(point),
-		Bound::Unbounded => Bound::Unbounded,
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use std::ops::{Bound, Range, RangeBounds};
-
-	use pretty_assertions::assert_eq;
-
-	use super::*;
-	use crate::bound_ord::BoundOrd;
-
-	type TestBounds = (Bound<u8>, Bound<u8>);
-
-	//only every other number to allow mathematical_overlapping_definition
-	//to test between bounds in finite using smaller intervalled finite
-	pub(crate) const NUMBERS: &'static [u8] = &[2, 4, 6, 8, 10];
-	//go a bit around on either side to compensate for Unbounded
-	pub(crate) const NUMBERS_DOMAIN: &'static [u8] =
-		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-
-	fn basic() -> RangeBoundsMap<u8, TestBounds, bool> {
-		RangeBoundsMap::from_slice_strict([
-			(ui(4), false),
-			(ee(5, 7), true),
-			(ii(7, 7), false),
-			(ie(14, 16), true),
-		])
-		.unwrap()
-	}
-
-	fn special() -> RangeBoundsMap<u8, MultiBounds, bool> {
-		RangeBoundsMap::from_slice_strict([
-			(mii(4, 6), false),
-			(mee(7, 8), true),
-			(mii(8, 12), false),
-		])
-		.unwrap()
-	}
-
-	#[derive(Debug, PartialEq, Clone)]
-	enum MultiBounds {
-		Inclusive(u8, u8),
-		Exclusive(u8, u8),
-	}
-
-	fn mii(start: u8, end: u8) -> MultiBounds {
-		MultiBounds::Inclusive(start, end)
-	}
-	fn mee(start: u8, end: u8) -> MultiBounds {
-		MultiBounds::Exclusive(start, end)
-	}
-
-	impl RangeBounds<u8> for MultiBounds {
-		fn start_bound(&self) -> Bound<&u8> {
-			match self {
-				MultiBounds::Inclusive(start, _) => Bound::Included(start),
-				MultiBounds::Exclusive(start, _) => Bound::Excluded(start),
-			}
-		}
-		fn end_bound(&self) -> Bound<&u8> {
-			match self {
-				MultiBounds::Inclusive(_, end) => Bound::Included(end),
-				MultiBounds::Exclusive(_, end) => Bound::Excluded(end),
-			}
-		}
-	}
-	impl TryFromBounds<u8> for MultiBounds {
-		fn try_from_bounds(
-			start_bound: Bound<u8>,
-			end_bound: Bound<u8>,
-		) -> Option<Self> {
-			match (start_bound, end_bound) {
-				(Bound::Included(start), Bound::Included(end)) => {
-					Some(mii(start, end))
-				}
-				(Bound::Excluded(start), Bound::Excluded(end)) => {
-					Some(mee(start, end))
-				}
-				_ => None,
-			}
-		}
-	}
-
-	#[test]
-	fn insert_strict_tests() {
-		assert_insert_strict(
-			basic(),
-			(ii(0, 4), false),
-			Err(OverlapError),
-			None::<[_; 0]>,
-		);
-		assert_insert_strict(
-			basic(),
-			(ii(5, 6), false),
-			Err(OverlapError),
-			None::<[_; 0]>,
-		);
-		assert_insert_strict(
-			basic(),
-			(ee(7, 8), false),
-			Ok(()),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ee(7, 8), false),
-				(ie(14, 16), true),
-			]),
-		);
-		assert_insert_strict(
-			basic(),
-			(ii(4, 5), true),
-			Err(OverlapError),
-			None::<[_; 0]>,
-		);
-		assert_insert_strict(
-			basic(),
-			(ei(4, 5), true),
-			Ok(()),
-			Some([
-				(ui(4), false),
-				(ei(4, 5), true),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ie(14, 16), true),
-			]),
-		);
-	}
-	fn assert_insert_strict<const N: usize>(
-		mut before: RangeBoundsMap<u8, TestBounds, bool>,
-		to_insert: (TestBounds, bool),
-		result: Result<(), OverlapError>,
-		after: Option<[(TestBounds, bool); N]>,
-	) {
-		let clone = before.clone();
-		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
-		match after {
-			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
-			}
-			None => assert_eq!(before, clone),
-		}
-	}
-
-	#[test]
-	fn overlapping_tests() {
-		//case zero
-		for overlap_range in all_valid_test_bounds() {
-			//you can't overlap nothing
-			assert!(
-				RangeBoundsMap::<u8, Range<u8>, ()>::new()
-					.overlapping(&overlap_range)
-					.next()
-					.is_none()
-			);
-		}
-
-		//case one
-		for overlap_range in all_valid_test_bounds() {
-			for inside_range in all_valid_test_bounds() {
-				let mut map = RangeBoundsMap::new();
-				map.insert_strict(inside_range, ()).unwrap();
-
-				let mut expected_overlapping = Vec::new();
-				if overlaps(&overlap_range, &inside_range) {
-					expected_overlapping.push(inside_range);
-				}
-
-				let overlapping = map
-					.overlapping(&overlap_range)
-					.map(|(key, _)| key)
-					.copied()
-					.collect::<Vec<_>>();
-
-				if overlapping != expected_overlapping {
-					dbg!(overlap_range, inside_range);
-					dbg!(overlapping, expected_overlapping);
-					panic!(
-						"Discrepency in .overlapping() with single inside range detected!"
-					);
-				}
-			}
-		}
-
-		//case two
-		for overlap_range in all_valid_test_bounds() {
-			for (inside_range1, inside_range2) in
-				all_non_overlapping_test_bound_entries()
-			{
-				let mut map = RangeBoundsMap::new();
-				map.insert_strict(inside_range1, ()).unwrap();
-				map.insert_strict(inside_range2, ()).unwrap();
-
-				let mut expected_overlapping = Vec::new();
-				if overlaps(&overlap_range, &inside_range1) {
-					expected_overlapping.push(inside_range1);
-				}
-				if overlaps(&overlap_range, &inside_range2) {
-					expected_overlapping.push(inside_range2);
-				}
-				//make our expected_overlapping the correct order
-				if expected_overlapping.len() > 1 {
-					if BoundOrd::start(expected_overlapping[0].start_bound())
-						> BoundOrd::start(expected_overlapping[1].start_bound())
-					{
-						expected_overlapping.swap(0, 1);
-					}
-				}
-
-				let overlapping = map
-					.overlapping(&overlap_range)
-					.map(|(key, _)| key)
-					.copied()
-					.collect::<Vec<_>>();
-
-				if overlapping != expected_overlapping {
-					dbg!(overlap_range, inside_range1, inside_range2);
-					dbg!(overlapping, expected_overlapping);
-					panic!(
-						"Discrepency in .overlapping() with two inside ranges detected!"
-					);
-				}
-			}
-		}
-	}
-
-	#[test]
-	fn overlapping_trimmed_tests() {
-		//case zero
-		for overlap_range in all_valid_test_bounds() {
-			//you can't overlap nothing
-			assert!(
-				RangeBoundsMap::<u8, Range<u8>, ()>::new()
-					.overlapping_trimmed(&overlap_range)
-					.next()
-					.is_none()
-			);
-		}
-
-		//case one
-		for overlap_range in all_valid_test_bounds() {
-			for inside_range in all_valid_test_bounds() {
-				let mut map = RangeBoundsMap::new();
-				map.insert_strict(inside_range, ()).unwrap();
-
-				let mut result = RangeBoundsMap::new();
-				for (resulting_range_bounds, resulting_value) in map
-					.overlapping_trimmed(&overlap_range)
-					.map(|(key, value)| (cloned_bounds(key), value.clone()))
-				{
-					result
-						.insert_strict(resulting_range_bounds, resulting_value)
-						.unwrap();
-				}
-
-				for i in NUMBERS_DOMAIN {
-					assert_eq!(
-						overlap_range.contains(i) && inside_range.contains(i),
-						result.contains_point(i)
-					);
-				}
-			}
-		}
-
-		//case two
-		for overlap_range in all_valid_test_bounds() {
-			for (inside_range1, inside_range2) in
-				all_non_overlapping_test_bound_entries()
-			{
-				let mut map = RangeBoundsMap::new();
-				map.insert_strict(inside_range1, ()).unwrap();
-				map.insert_strict(inside_range2, ()).unwrap();
-
-				let mut result = RangeBoundsMap::new();
-				for (resulting_range_bounds, resulting_value) in map
-					.overlapping_trimmed(&overlap_range)
-					.map(|(key, value)| (cloned_bounds(key), value.clone()))
-				{
-					result
-						.insert_strict(resulting_range_bounds, resulting_value)
-						.unwrap();
-				}
-
-				for i in NUMBERS_DOMAIN {
-					assert_eq!(
-						overlap_range.contains(i)
-							&& (inside_range1.contains(i)
-								|| inside_range2.contains(i)),
-						result.contains_point(i)
-					);
-				}
-			}
-		}
-	}
-
-	#[test]
-	fn remove_overlapping_tests() {
-		assert_remove_overlapping(basic(), ii(5, 5), [], None::<[_; 0]>);
-		assert_remove_overlapping(
-			basic(),
-			uu(),
-			[
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ie(14, 16), true),
-			],
-			Some([]),
-		);
-		assert_remove_overlapping(
-			basic(),
-			ii(6, 7),
-			[(ee(5, 7), true), (ii(7, 7), false)],
-			Some([(ui(4), false), (ie(14, 16), true)]),
-		);
-		assert_remove_overlapping(
-			basic(),
-			iu(6),
-			[(ee(5, 7), true), (ii(7, 7), false), (ie(14, 16), true)],
-			Some([(ui(4), false)]),
-		);
-	}
-	fn assert_remove_overlapping<const N: usize, const Y: usize>(
-		mut before: RangeBoundsMap<u8, TestBounds, bool>,
-		to_remove: TestBounds,
-		result: [(TestBounds, bool); N],
-		after: Option<[(TestBounds, bool); Y]>,
-	) {
-		let clone = before.clone();
-		assert_eq!(
-			before.remove_overlapping(&to_remove).collect::<Vec<_>>(),
-			result
-		);
-		match after {
-			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
-			}
-			None => assert_eq!(before, clone),
-		}
-	}
-
-	#[test]
-	fn cut_tests() {
-		assert_cut(basic(), ii(50, 60), Ok([]), None::<[_; 0]>);
-		assert_cut(
-			basic(),
-			uu(),
-			Ok([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ie(14, 16), true),
-			]),
-			Some([]),
-		);
-		assert_cut(
-			basic(),
-			ui(6),
-			Ok([(ui(4), false), (ei(5, 6), true)]),
-			Some([(ee(6, 7), true), (ii(7, 7), false), (ie(14, 16), true)]),
-		);
-		assert_cut(
-			basic(),
-			iu(6),
-			Ok([(ie(6, 7), true), (ii(7, 7), false), (ie(14, 16), true)]),
-			Some([(ui(4), false), (ee(5, 6), true)]),
-		);
-
-		assert_cut(
-			special(),
-			mee(5, 7),
-			Ok([((Bound::Excluded(5), Bound::Included(6)), false)]),
-			Some([(mii(4, 5), false), (mee(7, 8), true), (mii(8, 12), false)]),
-		);
-		assert_cut(special(), mee(6, 7), Ok([]), None::<[_; 0]>);
-		assert_cut(
-			special(),
-			mii(5, 6),
-			Err::<[_; 0], _>(TryFromBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_cut(
-			special(),
-			mii(6, 7),
-			Err::<[_; 0], _>(TryFromBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_cut(
-			special(),
-			7..8,
-			Ok([(expand_cloned(&mee(7, 8)), true)]),
-			Some([(mii(4, 6), false), (mii(8, 12), false)]),
-		);
-		assert_cut(
-			special(),
-			mii(7, 10),
-			Err::<[_; 0], _>(TryFromBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_cut(
-			special(),
-			mee(4, 6),
-			Ok([(expand_cloned(&mee(4, 6)), false)]),
-			Some([
-				(mii(4, 4), false),
-				(mii(6, 6), false),
-				(mee(7, 8), true),
-				(mii(8, 12), false),
-			]),
-		);
-	}
-
-	fn assert_cut<const N: usize, const Y: usize, Q, I, K, V>(
-		mut before: RangeBoundsMap<I, K, V>,
-		to_cut: Q,
-		result: Result<[((Bound<I>, Bound<I>), V); Y], TryFromBoundsError>,
-		after: Option<[(K, V); N]>,
-	) where
-		I: Ord + Clone + Debug,
-		K: Clone + TryFromBounds<I> + Debug + PartialEq,
-		V: Clone + Debug + PartialEq,
-		K: RangeBounds<I>,
-		Q: RangeBounds<I>,
-	{
-		let clone = before.clone();
-		match before.cut(&to_cut) {
-			Ok(iter) => {
-				assert_eq!(iter.collect::<Vec<_>>(), result.unwrap());
-			}
-			Err(x) => {
-				assert_eq!(x, result.unwrap_err());
-			}
-		}
-		match after {
-			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
-			}
-			None => assert_eq!(before, clone),
-		}
-	}
-
-	#[test]
-	fn gaps_tests() {
-		assert_gaps(basic(), ii(50, 60), [ii(50, 60)]);
-		assert_gaps(basic(), iu(50), [iu(50)]);
-		assert_gaps(basic(), ee(3, 16), [ei(4, 5), ee(7, 14)]);
-		assert_gaps(basic(), ei(3, 16), [ei(4, 5), ee(7, 14), ii(16, 16)]);
-		assert_gaps(basic(), ue(5), [ee(4, 5)]);
-		assert_gaps(basic(), ui(3), []);
-		assert_gaps(basic(), ii(5, 5), [ii(5, 5)]);
-		assert_gaps(basic(), ii(6, 6), []);
-		assert_gaps(basic(), ii(7, 7), []);
-		assert_gaps(basic(), ii(8, 8), [ii(8, 8)]);
-	}
-	fn assert_gaps<const N: usize>(
-		map: RangeBoundsMap<u8, TestBounds, bool>,
-		outer_range_bounds: TestBounds,
-		result: [TestBounds; N],
-	) {
-		assert_eq!(
-			map.gaps(&outer_range_bounds)
-				.map(|(start, end)| (start.cloned(), end.cloned()))
-				.collect::<Vec<_>>(),
-			result
-		);
-	}
-
-	#[test]
-	fn insert_merge_touching_tests() {
-		assert_insert_merge_touching(
-			basic(),
-			(ii(0, 4), false),
-			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching(
-			basic(),
-			(ee(7, 10), false),
-			Ok(&ie(7, 10)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ie(7, 10), false),
-				(ie(14, 16), true),
-			]),
-		);
-		assert_insert_merge_touching(
-			basic(),
-			(ee(7, 11), true),
-			Ok(&ie(7, 11)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ie(7, 11), true),
-				(ie(14, 16), true),
-			]),
-		);
-		assert_insert_merge_touching(
-			basic(),
-			(ee(12, 13), true),
-			Ok(&ee(12, 13)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ee(12, 13), true),
-				(ie(14, 16), true),
-			]),
-		);
-		assert_insert_merge_touching(
-			basic(),
-			(ee(13, 14), false),
-			Ok(&ee(13, 16)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ee(13, 16), false),
-			]),
-		);
-		assert_insert_merge_touching(
-			basic(),
-			(ee(7, 14), false),
-			Ok(&ie(7, 16)),
-			Some([(ui(4), false), (ee(5, 7), true), (ie(7, 16), false)]),
-		);
-
-		assert_insert_merge_touching(
-			special(),
-			(mee(6, 7), true),
-			Err(OverlapOrTryFromBoundsError::TryFromBounds(
-				TryFromBoundsError,
-			)),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching(
-			special(),
-			(mii(6, 7), true),
-			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching(
-			special(),
-			(mee(12, 15), true),
-			Err(OverlapOrTryFromBoundsError::TryFromBounds(
-				TryFromBoundsError,
-			)),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching(
-			special(),
-			(mii(12, 15), true),
-			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
-			None::<[_; 0]>,
-		);
-	}
-	fn assert_insert_merge_touching<const N: usize, I, K, V>(
-		mut before: RangeBoundsMap<I, K, V>,
-		to_insert: (K, V),
-		result: Result<&K, OverlapOrTryFromBoundsError>,
-		after: Option<[(K, V); N]>,
-	) where
-		I: Ord + Clone + Debug,
-		K: Clone + TryFromBounds<I> + Debug + PartialEq,
-		V: Clone + Debug + PartialEq,
-		K: RangeBounds<I>,
-	{
-		let clone = before.clone();
-		assert_eq!(
-			before.insert_merge_touching(to_insert.0, to_insert.1),
-			result
-		);
-		match after {
-			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
-			}
-			None => assert_eq!(before, clone),
-		}
-	}
-
-	#[test]
-	fn insert_merge_overlapping_tests() {
-		assert_insert_merge_overlapping(
-			basic(),
-			(ii(0, 2), true),
-			Ok(&(ui(4))),
-			Some([
-				(ui(4), true),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ie(14, 16), true),
-			]),
-		);
-		assert_insert_merge_overlapping(
-			basic(),
-			(ie(14, 16), false),
-			Ok(&ie(14, 16)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ie(14, 16), false),
-			]),
-		);
-		assert_insert_merge_overlapping(
-			basic(),
-			(ii(6, 11), false),
-			Ok(&ei(5, 11)),
-			Some([(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)]),
-		);
-		assert_insert_merge_overlapping(
-			basic(),
-			(ii(15, 18), true),
-			Ok(&ii(14, 18)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ii(14, 18), true),
-			]),
-		);
-		assert_insert_merge_overlapping(
-			basic(),
-			(uu(), false),
-			Ok(&uu()),
-			Some([(uu(), false)]),
-		);
-
-		assert_insert_merge_overlapping(
-			special(),
-			(mii(10, 18), true),
-			Ok(&mii(8, 18)),
-			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 18), true)]),
-		);
-		assert_insert_merge_overlapping(
-			special(),
-			(mee(10, 18), true),
-			Err(TryFromBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_overlapping(
-			special(),
-			(mee(8, 12), true),
-			Ok(&mii(8, 12)),
-			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 12), true)]),
-		);
-		assert_insert_merge_overlapping(
-			special(),
-			(mee(7, 8), false),
-			Ok(&mee(7, 8)),
-			Some([(mii(4, 6), false), (mee(7, 8), false), (mii(8, 12), false)]),
-		);
-		assert_insert_merge_overlapping(
-			special(),
-			(mii(7, 8), false),
-			Ok(&mii(7, 12)),
-			Some([(mii(4, 6), false), (mii(7, 12), false)]),
-		);
-	}
-	fn assert_insert_merge_overlapping<const N: usize, I, K, V>(
-		mut before: RangeBoundsMap<I, K, V>,
-		to_insert: (K, V),
-		result: Result<&K, TryFromBoundsError>,
-		after: Option<[(K, V); N]>,
-	) where
-		I: Ord + Clone + Debug,
-		K: Clone + TryFromBounds<I> + Debug + PartialEq,
-		V: Clone + Debug + PartialEq,
-		K: RangeBounds<I>,
-	{
-		let clone = before.clone();
-		assert_eq!(
-			before.insert_merge_overlapping(to_insert.0, to_insert.1),
-			result
-		);
-		match after {
-			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
-			}
-			None => assert_eq!(before, clone),
-		}
-	}
-
-	#[test]
-	fn insert_merge_touching_or_overlapping_tests() {
-		assert_insert_merge_touching_or_overlapping(
-			RangeBoundsMap::from_slice_strict([(1..4, false)]).unwrap(),
-			(-4..1, true),
-			Ok(&(-4..4)),
-			Some([(-4..4, true)]),
-		);
-
-		//copied from insert_merge_overlapping_tests
-		assert_insert_merge_touching_or_overlapping(
-			basic(),
-			(ii(0, 2), true),
-			Ok(&(ui(4))),
-			Some([
-				(ui(4), true),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ie(14, 16), true),
-			]),
-		);
-		assert_insert_merge_touching_or_overlapping(
-			basic(),
-			(ie(14, 16), false),
-			Ok(&ie(14, 16)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ie(14, 16), false),
-			]),
-		);
-		assert_insert_merge_touching_or_overlapping(
-			basic(),
-			(ii(6, 11), false),
-			Ok(&ei(5, 11)),
-			Some([(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)]),
-		);
-		assert_insert_merge_touching_or_overlapping(
-			basic(),
-			(ii(15, 18), true),
-			Ok(&ii(14, 18)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ii(14, 18), true),
-			]),
-		);
-		assert_insert_merge_touching_or_overlapping(
-			basic(),
-			(uu(), false),
-			Ok(&uu()),
-			Some([(uu(), false)]),
-		);
-		//the only difference from the insert_merge_overlapping
-		assert_insert_merge_touching_or_overlapping(
-			basic(),
-			(ii(7, 14), false),
-			Ok(&ee(5, 16)),
-			Some([(ui(4), false), (ee(5, 16), false)]),
-		);
-
-		//copied from insert_merge_overlapping_tests
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mii(10, 18), true),
-			Ok(&mii(8, 18)),
-			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 18), true)]),
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(10, 18), true),
-			Err(TryFromBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(8, 12), true),
-			Ok(&mii(8, 12)),
-			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 12), true)]),
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(7, 8), false),
-			Err(TryFromBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mii(7, 8), false),
-			Ok(&mii(7, 12)),
-			Some([(mii(4, 6), false), (mii(7, 12), false)]),
-		);
-		//copied from insert_merge_touching_tests
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(6, 7), true),
-			Err(TryFromBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(12, 15), true),
-			Err(TryFromBoundsError),
-			None::<[_; 0]>,
-		);
-	}
-	fn assert_insert_merge_touching_or_overlapping<const N: usize, I, K, V>(
-		mut before: RangeBoundsMap<I, K, V>,
-		to_insert: (K, V),
-		result: Result<&K, TryFromBoundsError>,
-		after: Option<[(K, V); N]>,
-	) where
-		I: Ord + Clone + Debug,
-		K: Clone + TryFromBounds<I> + Debug + PartialEq,
-		V: Clone + Debug + PartialEq,
-		K: RangeBounds<I>,
-	{
-		let clone = before.clone();
-		assert_eq!(
-			before
-				.insert_merge_touching_or_overlapping(to_insert.0, to_insert.1),
-			result
-		);
-		match after {
-			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
-			}
-			None => assert_eq!(before, clone),
-		}
-	}
-
-	#[test]
-	fn config_tests() {
-		assert_eq!(config(&(1..4), &(6..8)), Config::LeftFirstNonOverlapping);
-		assert_eq!(config(&(1..4), &(2..8)), Config::LeftFirstPartialOverlap);
-		assert_eq!(config(&(1..4), &(2..3)), Config::LeftContainsRight);
-
-		assert_eq!(config(&(6..8), &(1..4)), Config::RightFirstNonOverlapping);
-		assert_eq!(config(&(2..8), &(1..4)), Config::RightFirstPartialOverlap);
-		assert_eq!(config(&(2..3), &(1..4)), Config::RightContainsLeft);
-	}
-
-	#[test]
-	fn overlaps_tests() {
-		for range_bounds1 in all_valid_test_bounds() {
-			for range_bounds2 in all_valid_test_bounds() {
-				let our_answer = overlaps(&range_bounds1, &range_bounds2);
-
-				let mathematical_definition_of_overlap =
-					NUMBERS_DOMAIN.iter().any(|x| {
-						range_bounds1.contains(x) && range_bounds2.contains(x)
-					});
-
-				if our_answer != mathematical_definition_of_overlap {
-					dbg!(range_bounds1, range_bounds2);
-					dbg!(mathematical_definition_of_overlap, our_answer);
-					panic!("Discrepency in overlaps() detected!");
-				}
-			}
-		}
-	}
-
-	#[test]
-	fn cut_range_bounds_tests() {
-		for base in all_valid_test_bounds() {
-			for cut in all_valid_test_bounds() {
-				let cut_result @ CutResult {
-					before_cut: b,
-					inside_cut: i,
-					after_cut: a,
-				} = cut_range_bounds(&base, &cut);
-
-				let mut on_left = true;
-
-				// The definition of a cut is: A && NOT B
-				for x in NUMBERS_DOMAIN {
-					let base_contains = base.contains(x);
-					let cut_contains = cut.contains(x);
-
-					if cut_contains {
-						on_left = false;
-					}
-
-					let invariant = match (base_contains, cut_contains) {
-						(false, _) => !con(b, x) && !con(i, x) && !con(a, x),
-						(true, false) => {
-							if on_left {
-								con(b, x) && !con(i, x) && !con(a, x)
-							} else {
-								!con(b, x) && !con(i, x) && con(a, x)
-							}
-						}
-						(true, true) => !con(b, x) && con(i, x) && !con(a, x),
-					};
-
-					if !invariant {
-						dbg!(base_contains);
-						dbg!(cut_contains);
-
-						dbg!(on_left);
-
-						dbg!(base);
-						dbg!(cut);
-						dbg!(cut_result);
-
-						dbg!(x);
-
-						panic!("Invariant Broken!");
-					}
-				}
-			}
-		}
-	}
-	fn con(x: Option<(Bound<&u8>, Bound<&u8>)>, point: &u8) -> bool {
-		match x {
-			Some(y) => y.contains(point),
-			None => false,
-		}
-	}
-	#[test]
-	fn cut_range_bounds_should_return_valid_ranges() {
-		let result = cut_range_bounds(&(3..8), &(5..8));
-		if let Some(x) = result.before_cut {
-			assert!(is_valid_range_bounds(&cloned_bounds(x)));
-		}
-		if let Some(x) = result.inside_cut {
-			assert!(is_valid_range_bounds(&cloned_bounds(x)));
-		}
-		if let Some(x) = result.after_cut {
-			assert!(is_valid_range_bounds(&cloned_bounds(x)));
-		}
-
-		let result = cut_range_bounds(&(3..8), &(3..5));
-		if let Some(x) = result.before_cut {
-			assert!(is_valid_range_bounds(&cloned_bounds(x)));
-		}
-		if let Some(x) = result.inside_cut {
-			assert!(is_valid_range_bounds(&cloned_bounds(x)));
-		}
-		if let Some(x) = result.after_cut {
-			assert!(is_valid_range_bounds(&cloned_bounds(x)));
-		}
-	}
-
-	#[test]
-	fn touches_tests() {
-		for range_bounds1 in all_valid_test_bounds() {
-			for range_bounds2 in all_valid_test_bounds() {
-				let our_answer = touches(&range_bounds1, &range_bounds2);
-
-				let mathematical_definition_of_touches =
-					NUMBERS_DOMAIN.iter().tuple_windows().any(|(x1, x2)| {
-						(range_bounds1.contains(x1)
-							&& !range_bounds1.contains(x2)
-							&& range_bounds2.contains(x2)
-							&& !range_bounds2.contains(x1))
-							|| (range_bounds1.contains(x2)
-								&& !range_bounds1.contains(x1) && range_bounds2
-								.contains(x1) && !range_bounds2.contains(x2))
-					});
-
-				if our_answer != mathematical_definition_of_touches {
-					dbg!(range_bounds1, range_bounds2);
-					dbg!(mathematical_definition_of_touches, our_answer);
-					panic!("Discrepency in touches() detected!");
-				}
-			}
-		}
-	}
-
-	// Test Helper Functions
-	//======================
-	fn all_non_overlapping_test_bound_entries() -> Vec<(TestBounds, TestBounds)>
-	{
-		let mut output = Vec::new();
-		for test_bounds1 in all_valid_test_bounds() {
-			for test_bounds2 in all_valid_test_bounds() {
-				if !overlaps(&test_bounds1, &test_bounds2) {
-					output.push((test_bounds1, test_bounds2));
-				}
-			}
-		}
-
-		return output;
-	}
-
-	fn all_valid_test_bounds() -> Vec<TestBounds> {
-		let mut output = Vec::new();
-
-		//bounded-bounded
-		output.append(&mut all_finite_bounded_entries());
-		//bounded-unbounded
-		for start_bound in all_finite_bounded() {
-			output.push((start_bound, u()));
-		}
-		//unbounded-bounded
-		for end_bound in all_finite_bounded() {
-			output.push((u(), end_bound));
-		}
-		//unbounded-unbounded
-		output.push(uu());
-
-		return output;
-	}
-
-	fn all_finite_bounded_entries() -> Vec<(Bound<u8>, Bound<u8>)> {
-		let mut output = Vec::new();
-		for i in NUMBERS {
-			for j in NUMBERS {
-				for i_ex in [false, true] {
-					for j_ex in [false, true] {
-						if j > i || (j == i && !i_ex && !j_ex) {
-							output.push((
-								finite_bound(*i, i_ex),
-								finite_bound(*j, j_ex),
-							));
-						}
-					}
-				}
-			}
-		}
-		return output;
-	}
-
-	fn all_finite_bounded() -> Vec<Bound<u8>> {
-		let mut output = Vec::new();
-		for i in NUMBERS {
-			for j in 0..=1 {
-				output.push(finite_bound(*i, j == 1));
-			}
-		}
-		return output;
-	}
-
-	fn finite_bound(x: u8, included: bool) -> Bound<u8> {
-		match included {
-			false => Bound::Included(x),
-			true => Bound::Excluded(x),
-		}
-	}
-
-	fn uu() -> TestBounds {
-		(Bound::Unbounded, Bound::Unbounded)
-	}
-	fn ui(x: u8) -> TestBounds {
-		(Bound::Unbounded, Bound::Included(x))
-	}
-	fn ue(x: u8) -> TestBounds {
-		(Bound::Unbounded, Bound::Excluded(x))
-	}
-	fn iu(x: u8) -> TestBounds {
-		(Bound::Included(x), Bound::Unbounded)
-	}
-	//fn eu(x: u8) -> TestBounds {
-	//(Bound::Excluded(x), Bound::Unbounded)
-	//}
-	fn ii(x1: u8, x2: u8) -> TestBounds {
-		(Bound::Included(x1), Bound::Included(x2))
-	}
-	fn ie(x1: u8, x2: u8) -> TestBounds {
-		(Bound::Included(x1), Bound::Excluded(x2))
-	}
-	fn ei(x1: u8, x2: u8) -> TestBounds {
-		(Bound::Excluded(x1), Bound::Included(x2))
-	}
-	fn ee(x1: u8, x2: u8) -> TestBounds {
-		(Bound::Excluded(x1), Bound::Excluded(x2))
-	}
-	fn u() -> Bound<u8> {
-		Bound::Unbounded
+		todo!()
 	}
 }
