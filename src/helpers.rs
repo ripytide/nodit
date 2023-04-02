@@ -24,7 +24,6 @@ use labels::{tested, trivial};
 
 use crate::bound_ord::BoundOrd;
 
-//todo why is pub(crate) needed?
 pub(crate) fn cmp_range_bounds_with_bound_ord<A, B>(
 	range_bounds: &A,
 	bound_ord: BoundOrd<&B>,
@@ -118,7 +117,7 @@ where
 }
 
 #[trivial]
-fn contains_bound_ord<I, A>(range_bounds: &A, bound_ord: BoundOrd<&I>) -> bool
+pub(crate) fn contains_bound_ord<I, A>(range_bounds: &A, bound_ord: BoundOrd<&I>) -> bool
 where
 	A: RangeBounds<I>,
 	I: Ord,
@@ -221,7 +220,7 @@ where
 }
 
 #[tested]
-fn overlaps<I, A, B>(a: &A, b: &B) -> bool
+pub fn overlaps<I, A, B>(a: &A, b: &B) -> bool
 where
 	A: RangeBounds<I>,
 	B: RangeBounds<I>,

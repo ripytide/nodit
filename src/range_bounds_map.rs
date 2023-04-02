@@ -32,7 +32,10 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
-use crate::helpers::{cmp_range_bounds_with_bound_ord, is_valid_range_bounds};
+use crate::helpers::{
+	cmp_range_bounds_with_bound_ord, contains_bound_ord, is_valid_range_bounds,
+	overlaps,
+};
 use crate::TryFromBounds;
 
 /// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
@@ -364,13 +367,7 @@ where
 			return Err(OverlapError);
 		}
 
-		let double_comp = |inner_range_bounds: &K, new_range_bounds: &K| {
-			let retult = BoundOrd::start(new_range_bounds.start_bound())
-				.cmp(&BoundOrd::start(inner_range_bounds.start_bound()));
-			retult
-		};
-
-		self.inner.insert(range_bounds, value, double_comp);
+		self.inner.insert(range_bounds, value, double_comp());
 
 		return Ok(());
 	}
@@ -542,7 +539,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn get_entry_at_point(&self, point: &I) -> Option<(&K, &V)> {
-        self.inner.get_key_value(comp_start(Bound::Included(point)))
+		self.inner.get_key_value(comp_start(Bound::Included(point)))
 	}
 
 	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
@@ -566,10 +563,10 @@ where
 	/// assert_eq!(iter.next(), Some((&(8..100), &false)));
 	/// assert_eq!(iter.next(), None);
 	/// ```
-	//#[trivial]
-	//pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
-	//todo!()
-	//}
+	#[trivial]
+	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
+		self.inner.iter()
+	}
 
 	/// Removes every (`RangeBounds`, `Value`) entry in the map which
 	/// overlaps the given `RangeBounds` and returns them in
@@ -602,16 +599,20 @@ where
 	///
 	/// assert_eq!(map.iter().collect::<Vec<_>>(), [(&(8..100), &false)]);
 	/// ```
-	//#[tested]
-	//pub fn remove_overlapping<Q>(
-	//&mut self,
-	//range_bounds: Q,
-	//) -> impl DoubleEndedIterator<Item = (K, V)>
-	//where
-	//Q: RangeBounds<I>,
-	//{
-	//todo!()
-	//}
+	#[tested]
+	pub fn remove_overlapping<'a, Q>(
+		&'a mut self,
+		range_bounds: Q,
+	) -> impl Iterator<Item = (K, V)> + '_
+	where
+		Q: RangeBounds<I> + 'a,
+	{
+		//optimisation, switch to BTreeMap::drain if it ever gets
+		//implemented
+		return self.inner.drain_filter(move |inner_range_bounds, _| {
+			overlaps(inner_range_bounds, &range_bounds)
+		});
+	}
 
 	/// Cuts a given `RangeBounds` out of the map and returns an
 	/// iterator of the full or partial `RangeBounds` that were cut in
@@ -1674,5 +1675,15 @@ where
 			inner_range_bounds,
 			BoundOrd::end(bound),
 		)
+	}
+}
+fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
+where
+	K: RangeBounds<I>,
+	I: Ord,
+{
+	|inner_range_bounds: &K, new_range_bounds: &K| {
+		BoundOrd::start(new_range_bounds.start_bound())
+			.cmp(&BoundOrd::start(inner_range_bounds.start_bound()))
 	}
 }
