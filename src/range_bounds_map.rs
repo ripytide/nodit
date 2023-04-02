@@ -31,7 +31,9 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
-use crate::custom_range_bounds_ord_wrapper::CustomRangeBoundsOrdWrapper;
+use crate::custom_range_bounds_ord_wrapper::{
+	BoundOrdBodge, CustomRangeBoundsOrdWrapper,
+};
 use crate::helpers::is_valid_range_bounds;
 use crate::TryFromBounds;
 
@@ -269,7 +271,11 @@ pub enum OverlapOrTryFromBoundsError {
 	TryFromBounds(TryFromBoundsError),
 }
 
-impl<I, K, V> RangeBoundsMap<I, K, V> {
+impl<I, K, V> RangeBoundsMap<I, K, V>
+where
+	I: Ord + Clone,
+	K: RangeBounds<I>,
+{
 	/// Makes a new, empty `RangeBoundsMap`.
 	///
 	/// # Examples
@@ -418,11 +424,41 @@ impl<I, K, V> RangeBoundsMap<I, K, V> {
 	/// );
 	/// ```
 	#[tested]
-	pub fn overlapping<Q>(&self, range_bounds: Q)
+	pub fn overlapping<Q>(
+		&self,
+		range_bounds: Q,
+	) -> (
+		Bound<I>,
+		Bound<I>,
+		impl DoubleEndedIterator<Item = (&K, &V)>,
+	)
 	where
 		Q: RangeBounds<I>,
 	{
-		todo!()
+		let start_bound = range_bounds.start_bound().cloned();
+
+		let end_bound = range_bounds.end_bound().cloned();
+
+		let start_bodge = Box::new(BoundOrdBodge {
+			bound_ord: BoundOrd::start(start_bound),
+		});
+		let end_bodge = Box::new(BoundOrdBodge {
+			bound_ord: BoundOrd::start(end_bound),
+		});
+
+		let result = self
+			.inner
+			.range((
+				Bound::Included(CustomRangeBoundsOrdWrapper::OrdBodge(
+					start_bodge.clone(),
+				)),
+				Bound::Included(CustomRangeBoundsOrdWrapper::OrdBodge(
+					end_bodge.clone(),
+				)),
+			))
+			.map(move |(key, value)| (key.rxr(), value));
+
+		return (start_bound, end_bound, result);
 	}
 
 	/// Returns a reference to the `Value` corresponding to the

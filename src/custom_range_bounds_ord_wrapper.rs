@@ -24,13 +24,25 @@ use std::ops::RangeBounds;
 
 use crate::bound_ord::BoundOrd;
 
+#[derive(Clone)]
+pub struct BoundOrdBodge<I> {
+    bound_ord: BoundOrd<I>
+}
+
+impl<I, K> OrdBodge<K> for BoundOrdBodge<I> {
+    fn cmp(&self, other: &K) -> Ordering {
+        Ordering::Less
+    }
+}
+
 pub trait OrdBodge<K> {
 	fn cmp(&self, other: &K) -> Ordering;
 }
 
 pub enum CustomRangeBoundsOrdWrapper<I, K> {
 	RangeBounds(K),
-	OrdBodge(Box<dyn OrdBodge<K>>, PhantomData<I>),
+	OrdBodge(Box<dyn OrdBodge<K>>),
+    PhantomData(PhantomData<I>)
 }
 
 impl<I, K> CustomRangeBoundsOrdWrapper<I, K> {
