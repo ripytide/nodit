@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::iter::once;
 use std::marker::PhantomData;
@@ -358,7 +359,20 @@ where
 		range_bounds: K,
 		value: V,
 	) -> Result<(), OverlapError> {
-		todo!()
+		if self.overlaps((range_bounds.start_bound(), range_bounds.end_bound()))
+		{
+			return Err(OverlapError);
+		}
+
+		let double_comp = |inner_range_bounds: &K, new_range_bounds: &K| {
+			let retult = BoundOrd::start(new_range_bounds.start_bound())
+				.cmp(&BoundOrd::start(inner_range_bounds.start_bound()));
+			retult
+		};
+
+		self.inner.insert(range_bounds, value, double_comp);
+
+		return Ok(());
 	}
 
 	/// Returns `true` if the given `RangeBounds` overlaps any of the
@@ -390,7 +404,7 @@ where
 	where
 		Q: RangeBounds<I>,
 	{
-		todo!()
+		self.overlapping(range_bounds).next().is_some()
 	}
 
 	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
@@ -430,18 +444,8 @@ where
 	where
 		Q: RangeBounds<I>,
 	{
-		let lower_comp = |inner_range_bounds: &K| {
-			cmp_range_bounds_with_bound_ord(
-				inner_range_bounds,
-				BoundOrd::start(range_bounds.start_bound()),
-			)
-		};
-		let upper_comp = |inner_range_bounds: &K| {
-			cmp_range_bounds_with_bound_ord(
-				inner_range_bounds,
-				BoundOrd::end(range_bounds.end_bound()),
-			)
-		};
+		let lower_comp = comp_start(range_bounds.start_bound());
+		let upper_comp = comp_end(range_bounds.end_bound());
 
 		let lower_bound = SearchBoundCustom::Included;
 		let upper_bound = SearchBoundCustom::Included;
@@ -471,7 +475,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn get_at_point(&self, point: &I) -> Option<&V> {
-		todo!()
+		self.get_entry_at_point(point).map(|(key, value)| value)
 	}
 
 	/// Returns `true` if the map contains a `RangeBounds` that
@@ -494,7 +498,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn contains_point(&self, point: &I) -> bool {
-		todo!()
+		self.get_entry_at_point(point).is_some()
 	}
 
 	/// Returns a mutable reference to the `Value` corresponding to
@@ -514,8 +518,8 @@ where
 	/// assert_eq!(map.get_at_point(&1), Some(&true));
 	/// ```
 	#[tested]
-	pub fn get_at_point_mut(&mut self, point: I) -> Option<&mut V> {
-		todo!()
+	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
+		self.inner.get_mut(comp_start(Bound::Included(point)))
 	}
 
 	/// Returns an (`RangeBounds`, `Value`) entry corresponding to the
@@ -538,7 +542,7 @@ where
 	/// ```
 	#[trivial]
 	pub fn get_entry_at_point(&self, point: &I) -> Option<(&K, &V)> {
-		todo!()
+        self.inner.get_key_value(comp_start(Bound::Included(point)))
 	}
 
 	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
@@ -1645,5 +1649,30 @@ where
 		slice: [(K, V); N],
 	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError> {
 		todo!()
+	}
+}
+
+fn comp_start<I, K>(bound: Bound<&I>) -> impl FnMut(&K) -> Ordering + '_
+where
+	I: Ord,
+	K: RangeBounds<I>,
+{
+	move |inner_range_bounds: &K| {
+		cmp_range_bounds_with_bound_ord(
+			inner_range_bounds,
+			BoundOrd::start(bound),
+		)
+	}
+}
+fn comp_end<I, K>(bound: Bound<&I>) -> impl FnMut(&K) -> Ordering + '_
+where
+	I: Ord,
+	K: RangeBounds<I>,
+{
+	move |inner_range_bounds: &K| {
+		cmp_range_bounds_with_bound_ord(
+			inner_range_bounds,
+			BoundOrd::end(bound),
+		)
 	}
 }

@@ -10,9 +10,9 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "btree_monstousity"
-version = "0.0.3"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1bcfb39dbdc98ba2984b575608c94a871f111960a813a23e88b0ac3d62fd274"
+checksum = "a596671a3fb8cd1899005c5cdc5ce442fe4d0153abbe12917171f7d435831563"
 dependencies = [
  "cfg-if",
  "rustversion",

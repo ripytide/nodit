@@ -34,9 +34,9 @@ where
 	B: Ord,
 {
 	if bound_ord < BoundOrd::start(range_bounds.start_bound()) {
-		Ordering::Greater
-	} else if bound_ord > BoundOrd::end(range_bounds.end_bound()) {
 		Ordering::Less
+	} else if bound_ord > BoundOrd::end(range_bounds.end_bound()) {
+		Ordering::Greater
 	} else {
 		Ordering::Equal
 	}
