@@ -43,13 +43,6 @@
   (At the moment we do implement it using insert_strict())
 - should append\_\* functions not change the base if they fail half way?
 
-# btree_cursors thoughts
-
-- the docs annoy me with sometimes including "Basic usage:" and
-  sometimes not, this may not be unique just the btree_cursors
-  function docs though.
-- no examples in the docs for Cursors and CursorsMut unlike Entry docs
-  for some other collections which have nice docs.
 
 #### PUBLISH
 
@@ -59,4 +52,18 @@
   the docs, and generally check for dead links on docs and readme
 - tell people in issues of other rangemap libraries about my library
   stonks advertising
+
+
+
+# new todos
+
+- the docs annoy me with sometimes including "Basic usage:" and
+  sometimes not, this may not be unique just the btree_cursors
+  function docs though.
+- no examples in the docs for Cursors and CursorsMut unlike Entry docs
+  for some other collections which have nice docs.
 - remove unused dependencies
+- update cut docs to say they just return (K, V) now
+- same with gaps docs except with I instead of &I now
+
+- grep for docs on doubleiterator and change to single now

@@ -259,7 +259,7 @@ where
 }
 
 #[trivial]
-fn flip_bound<I>(bound: Bound<&I>) -> Bound<&I> {
+pub(crate) fn flip_bound<I>(bound: Bound<I>) -> Bound<I> {
 	match bound {
 		Bound::Included(point) => Bound::Excluded(point),
 		Bound::Excluded(point) => Bound::Included(point),

@@ -34,7 +34,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::bound_ord::BoundOrd;
 use crate::helpers::{
 	cmp_range_bounds_with_bound_ord, contains_bound_ord, cut_range_bounds,
-	is_valid_range_bounds, overlaps,
+	flip_bound, is_valid_range_bounds, overlaps,
 };
 use crate::TryFromBounds;
 
@@ -760,55 +760,6 @@ where
 		return Ok(());
 	}
 
-	/// Identical to [`RangeBoundsMap::cut()`] except it returns an
-	/// iterator of `(Result<RangeBounds, TryFromBoundsError>,
-	/// Value)`.
-	///
-	/// # Panics
-	///
-	/// Panics if the given `range_bounds` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
-	/// for more details.
-	///
-	/// # Examples
-	/// ```
-	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
-	///
-	/// let mut base = RangeBoundsMap::from_slice_strict([
-	/// 	(1..4, false),
-	/// 	(4..8, true),
-	/// 	(8..100, false),
-	/// ])
-	/// .unwrap();
-	///
-	/// let after_cut = RangeBoundsMap::from_slice_strict([
-	/// 	(1..2, false),
-	/// 	(40..100, false),
-	/// ])
-	/// .unwrap();
-	///
-	/// assert_eq!(
-	/// 	base.cut_same(&(2..40)).unwrap().collect::<Vec<_>>(),
-	/// 	[(Ok(2..4), false), (Ok(4..8), true), (Ok(8..40), false)]
-	/// );
-	/// assert_eq!(base, after_cut);
-	/// assert!(base.cut_same(&(60..=80)).is_err());
-	/// ```
-	//#[trivial]
-	//pub fn cut_same<Q>(
-	//&mut self,
-	//range_bounds: Q,
-	//) -> Result<
-	//impl DoubleEndedIterator<Item = (Result<K, TryFromBoundsError>, V)>,
-	//TryFromBoundsError,
-	//>
-	//where
-	//Q: RangeBounds<I> + Clone,
-	//{
-	//todo!()
-	//}
-
 	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
 	/// maximally-sized gaps in the map that are also within the given
 	/// `outer_range_bounds`.
@@ -848,16 +799,80 @@ where
 	/// 	]
 	/// );
 	/// ```
-	//#[tested]
-	//pub fn gaps<Q>(
-	//&self,
-	//outer_range_bounds: Q,
-	//) -> impl Iterator<Item = (Bound<&I>, Bound<&I>)>
-	//where
-	//Q: RangeBounds<I> + Clone,
-	//{
-	//todo!()
-	//}
+	#[tested]
+	pub fn gaps<'a, Q>(
+		&'a self,
+		outer_range_bounds: Q,
+	) -> impl Iterator<Item = (Bound<I>, Bound<I>)> + '_
+	where
+		Q: 'a + RangeBounds<I> + Clone,
+		I: Clone,
+	{
+		// I'm in love with how clean/mindblowing this entire function is
+		let overlapping = self
+			.overlapping((
+				outer_range_bounds.start_bound().cloned(),
+				outer_range_bounds.end_bound().cloned(),
+			))
+			.map(|(key, _)| {
+				(key.start_bound().cloned(), key.end_bound().cloned())
+			});
+
+		// If the start or end point of outer_range_bounds is not
+		// contained within a RangeBounds in the map then we need to
+		// generate a artificial RangeBounds to use instead.
+		//
+		// We also have to flip the artificial ones ahead of time as
+		// we actually want the range_bounds endpoints included
+		// not excluded unlike with other bounds in artificials
+
+		let artificial_start = (
+			flip_bound(outer_range_bounds.start_bound().cloned()),
+			flip_bound(outer_range_bounds.start_bound().cloned()),
+		);
+		let artificial_end = (
+			flip_bound(outer_range_bounds.end_bound().cloned()),
+			flip_bound(outer_range_bounds.end_bound().cloned()),
+		);
+		let mut artificials = once(artificial_start)
+			.chain(overlapping)
+			.chain(once(artificial_end));
+
+		let start_contained =
+			match outer_range_bounds.start_bound() {
+				Bound::Included(point) => self.contains_point(point),
+				Bound::Excluded(point) => self.contains_point(point),
+				Bound::Unbounded => self.inner.first_key_value().is_some_and(
+					|(range_bounds, _)| {
+						range_bounds.start_bound() == Bound::Unbounded
+					},
+				),
+			};
+		let end_contained =
+			match outer_range_bounds.end_bound() {
+				Bound::Included(point) => self.contains_point(point),
+				Bound::Excluded(point) => self.contains_point(point),
+				Bound::Unbounded => self.inner.last_key_value().is_some_and(
+					|(range_bounds, _)| {
+						range_bounds.end_bound() == Bound::Unbounded
+					},
+				),
+			};
+
+		if start_contained {
+			artificials.next();
+		}
+		if end_contained {
+			artificials.next_back();
+		}
+
+		return artificials
+			.tuple_windows()
+			.map(|((_, first_end), (second_start, _))| {
+				(flip_bound(first_end), flip_bound(second_start))
+			})
+			.filter(is_valid_range_bounds);
+	}
 
 	/// Identical to [`RangeBoundsMap::gaps()`] except it returns an
 	/// iterator of `Result<RangeBounds, TryFromBoundsError>`.
@@ -889,16 +904,19 @@ where
 	/// 	[Ok(3..5), Ok(7..9), Err(TryFromBoundsError),]
 	/// );
 	/// ```
-	//#[trivial]
-	//pub fn gaps_same<Q>(
-	//&self,
-	//outer_range_bounds: Q,
-	//) -> impl Iterator<Item = Result<K, TryFromBoundsError>>
-	//where
-	//Q: RangeBounds<I> + Clone,
-	//{
-	//todo!()
-	//}
+	#[trivial]
+	pub fn gaps_same<'a, Q>(
+		&'a self,
+		outer_range_bounds: Q,
+	) -> impl Iterator<Item = Result<K, TryFromBoundsError>> + '_
+	where
+		Q: RangeBounds<I> + Clone + 'a,
+		I: Clone,
+		K: TryFromBounds<I>,
+	{
+		self.gaps(outer_range_bounds)
+			.map(|(start, end)| K::try_from_bounds(start, end))
+	}
 
 	/// Returns `true` if the map covers every point in the given
 	/// `RangeBounds`, and `false` if it doesn't.
