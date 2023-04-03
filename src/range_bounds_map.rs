@@ -34,7 +34,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::bound_ord::BoundOrd;
 use crate::helpers::{
 	cmp_range_bounds_with_bound_ord, contains_bound_ord, cut_range_bounds,
-	flip_bound, is_valid_range_bounds, overlaps,
+	flip_bound, is_valid_range_bounds, overlaps, touches,
 };
 use crate::TryFromBounds;
 
@@ -947,8 +947,10 @@ where
 	pub fn contains_range_bounds<Q>(&self, range_bounds: Q) -> bool
 	where
 		Q: RangeBounds<I> + Clone,
+		I: Clone,
 	{
-		todo!()
+		// Soooo clean and mathematical 🥰!
+		self.gaps(range_bounds).next().is_none()
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
@@ -1010,11 +1012,9 @@ where
 		range_bounds: K,
 		value: V,
 	) -> Result<&K, OverlapOrTryFromBoundsError> {
-		todo!()
 	}
 	#[parent_tested]
 	fn touching_left(&self, range_bounds: &K) -> Option<&K> {
-		todo!()
 	}
 	#[parent_tested]
 	fn touching_right(&self, range_bounds: &K) -> Option<&K> {

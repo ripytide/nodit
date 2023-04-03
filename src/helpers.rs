@@ -230,7 +230,7 @@ where
 }
 
 #[tested]
-fn touches<I, A, B>(a: &A, b: &B) -> bool
+pub(crate) fn touches<I, A, B>(a: &A, b: &B) -> bool
 where
 	A: RangeBounds<I>,
 	B: RangeBounds<I>,
