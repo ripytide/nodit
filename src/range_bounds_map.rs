@@ -33,8 +33,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
 use crate::helpers::{
-	cmp_range_bounds_with_bound_ord, contains_bound_ord, is_valid_range_bounds,
-	overlaps,
+	cmp_range_bounds_with_bound_ord, contains_bound_ord, cut_range_bounds,
+	is_valid_range_bounds, overlaps,
 };
 use crate::TryFromBounds;
 
@@ -666,19 +666,99 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert!(base.cut(&(60..=80)).is_err());
 	/// ```
-	//#[tested]
-	//pub fn cut<Q>(
-	//&mut self,
-	//range_bounds: Q,
-	//) -> Result<
-	//impl DoubleEndedIterator<Item = ((Bound<&I>, Bound<&I>), V)>,
-	//TryFromBoundsError,
-	//>
-	//where
-	//Q: RangeBounds<I> + Clone,
-	//{
-	//todo!()
-	//}
+	#[tested]
+	pub fn cut<'a, Q>(
+		&'a mut self,
+		range_bounds: Q,
+	) -> Result<impl Iterator<Item = (K, V)> + '_, TryFromBoundsError>
+	where
+		Q: 'a + RangeBounds<I>,
+		I: Clone,
+		K: TryFromBounds<I>,
+		V: Clone,
+	{
+		// This is so clean and mathematically pleasing omg i'm in love with it
+		match range_bounds.start_bound() {
+			Bound::Included(point) => self.bisect_at_point(point, false)?,
+			Bound::Excluded(point) => self.bisect_at_point(point, true)?,
+			Bound::Unbounded => {}
+		}
+		match range_bounds.end_bound() {
+			Bound::Included(point) => self.bisect_at_point(point, true)?,
+			Bound::Excluded(point) => self.bisect_at_point(point, false)?,
+			Bound::Unbounded => {}
+		}
+
+		return Ok(self.remove_overlapping(range_bounds));
+	}
+	//does nothing if it hits a degenerate interval or if it would
+	//leave invalid range_bounds within the structure
+	fn bisect_at_point(
+		&mut self,
+		point: &I,
+		inclusive_on_left: bool,
+	) -> Result<(), TryFromBoundsError>
+	where
+		I: Clone,
+		K: TryFromBounds<I>,
+		V: Clone,
+	{
+		if let Some((start_bound, end_bound)) =
+			self.get_entry_at_point(point).map(|range_bounds| {
+				(
+					range_bounds.0.start_bound().cloned(),
+					range_bounds.0.end_bound().cloned(),
+				)
+			}) {
+			//don't bother doing anything in these situations
+			match (&start_bound, &end_bound) {
+				(Bound::Included(start_point), _) if start_point == point => {
+					if !inclusive_on_left {
+						return Ok(());
+					}
+				}
+				(_, Bound::Included(end_point)) if end_point == point => {
+					if inclusive_on_left {
+						return Ok(());
+					}
+				}
+				(Bound::Included(start_point), Bound::Included(end_point))
+					if start_point == end_point =>
+				{
+					return Ok(());
+				}
+				_ => {}
+			}
+
+			let before_section = K::try_from_bounds(
+				start_bound,
+				if inclusive_on_left {
+					Bound::Included(point.clone())
+				} else {
+					Bound::Excluded(point.clone())
+				},
+			)?;
+			let after_section = K::try_from_bounds(
+				if !inclusive_on_left {
+					Bound::Included(point.clone())
+				} else {
+					Bound::Excluded(point.clone())
+				},
+				end_bound,
+			)?;
+
+			let value = self
+				.inner
+				.remove(comp_start(Bound::Included(point)))
+				.unwrap();
+
+			self.inner
+				.insert(before_section, value.clone(), double_comp());
+			self.inner.insert(after_section, value, double_comp());
+		}
+
+		return Ok(());
+	}
 
 	/// Identical to [`RangeBoundsMap::cut()`] except it returns an
 	/// iterator of `(Result<RangeBounds, TryFromBoundsError>,

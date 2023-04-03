@@ -130,13 +130,13 @@ where
 
 #[derive(Debug)]
 struct CutResult<I> {
-	before_cut: Option<(Bound<I>, Bound<I>)>,
-	inside_cut: Option<(Bound<I>, Bound<I>)>,
-	after_cut: Option<(Bound<I>, Bound<I>)>,
+	pub before_cut: Option<(Bound<I>, Bound<I>)>,
+	pub inside_cut: Option<(Bound<I>, Bound<I>)>,
+	pub after_cut: Option<(Bound<I>, Bound<I>)>,
 }
 
 #[tested]
-fn cut_range_bounds<'a, I, B, C>(
+pub(crate) fn cut_range_bounds<'a, I, B, C>(
 	base_range_bounds: &'a B,
 	cut_range_bounds: &'a C,
 ) -> CutResult<&'a I>
