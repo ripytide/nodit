@@ -23,6 +23,7 @@ use std::ops::{Bound, RangeBounds};
 use labels::{tested, trivial};
 
 use crate::bound_ord::BoundOrd;
+use crate::{TryFromBounds, TryFromBoundsError};
 
 pub(crate) fn cmp_range_bounds_with_bound_ord<A, B>(
 	range_bounds: &A,
@@ -117,7 +118,10 @@ where
 }
 
 #[trivial]
-pub(crate) fn contains_bound_ord<I, A>(range_bounds: &A, bound_ord: BoundOrd<&I>) -> bool
+pub(crate) fn contains_bound_ord<I, A>(
+	range_bounds: &A,
+	bound_ord: BoundOrd<&I>,
+) -> bool
 where
 	A: RangeBounds<I>,
 	I: Ord,
@@ -264,5 +268,56 @@ pub(crate) fn flip_bound<I>(bound: Bound<I>) -> Bound<I> {
 		Bound::Included(point) => Bound::Excluded(point),
 		Bound::Excluded(point) => Bound::Included(point),
 		Bound::Unbounded => Bound::Unbounded,
+	}
+}
+
+//assumes the bound overlaps the range_bounds
+pub(crate) fn split_off_right_section<I, K>(
+	range_bounds: &&K,
+	with_bound: Bound<I>,
+) -> (Option<Result<K, TryFromBoundsError>>, (Bound<I>, Bound<I>))
+where
+	I: Clone + Ord,
+	K: RangeBounds<I> + TryFromBounds<I>,
+{
+	let (start_bound, end_bound) =
+		(range_bounds.start_bound(), range_bounds.end_bound());
+
+	let keeping_section = (with_bound, end_bound.cloned());
+
+	let returning_section = (start_bound.cloned(), flip_bound(with_bound));
+
+	if is_valid_range_bounds(&returning_section) {
+		return (
+			Some(K::try_from_bounds(returning_section.0, returning_section.1)),
+			keeping_section,
+		);
+	} else {
+		return (None, keeping_section);
+	}
+}
+//assumes the bound overlaps the range_bounds
+pub(crate) fn split_off_left_section<I, K>(
+	with_bound: Bound<I>,
+	range_bounds: &K,
+) -> (Option<Result<K, TryFromBoundsError>>, (Bound<I>, Bound<I>))
+where
+	I: Clone + Ord,
+	K: RangeBounds<I> + TryFromBounds<I>,
+{
+	let (start_bound, end_bound) =
+		(range_bounds.start_bound(), range_bounds.end_bound());
+
+	let keeping_section = (start_bound.cloned(), with_bound);
+
+	let returning_section = (flip_bound(with_bound), end_bound.cloned());
+
+	if is_valid_range_bounds(&returning_section) {
+		return (
+			Some(K::try_from_bounds(returning_section.0, returning_section.1)),
+			keeping_section,
+		);
+	} else {
+		return (None, keeping_section);
 	}
 }

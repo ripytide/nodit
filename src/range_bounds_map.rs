@@ -34,7 +34,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::bound_ord::BoundOrd;
 use crate::helpers::{
 	cmp_range_bounds_with_bound_ord, contains_bound_ord, cut_range_bounds,
-	flip_bound, is_valid_range_bounds, overlaps, touches,
+	flip_bound, is_valid_range_bounds, overlaps, split_off_right_section,
+	touches,
 };
 use crate::TryFromBounds;
 
@@ -627,29 +628,92 @@ where
 	/// assert!(base.cut(&(60..=80)).is_err());
 	/// ```
 	#[tested]
-	pub fn cut<'a, Q>(
-		&'a mut self,
+	pub fn cut<Q>(
+		&mut self,
 		range_bounds: Q,
-	) -> Result<impl Iterator<Item = (K, V)> + '_, TryFromBoundsError>
+	) -> Result<
+		impl Iterator<Item = ((Bound<I>, Bound<I>), V)>,
+		TryFromBoundsError,
+	>
 	where
-		Q: 'a + RangeBounds<I>,
+		Q: RangeBounds<I>,
 		I: Clone,
 		K: TryFromBounds<I>,
 		V: Clone,
 	{
-		// This is so clean and mathematically pleasing omg i'm in love with it
-		match range_bounds.start_bound() {
-			Bound::Included(point) => self.bisect_at_point(point, false)?,
-			Bound::Excluded(point) => self.bisect_at_point(point, true)?,
-			Bound::Unbounded => {}
-		}
-		match range_bounds.end_bound() {
-			Bound::Included(point) => self.bisect_at_point(point, true)?,
-			Bound::Excluded(point) => self.bisect_at_point(point, false)?,
-			Bound::Unbounded => {}
+		let left = self
+			.inner
+			.get_key_value(comp_start(range_bounds.start_bound()))
+			.map(|(key, _)| {
+				(key.start_bound().cloned(), key.end_bound().cloned())
+			});
+		let right = self
+			.inner
+			.get_key_value(comp_end(range_bounds.end_bound()))
+			.map(|(key, _)| {
+				(key.start_bound().cloned(), key.end_bound().cloned())
+			});
+
+		let mut returning_left = None;
+		let mut keeping_left = None;
+
+		let mut returning_right = None;
+		let mut keeping_right = None;
+
+		if let Some(left) = left {
+			let (r_left, k_left) = split_off_right_section(
+				&&left,
+				range_bounds.start_bound().cloned(),
+			);
+
+			keeping_left = Some(k_left);
+
+			if let Some(r_left) = r_left {
+				returning_left = Some(r_left?);
+			}
 		}
 
-		return Ok(self.remove_overlapping(range_bounds));
+		if let Some(right) = right {
+			let (r_right, k_right) = split_off_right_section(
+				&&right,
+				range_bounds.start_bound().cloned(),
+			);
+
+			keeping_right = Some(k_right);
+
+			if let Some(r_right) = r_right {
+				returning_right = Some(r_right?);
+			}
+		}
+
+		if let Some(l_value) =
+			self.inner.remove(comp_start(range_bounds.start_bound()))
+		{
+			self.insert_strict(returning_left.unwrap(), l_value);
+		}
+		if let Some(r_value) =
+			self.inner.remove(comp_end(range_bounds.end_bound()))
+		{
+			self.insert_strict(returning_right.unwrap(), r_value);
+		}
+
+		if let Some((left, _)) = left && let Some((right, _)) = right {
+            if left.start_bound() == right.start_bound() {
+                let mega_cut = (keeping_left.unwrap().0.0,keeping_right.unwrap().0.1);
+                keeping_left = Some((mega_cut, keeping_left.unwrap().1));
+                keeping_right = None;
+            }
+        }
+
+		return Ok(keeping_left
+			.into_iter()
+			.chain(self.remove_overlapping(range_bounds).map(|(key, value)| {
+				(
+					(key.start_bound().cloned(), key.end_bound().cloned()),
+					value,
+				)
+			}))
+			.chain(keeping_right.into_iter()));
 	}
 	//does nothing if it hits a degenerate interval or if it would
 	//leave invalid range_bounds within the structure
@@ -968,10 +1032,10 @@ where
 		range_bounds: K,
 		value: V,
 	) -> Result<&K, OverlapOrTryFromBoundsError> {
+		todo!()
 	}
 	#[parent_tested]
-	fn touching_left(&self, range_bounds: &K) -> Option<&K> {
-	}
+	fn touching_left(&self, range_bounds: &K) -> Option<&K> {}
 	#[parent_tested]
 	fn touching_right(&self, range_bounds: &K) -> Option<&K> {
 		todo!()
