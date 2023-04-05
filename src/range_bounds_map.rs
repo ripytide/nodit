@@ -276,8 +276,8 @@ pub enum OverlapOrTryFromBoundsError {
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
-	I: Ord,
-	K: RangeBounds<I>,
+	I: Ord + Copy,
+	K: NiceRange<I> + Copy,
 {
 	/// Makes a new, empty `RangeBoundsMap`.
 	///
@@ -402,8 +402,8 @@ where
 	where
 		Q: RangeBounds<I>,
 	{
-		let lower_comp = comp_start(range_bounds.start_bound());
-		let upper_comp = comp_end(range_bounds.end_bound());
+		let lower_comp = comp_start(range_bounds.start());
+		let upper_comp = comp_end(range_bounds.end());
 
 		let lower_bound = SearchBoundCustom::Included;
 		let upper_bound = SearchBoundCustom::Included;
@@ -432,7 +432,7 @@ where
 	/// assert_eq!(map.get_at_point(&101), None);
 	/// ```
 	#[trivial]
-	pub fn get_at_point(&self, point: &I) -> Option<&V> {
+	pub fn get_at_point(&self, point: I) -> Option<&V> {
 		self.get_entry_at_point(point).map(|(key, value)| value)
 	}
 
@@ -499,7 +499,7 @@ where
 	/// assert_eq!(map.get_entry_at_point(&101), None);
 	/// ```
 	#[trivial]
-	pub fn get_entry_at_point(&self, point: &I) -> Option<(&K, &V)> {
+	pub fn get_entry_at_point(&self, point: I) -> Option<(&K, &V)> {
 		self.inner.get_key_value(comp_start(Bound::Included(point)))
 	}
 
@@ -1034,12 +1034,12 @@ where
 	) -> Result<&K, OverlapOrTryFromBoundsError> {
 		todo!()
 	}
-	#[parent_tested]
-	fn touching_left(&self, range_bounds: &K) -> Option<&K> {}
-	#[parent_tested]
-	fn touching_right(&self, range_bounds: &K) -> Option<&K> {
-		todo!()
-	}
+	//#[parent_tested]
+	//fn touching_left(&self, range_bounds: K) -> Option<K> {}
+	//#[parent_tested]
+	//fn touching_right(&self, range_bounds: K) -> Option<K> {
+	//todo!()
+	//}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
 	/// merges into other `RangeBounds` in the map which overlap
@@ -1296,26 +1296,26 @@ where
 	}
 }
 
-fn comp_start<I, K>(bound: Bound<&I>) -> impl FnMut(&K) -> Ordering + '_
+fn comp_start<I, K>(bound: Bound<I>) -> impl FnMut(&K) -> Ordering
 where
-	I: Ord,
-	K: RangeBounds<I>,
+	I: Ord + Copy + Clone,
+	K: NiceRange<I> + Copy,
 {
 	move |inner_range_bounds: &K| {
 		cmp_range_bounds_with_bound_ord(
-			inner_range_bounds,
+			*inner_range_bounds,
 			BoundOrd::start(bound),
 		)
 	}
 }
-fn comp_end<I, K>(bound: Bound<&I>) -> impl FnMut(&K) -> Ordering + '_
+fn comp_end<I, K>(bound: Bound<I>) -> impl FnMut(&K) -> Ordering
 where
-	I: Ord,
-	K: RangeBounds<I>,
+	I: Ord + Copy + Clone,
+	K: NiceRange<I> + Copy,
 {
 	move |inner_range_bounds: &K| {
 		cmp_range_bounds_with_bound_ord(
-			inner_range_bounds,
+			*inner_range_bounds,
 			BoundOrd::end(bound),
 		)
 	}
@@ -1328,5 +1328,23 @@ where
 	|inner_range_bounds: &K, new_range_bounds: &K| {
 		BoundOrd::start(new_range_bounds.start_bound())
 			.cmp(&BoundOrd::start(inner_range_bounds.start_bound()))
+	}
+}
+
+pub trait NiceRange<I> {
+	fn start(&self) -> Bound<I>;
+	fn end(&self) -> Bound<I>;
+}
+
+impl<K, I> NiceRange<I> for K
+where
+	I: Clone,
+	K: RangeBounds<I>,
+{
+	fn start(&self) -> Bound<I> {
+		self.start_bound().cloned()
+	}
+	fn end(&self) -> Bound<I> {
+		self.end_bound().cloned()
 	}
 }

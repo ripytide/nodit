@@ -23,19 +23,20 @@ use std::ops::{Bound, RangeBounds};
 use labels::{tested, trivial};
 
 use crate::bound_ord::BoundOrd;
+use crate::range_bounds_map::NiceRange;
 use crate::{TryFromBounds, TryFromBoundsError};
 
-pub(crate) fn cmp_range_bounds_with_bound_ord<A, B>(
-	range_bounds: &A,
-	bound_ord: BoundOrd<&B>,
+pub(crate) fn cmp_range_with_bound_ord<A, B>(
+	range: A,
+	bound_ord: BoundOrd<B>,
 ) -> Ordering
 where
-	A: RangeBounds<B>,
+	A: NiceRange<B>,
 	B: Ord,
 {
-	if bound_ord < BoundOrd::start(range_bounds.start_bound()) {
+	if bound_ord < BoundOrd::start(range.start()) {
 		Ordering::Less
-	} else if bound_ord > BoundOrd::end(range_bounds.end_bound()) {
+	} else if bound_ord > BoundOrd::end(range.end()) {
 		Ordering::Greater
 	} else {
 		Ordering::Equal
@@ -54,20 +55,17 @@ enum Config {
 }
 
 #[tested]
-fn config<I, A, B>(a: &A, b: &B) -> Config
+fn config<I, A, B>(a: A, b: B) -> Config
 where
-	A: RangeBounds<I>,
-	B: RangeBounds<I>,
+	A: NiceRange<I>,
+	B: NiceRange<I>,
 	I: Ord,
 {
-	let (a_start, a_end) = expand(a);
-	let (b_start, b_end) = expand(b);
-
-	match BoundOrd::start(a_start) < BoundOrd::start(b_start) {
+	match BoundOrd::start(a.start()) < BoundOrd::start(b.start()) {
 		true => {
 			match (
-				contains_bound_ord(a, BoundOrd::start(b_start)),
-				contains_bound_ord(a, BoundOrd::end(b_end)),
+				contains_bound_ord(a, BoundOrd::start(b.start())),
+				contains_bound_ord(a, BoundOrd::end(b.end())),
 			) {
 				(false, false) => Config::LeftFirstNonOverlapping,
 				(true, false) => Config::LeftFirstPartialOverlap,
@@ -77,8 +75,8 @@ where
 		}
 		false => {
 			match (
-				contains_bound_ord(b, BoundOrd::start(a_start)),
-				contains_bound_ord(b, BoundOrd::end(a_end)),
+				contains_bound_ord(b, BoundOrd::start(a.start())),
+				contains_bound_ord(b, BoundOrd::end(a.end())),
 			) {
 				(false, false) => Config::RightFirstNonOverlapping,
 				(true, false) => Config::RightFirstPartialOverlap,
@@ -96,16 +94,16 @@ enum SortedConfig<I> {
 	Swallowed((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
 }
 
-#[rustfmt::skip]//{{{//{{{//{{{//{{{
-#[trivial]//}}}//}}}//}}}//}}}
-fn sorted_config<'a, I, A, B>(a: &'a A, b: &'a B) -> SortedConfig<&'a I>
+#[rustfmt::skip]
+#[trivial]
+fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
-	A: RangeBounds<I>,
-	B: RangeBounds<I>,
+	A: NiceRange<I>,
+	B: NiceRange<I>,
 	I: Ord,
 {
-    let ae = expand(a);
-    let be = expand(b);
+    let ae = (a.start(), a.end());
+    let be = (b.start(), b.end());
 	match config(a, b) {
         Config::LeftFirstNonOverlapping => SortedConfig::NonOverlapping(ae, be),
 		Config::LeftFirstPartialOverlap => SortedConfig::Swallowed(ae, be),
@@ -119,15 +117,15 @@ where
 
 #[trivial]
 pub(crate) fn contains_bound_ord<I, A>(
-	range_bounds: &A,
-	bound_ord: BoundOrd<&I>,
+	range_bounds: A,
+	bound_ord: BoundOrd<I>,
 ) -> bool
 where
-	A: RangeBounds<I>,
+	A: NiceRange<I>,
 	I: Ord,
 {
-	let start_bound_ord = BoundOrd::start(range_bounds.start_bound());
-	let end_bound_ord = BoundOrd::end(range_bounds.end_bound());
+	let start_bound_ord = BoundOrd::start(range_bounds.start());
+	let end_bound_ord = BoundOrd::end(range_bounds.end());
 
 	return bound_ord >= start_bound_ord && bound_ord <= end_bound_ord;
 }
@@ -140,57 +138,48 @@ struct CutResult<I> {
 }
 
 #[tested]
-pub(crate) fn cut_range_bounds<'a, I, B, C>(
-	base_range_bounds: &'a B,
-	cut_range_bounds: &'a C,
-) -> CutResult<&'a I>
+pub(crate) fn cut_range_bounds<I, B, C>(base: B, cut: C) -> CutResult<I>
 where
-	B: RangeBounds<I>,
-	C: RangeBounds<I>,
+	B: NiceRange<I>,
+	C: NiceRange<I>,
 	I: Ord + Clone,
 {
-	let base_all @ (base_start, base_end) = (
-		base_range_bounds.start_bound(),
-		base_range_bounds.end_bound(),
-	);
-	let cut_all @ (cut_start, cut_end) =
-		(cut_range_bounds.start_bound(), cut_range_bounds.end_bound());
-
 	let mut result = CutResult {
 		before_cut: None,
 		inside_cut: None,
 		after_cut: None,
 	};
 
-	match config(base_range_bounds, cut_range_bounds) {
+	match config(base, cut) {
 		Config::LeftFirstNonOverlapping => {
-			result.before_cut = Some(base_all);
+			result.before_cut = Some((base.start(), base.end()));
 		}
 		Config::LeftFirstPartialOverlap => {
-			result.before_cut = Some((base_start, flip_bound(cut_start)));
-			result.inside_cut = Some((cut_start, base_end));
+			result.before_cut = Some((base.start(), flip_bound(cut.start())));
+			result.inside_cut = Some((cut.start(), base.end()));
 		}
 		Config::LeftContainsRight => {
-			result.before_cut = Some((base_start, flip_bound(cut_start)));
-			result.inside_cut = Some(cut_all);
+			result.before_cut = Some((base.start(), flip_bound(cut.start())));
+			result.inside_cut = Some((cut.start(), cut.end()));
 			// exception for Unbounded-ending things
-			match cut_end {
+			match cut.end() {
 				Bound::Unbounded => {}
 				_ => {
-					result.after_cut = Some((flip_bound(cut_end), base_end));
+					result.after_cut =
+						Some((flip_bound(cut.end()), base.end()));
 				}
 			}
 		}
 
 		Config::RightFirstNonOverlapping => {
-			result.after_cut = Some(base_all);
+			result.after_cut = Some((base.start(), base.end()));
 		}
 		Config::RightFirstPartialOverlap => {
-			result.after_cut = Some((flip_bound(cut_end), base_end));
-			result.inside_cut = Some((base_start, cut_end));
+			result.after_cut = Some((flip_bound(cut.end()), base.end()));
+			result.inside_cut = Some((base.start(), cut.end()));
 		}
 		Config::RightContainsLeft => {
-			result.inside_cut = Some(base_all);
+			result.inside_cut = Some((base.start(), base.end()));
 		}
 	}
 
@@ -224,10 +213,10 @@ where
 }
 
 #[tested]
-pub fn overlaps<I, A, B>(a: &A, b: &B) -> bool
+pub fn overlaps<I, A, B>(a: A, b: B) -> bool
 where
-	A: RangeBounds<I>,
-	B: RangeBounds<I>,
+	A: NiceRange<I>,
+	B: NiceRange<I>,
 	I: Ord,
 {
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
@@ -255,14 +244,6 @@ where
 }
 
 #[trivial]
-fn expand<I, A>(range_bounds: &A) -> (Bound<&I>, Bound<&I>)
-where
-	A: RangeBounds<I>,
-{
-	(range_bounds.start_bound(), range_bounds.end_bound())
-}
-
-#[trivial]
 pub(crate) fn flip_bound<I>(bound: Bound<I>) -> Bound<I> {
 	match bound {
 		Bound::Included(point) => Bound::Excluded(point),
@@ -273,12 +254,12 @@ pub(crate) fn flip_bound<I>(bound: Bound<I>) -> Bound<I> {
 
 //assumes the bound overlaps the range_bounds
 pub(crate) fn split_off_right_section<I, K>(
-	range_bounds: &&K,
+	range_bounds: K,
 	with_bound: Bound<I>,
 ) -> (Option<Result<K, TryFromBoundsError>>, (Bound<I>, Bound<I>))
 where
-	I: Clone + Ord,
-	K: RangeBounds<I> + TryFromBounds<I>,
+	I: Ord,
+	K: NiceRange<I> + TryFromBounds<I>,
 {
 	let (start_bound, end_bound) =
 		(range_bounds.start_bound(), range_bounds.end_bound());
