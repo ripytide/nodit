@@ -923,21 +923,27 @@ where
 		self.inner.insert(range, value, double_comp());
 	}
 
-	fn insert_merge_with_comps<C1, C2>(
+	fn insert_merge_with_comps<G1, G2, C1, C2>(
 		&mut self,
 		range: K,
 		value: V,
-		start_comp: C1,
-		end_comp: C2,
+		start_comp_generator: G1,
+		end_comp_generator: G2,
 	) -> Result<K, TryFromBoundsError>
 	where
+		G1: Fn(Bound<I>) -> C1,
+		G2: Fn(Bound<I>) -> C2,
 		C1: FnMut(&K) -> Ordering,
 		C2: FnMut(&K) -> Ordering,
 	{
-		let matching_start =
-			self.inner.get_key_value(start_comp).map(|(key, _)| key);
-		let matching_end =
-			self.inner.get_key_value(end_comp).map(|(key, _)| key);
+		let matching_start = self
+			.inner
+			.get_key_value(start_comp_generator(range.start()))
+			.map(|(key, _)| key);
+		let matching_end = self
+			.inner
+			.get_key_value(end_comp_generator(range.end()))
+			.map(|(key, _)| key);
 
 		let returning = match (matching_start, matching_end) {
 			(Some(matching_start), Some(matching_end)) => {
@@ -952,8 +958,8 @@ where
 			(None, None) => range,
 		};
 
-		self.inner.remove(start_comp);
-		self.inner.remove(end_comp);
+		self.inner.remove(start_comp_generator(range.start()));
+		self.inner.remove(end_comp_generator(range.end()));
 
 		self.insert_unchecked(returning, value);
 
@@ -1025,8 +1031,8 @@ where
 		self.insert_merge_with_comps(
 			range,
 			value,
-			touching_start_comp(range.start()),
-			touching_end_comp(range.end()),
+			touching_start_comp,
+			touching_end_comp,
 		)
 		.map_err(OverlapOrTryFromBoundsError::TryFromBounds)
 	}
@@ -1087,8 +1093,8 @@ where
 		self.insert_merge_with_comps(
 			range,
 			value,
-			overlapping_start_comp(range.start()),
-			overlapping_end_comp(range.end()),
+			overlapping_start_comp,
+			overlapping_end_comp,
 		)
 	}
 
@@ -1151,8 +1157,8 @@ where
 		self.insert_merge_with_comps(
 			range,
 			value,
-			touching_or_overlapping_start_comp(range.start()),
-			touching_or_overlapping_end_comp(range.end()),
+			touching_or_overlapping_start_comp,
+			touching_or_overlapping_end_comp,
 		)
 	}
 
