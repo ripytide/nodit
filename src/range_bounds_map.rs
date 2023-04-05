@@ -32,7 +32,9 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
-use crate::helpers::{cmp_range_with_bound_ord, cut_range, overlaps};
+use crate::helpers::{
+	cmp_range_with_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
+};
 use crate::TryFromBounds;
 
 /// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
@@ -789,15 +791,55 @@ where
 	/// 	]
 	/// );
 	/// ```
-	//pub fn gaps<'a, Q>(
-	//&'a self,
-	//outer_range_bounds: Q,
-	//) -> impl Iterator<Item = (Bound<I>, Bound<I>)> + '_
-	//where
-	//Q: 'a + RangeBounds<I> + Clone,
-	//I: Clone,
-	//{
-	//}
+	pub fn gaps<'a, Q>(
+		&'a self,
+		outer_range: Q,
+	) -> impl Iterator<Item = (Bound<I>, Bound<I>)> + '_
+	where
+		Q: NiceRange<I> + 'a,
+	{
+		// I'm in love with how clean/mindblowing this entire function is
+		let overlapping = self
+			.overlapping(outer_range)
+			.map(|(key, _)| (key.start(), key.end()));
+
+		// If the start or end point of outer_range_bounds is not
+		// contained within a RangeBounds in the map then we need to
+		// generate a artificial RangeBounds to use instead.
+		//
+		// We also have to flip the artificial ones ahead of time as
+		// we actually want the range_bounds endpoints included
+		// not excluded unlike with other bounds in artificials
+
+		let artificial_start = (
+			flip_bound(outer_range.start()),
+			flip_bound(outer_range.start()),
+		);
+		let artificial_end =
+			(flip_bound(outer_range.end()), flip_bound(outer_range.end()));
+		let mut artificials = once(artificial_start)
+			.chain(overlapping)
+			.chain(once(artificial_end));
+
+		let start_contained =
+			self.inner.contains_key(comp_start(outer_range.start()));
+		let end_contained =
+			self.inner.contains_key(comp_end(outer_range.end()));
+
+		if start_contained {
+			artificials.next();
+		}
+		if end_contained {
+			artificials.next_back();
+		}
+
+		return artificials
+			.tuple_windows()
+			.map(|((_, first_end), (second_start, _))| {
+				(flip_bound(first_end), flip_bound(second_start))
+			})
+			.filter(|range| is_valid_range(*range));
+	}
 
 	/// Returns `true` if the map covers every point in the given
 	/// `RangeBounds`, and `false` if it doesn't.
@@ -824,14 +866,13 @@ where
 	/// assert_eq!(map.contains_range_bounds(&(2..6)), false);
 	/// assert_eq!(map.contains_range_bounds(&(6..50)), true);
 	/// ```
-	//pub fn contains_range_bounds<Q>(&self, range_bounds: Q) -> bool
-	//where
-	//Q: RangeBounds<I> + Clone,
-	//I: Clone,
-	//{
-	//// Soooo clean and mathematical 🥰!
-	//self.gaps(range_bounds).next().is_none()
-	//}
+	pub fn contains_range_bounds<Q>(&self, range_bounds: Q) -> bool
+	where
+		Q: NiceRange<I>,
+	{
+		// Soooo clean and mathematical 🥰!
+		self.gaps(range_bounds).next().is_none()
+	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map without
 	/// modifying other entries.
@@ -866,7 +907,7 @@ where
 			return Err(OverlapError);
 		}
 
-		self.inner.insert(range, value, double_comp());
+		self.insert_unchecked(range, value);
 
 		return Ok(());
 	}
