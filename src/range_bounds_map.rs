@@ -1236,10 +1236,16 @@ where
 	/// ```
 	pub fn insert_overwrite(
 		&mut self,
-		range_bounds: K,
+		range: K,
 		value: V,
-	) -> Result<(), TryFromBoundsError> {
-		todo!()
+	) -> Result<(), TryFromBoundsError>
+	where
+		V: Clone,
+	{
+		let _ = self.cut(range)?;
+		self.insert_unchecked(range, value);
+
+		return Ok(());
 	}
 
 	/// Returns the first (`RangeBounds`, `Value`) entry in the map, if
@@ -1259,7 +1265,7 @@ where
 	/// assert_eq!(map.first_entry(), Some((&(1..4), &false)));
 	/// ```
 	pub fn first_entry(&self) -> Option<(&K, &V)> {
-		todo!()
+		self.inner.first_key_value()
 	}
 
 	/// Returns the last (`RangeBounds`, `Value`) entry in the map, if
@@ -1281,57 +1287,7 @@ where
 	/// 	Some((&(8..100), &false))
 	/// );
 	pub fn last_entry(&self) -> Option<(&K, &V)> {
-		todo!()
-	}
-
-	/// Splits the map in two at the given `start_bound()`. Returns
-	/// the full or partial `RangeBounds` after the split.
-	///
-	/// If the remaining `RangeBounds` left in either the base or the
-	/// returned map are not able be created with the
-	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
-	/// returned and the base map will not be split.
-	///
-	/// `V` must implement `Clone` as if you try to split the map
-	/// inside a `RangeBounds` then that entries value will need to be
-	/// cloned into the returned `RangeBoundsMap`.
-	///
-	/// # Examples
-	/// ```
-	/// use std::ops::Bound;
-	///
-	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
-	///
-	/// let mut a = RangeBoundsMap::from_slice_strict([
-	/// 	(1..2, false),
-	/// 	(4..8, true),
-	/// 	(10..16, true),
-	/// ])
-	/// .unwrap();
-	///
-	/// // Fails because that would leave an Inclusive-Inclusive
-	/// // `RangeBounds` in `a`
-	/// assert_eq!(
-	/// 	a.split_off(Bound::Excluded(6)),
-	/// 	Err(TryFromBoundsError)
-	/// );
-	///
-	/// let b = a.split_off(Bound::Included(6)).unwrap();
-	///
-	/// assert_eq!(
-	/// 	a.into_iter().collect::<Vec<_>>(),
-	/// 	[(1..2, false), (4..6, true)],
-	/// );
-	/// assert_eq!(
-	/// 	b.into_iter().collect::<Vec<_>>(),
-	/// 	[(6..8, true), (10..16, true)],
-	/// );
-	/// ```
-	pub fn split_off(
-		&mut self,
-		start_bound: Bound<I>,
-	) -> Result<RangeBoundsMap<I, K, V>, TryFromBoundsError> {
-		todo!()
+		self.inner.last_key_value()
 	}
 }
 
