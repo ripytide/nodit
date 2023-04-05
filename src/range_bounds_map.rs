@@ -26,7 +26,6 @@ use std::ops::{Bound, RangeBounds};
 use btree_monstousity::btree_map::SearchBoundCustom;
 use btree_monstousity::BTreeMap;
 use itertools::Itertools;
-use labels::{parent_tested, tested, trivial};
 use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -290,7 +289,6 @@ where
 	/// let map: RangeBoundsMap<u8, Range<u8>, bool> =
 	/// 	RangeBoundsMap::new();
 	/// ```
-	#[trivial]
 	pub fn new() -> Self {
 		RangeBoundsMap {
 			inner: BTreeMap::new(),
@@ -310,7 +308,6 @@ where
 	/// map.insert_strict(0..1, false).unwrap();
 	/// assert_eq!(map.len(), 1);
 	/// ```
-	#[trivial]
 	pub fn len(&self) -> usize {
 		self.inner.len()
 	}
@@ -328,7 +325,6 @@ where
 	/// map.insert_strict(0..1, false).unwrap();
 	/// assert_eq!(map.is_empty(), false);
 	/// ```
-	#[trivial]
 	pub fn is_empty(&self) -> bool {
 		self.inner.is_empty()
 	}
@@ -357,7 +353,6 @@ where
 	/// assert_eq!(map.overlaps(&(4..=5)), true);
 	/// assert_eq!(map.overlaps(&(4..6)), true);
 	/// ```
-	#[trivial]
 	pub fn overlaps<Q>(&self, range_bounds: Q) -> bool
 	where
 		Q: RangeBounds<I>,
@@ -431,7 +426,6 @@ where
 	/// assert_eq!(map.get_at_point(&4), Some(&true));
 	/// assert_eq!(map.get_at_point(&101), None);
 	/// ```
-	#[trivial]
 	pub fn get_at_point(&self, point: I) -> Option<&V> {
 		self.get_entry_at_point(point).map(|(key, value)| value)
 	}
@@ -454,7 +448,6 @@ where
 	/// assert_eq!(map.contains_point(&4), true);
 	/// assert_eq!(map.contains_point(&101), false);
 	/// ```
-	#[trivial]
 	pub fn contains_point(&self, point: &I) -> bool {
 		self.get_entry_at_point(point).is_some()
 	}
@@ -498,7 +491,6 @@ where
 	/// assert_eq!(map.get_entry_at_point(&4), Some((&(4..8), &true)));
 	/// assert_eq!(map.get_entry_at_point(&101), None);
 	/// ```
-	#[trivial]
 	pub fn get_entry_at_point(&self, point: I) -> Option<(&K, &V)> {
 		self.inner.get_key_value(comp_start(Bound::Included(point)))
 	}
@@ -524,7 +516,6 @@ where
 	/// assert_eq!(iter.next(), Some((&(8..100), &false)));
 	/// assert_eq!(iter.next(), None);
 	/// ```
-	#[trivial]
 	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
 		self.inner.iter()
 	}
@@ -923,7 +914,6 @@ where
 	/// assert_eq!(map.contains_range_bounds(&(2..6)), false);
 	/// assert_eq!(map.contains_range_bounds(&(6..50)), true);
 	/// ```
-	#[trivial]
 	pub fn contains_range_bounds<Q>(&self, range_bounds: Q) -> bool
 	where
 		Q: RangeBounds<I> + Clone,
@@ -1191,7 +1181,6 @@ where
 	/// 	[(&(2..4), &false), (&(4..6), &true), (&(6..8), &false)]
 	/// );
 	/// ```
-	#[trivial]
 	pub fn insert_overwrite(
 		&mut self,
 		range_bounds: K,
@@ -1216,7 +1205,6 @@ where
 	///
 	/// assert_eq!(map.first_entry(), Some((&(1..4), &false)));
 	/// ```
-	#[trivial]
 	pub fn first_entry(&self) -> Option<(&K, &V)> {
 		todo!()
 	}
@@ -1239,7 +1227,6 @@ where
 	/// 	map.last_entry(),
 	/// 	Some((&(8..100), &false))
 	/// );
-	#[trivial]
 	pub fn last_entry(&self) -> Option<(&K, &V)> {
 		todo!()
 	}
@@ -1287,7 +1274,6 @@ where
 	/// 	[(6..8, true), (10..16, true)],
 	/// );
 	/// ```
-	#[trivial]
 	pub fn split_off(
 		&mut self,
 		start_bound: Bound<I>,

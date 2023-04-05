@@ -56,16 +56,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "labels"
-version = "0.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef0d115162498c588b6406a026d2ba545e955720f0ff4230d6b380afe7dd7fd4"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
 name = "num-traits"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -127,9 +117,7 @@ name = "range_bounds_map"
 version = "0.1.1"
 dependencies = [
  "btree_monstousity",
- "either",
  "itertools",
- "labels",
  "ordered-float",
  "pretty_assertions",
  "serde",

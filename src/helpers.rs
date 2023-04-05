@@ -18,9 +18,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::cmp::Ordering;
-use std::ops::{Bound, RangeBounds};
-
-use labels::{tested, trivial};
+use std::ops::Bound;
 
 use crate::bound_ord::BoundOrd;
 use crate::range_bounds_map::NiceRange;
@@ -54,7 +52,6 @@ enum Config {
 	RightContainsLeft,
 }
 
-#[tested]
 fn config<I, A, B>(a: A, b: B) -> Config
 where
 	A: NiceRange<I>,
@@ -95,7 +92,6 @@ enum SortedConfig<I> {
 }
 
 #[rustfmt::skip]
-#[trivial]
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
 	A: NiceRange<I>,
@@ -115,30 +111,25 @@ where
 	}
 }
 
-#[trivial]
-pub(crate) fn contains_bound_ord<I, A>(
-	range_bounds: A,
-	bound_ord: BoundOrd<I>,
-) -> bool
+pub(crate) fn contains_bound_ord<I, A>(range: A, bound_ord: BoundOrd<I>) -> bool
 where
 	A: NiceRange<I>,
 	I: Ord,
 {
-	let start_bound_ord = BoundOrd::start(range_bounds.start());
-	let end_bound_ord = BoundOrd::end(range_bounds.end());
+	let start_bound_ord = BoundOrd::start(range.start());
+	let end_bound_ord = BoundOrd::end(range.end());
 
 	return bound_ord >= start_bound_ord && bound_ord <= end_bound_ord;
 }
 
 #[derive(Debug)]
 struct CutResult<I> {
-	pub before_cut: Option<(Bound<I>, Bound<I>)>,
-	pub inside_cut: Option<(Bound<I>, Bound<I>)>,
-	pub after_cut: Option<(Bound<I>, Bound<I>)>,
+	pub(crate) before_cut: Option<(Bound<I>, Bound<I>)>,
+	pub(crate) inside_cut: Option<(Bound<I>, Bound<I>)>,
+	pub(crate) after_cut: Option<(Bound<I>, Bound<I>)>,
 }
 
-#[tested]
-pub(crate) fn cut_range_bounds<I, B, C>(base: B, cut: C) -> CutResult<I>
+pub(crate) fn cut_range<I, B, C>(base: B, cut: C) -> CutResult<I>
 where
 	B: NiceRange<I>,
 	C: NiceRange<I>,
@@ -185,25 +176,18 @@ where
 
 	//only return valid range_bounds
 	return CutResult {
-		before_cut: result
-			.before_cut
-			.filter(|x| is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>(x)),
-		inside_cut: result
-			.inside_cut
-			.filter(|x| is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>(x)),
-		after_cut: result
-			.after_cut
-			.filter(|x| is_valid_range_bounds::<(Bound<&I>, Bound<&I>), I>(x)),
+		before_cut: result.before_cut.filter(|x| is_valid_range(*x)),
+		inside_cut: result.inside_cut.filter(|x| is_valid_range(*x)),
+		after_cut: result.after_cut.filter(|x| is_valid_range(*x)),
 	};
 }
 
-#[trivial]
-pub fn is_valid_range_bounds<Q, I>(range_bounds: &Q) -> bool
+pub(crate) fn is_valid_range<I, K>(range: K) -> bool
 where
-	Q: RangeBounds<I>,
-	I: std::cmp::PartialOrd,
+	I: Ord,
+	K: NiceRange<I>,
 {
-	match (range_bounds.start_bound(), range_bounds.end_bound()) {
+	match (range.start(), range.end()) {
 		(Bound::Included(start), Bound::Included(end)) => start <= end,
 		(Bound::Included(start), Bound::Excluded(end)) => start < end,
 		(Bound::Excluded(start), Bound::Included(end)) => start < end,
@@ -212,8 +196,7 @@ where
 	}
 }
 
-#[tested]
-pub fn overlaps<I, A, B>(a: A, b: B) -> bool
+pub(crate) fn overlaps<I, A, B>(a: A, b: B) -> bool
 where
 	A: NiceRange<I>,
 	B: NiceRange<I>,
@@ -222,11 +205,10 @@ where
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
 
-#[tested]
-pub(crate) fn touches<I, A, B>(a: &A, b: &B) -> bool
+pub(crate) fn touches<I, A, B>(a: A, b: B) -> bool
 where
-	A: RangeBounds<I>,
-	B: RangeBounds<I>,
+	A: NiceRange<I>,
+	B: NiceRange<I>,
 	I: Ord,
 {
 	match sorted_config(a, b) {
@@ -243,62 +225,10 @@ where
 	}
 }
 
-#[trivial]
 pub(crate) fn flip_bound<I>(bound: Bound<I>) -> Bound<I> {
 	match bound {
 		Bound::Included(point) => Bound::Excluded(point),
 		Bound::Excluded(point) => Bound::Included(point),
 		Bound::Unbounded => Bound::Unbounded,
-	}
-}
-
-//assumes the bound overlaps the range_bounds
-pub(crate) fn split_off_right_section<I, K>(
-	range_bounds: K,
-	with_bound: Bound<I>,
-) -> (Option<Result<K, TryFromBoundsError>>, (Bound<I>, Bound<I>))
-where
-	I: Ord,
-	K: NiceRange<I> + TryFromBounds<I>,
-{
-	let (start_bound, end_bound) =
-		(range_bounds.start_bound(), range_bounds.end_bound());
-
-	let keeping_section = (with_bound, end_bound.cloned());
-
-	let returning_section = (start_bound.cloned(), flip_bound(with_bound));
-
-	if is_valid_range_bounds(&returning_section) {
-		return (
-			Some(K::try_from_bounds(returning_section.0, returning_section.1)),
-			keeping_section,
-		);
-	} else {
-		return (None, keeping_section);
-	}
-}
-//assumes the bound overlaps the range_bounds
-pub(crate) fn split_off_left_section<I, K>(
-	with_bound: Bound<I>,
-	range_bounds: &K,
-) -> (Option<Result<K, TryFromBoundsError>>, (Bound<I>, Bound<I>))
-where
-	I: Clone + Ord,
-	K: RangeBounds<I> + TryFromBounds<I>,
-{
-	let (start_bound, end_bound) =
-		(range_bounds.start_bound(), range_bounds.end_bound());
-
-	let keeping_section = (start_bound.cloned(), with_bound);
-
-	let returning_section = (flip_bound(with_bound), end_bound.cloned());
-
-	if is_valid_range_bounds(&returning_section) {
-		return (
-			Some(K::try_from_bounds(returning_section.0, returning_section.1)),
-			keeping_section,
-		);
-	} else {
-		return (None, keeping_section);
 	}
 }
