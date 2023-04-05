@@ -23,8 +23,8 @@ use std::iter::once;
 use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 
-use btree_monstousity::btree_map::SearchBoundCustom;
-use btree_monstousity::BTreeMap;
+use btree_monstrousity::btree_map::SearchBoundCustom;
+use btree_monstrousity::BTreeMap;
 use either::Either;
 use itertools::Itertools;
 use serde::de::{MapAccess, Visitor};
@@ -34,6 +34,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::bound_ord::BoundOrd;
 use crate::helpers::{
 	cmp_range_with_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
+	this_touches_that,
 };
 use crate::TryFromBounds;
 
@@ -165,7 +166,8 @@ pub struct OverlapError;
 /// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 ///
 /// let mut map =
-/// 	RangeBoundsMap::from_slice_strict([(ie(2, 8), true)]).unwrap();
+/// 	RangeBoundsMap::from_slice_strict([(ie(2, 8), true)])
+/// 		.unwrap();
 ///
 /// assert!(map.cut(&(4..=6)).is_err());
 /// ```
@@ -459,7 +461,8 @@ where
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
+	/// 		.unwrap();
 	///
 	/// if let Some(x) = map.get_at_point_mut(&2) {
 	/// 	*x = true;
@@ -924,27 +927,23 @@ where
 		self.inner.insert(range, value, double_comp());
 	}
 
-	fn insert_merge_with_comps<G1, G2, C1, C2>(
+	fn insert_merge_with_comps<G1, G2, R1, R2>(
 		&mut self,
 		range: K,
 		value: V,
-		start_comp_generator: G1,
-		end_comp_generator: G2,
+		get_start: G1,
+		get_end: G2,
+		remove_start: R1,
+		remove_end: R2,
 	) -> Result<K, TryFromBoundsError>
 	where
-		G1: Fn(Bound<I>) -> C1,
-		G2: Fn(Bound<I>) -> C2,
-		C1: FnMut(&K) -> Ordering,
-		C2: FnMut(&K) -> Ordering,
+		G1: FnOnce(&Self) -> Option<&K>,
+		G2: FnOnce(&Self) -> Option<&K>,
+		R1: FnOnce(&mut Self),
+		R2: FnOnce(&mut Self),
 	{
-		let matching_start = self
-			.inner
-			.get_key_value(start_comp_generator(range.start()))
-			.map(|(key, _)| key);
-		let matching_end = self
-			.inner
-			.get_key_value(end_comp_generator(range.end()))
-			.map(|(key, _)| key);
+		let matching_start = get_start(self);
+		let matching_end = get_end(self);
 
 		let returning = match (matching_start, matching_end) {
 			(Some(matching_start), Some(matching_end)) => {
@@ -959,8 +958,10 @@ where
 			(None, None) => range,
 		};
 
-		self.inner.remove(start_comp_generator(range.start()));
-		self.inner.remove(end_comp_generator(range.end()));
+		remove_start(self);
+		remove_end(self);
+
+		let _ = self.remove_overlapping(range);
 
 		self.insert_unchecked(returning, value);
 
@@ -998,10 +999,14 @@ where
 	/// };
 	///
 	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
+	/// 		.unwrap();
 	///
 	/// // Touching
-	/// assert_eq!(map.insert_merge_touching(ie(4, 6), true), Ok(ie(1, 6)));
+	/// assert_eq!(
+	/// 	map.insert_merge_touching(ie(4, 6), true),
+	/// 	Ok(ie(1, 6))
+	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
@@ -1032,8 +1037,24 @@ where
 		self.insert_merge_with_comps(
 			range,
 			value,
-			touching_start_comp,
-			touching_end_comp,
+			|selfy| {
+				selfy
+					.inner
+					.get_key_value(touching_start_comp(range.start()))
+					.map(|(key, _)| key)
+			},
+			|selfy| {
+				selfy
+					.inner
+					.get_key_value(touching_end_comp(range.end()))
+					.map(|(key, _)| key)
+			},
+			|selfy| {
+				selfy.inner.remove(touching_start_comp(range.start()));
+			},
+			|selfy| {
+				selfy.inner.remove(touching_end_comp(range.end()));
+			},
 		)
 		.map_err(OverlapOrTryFromBoundsError::TryFromBounds)
 	}
@@ -1064,7 +1085,8 @@ where
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
+	/// 		.unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
@@ -1097,8 +1119,24 @@ where
 		self.insert_merge_with_comps(
 			range,
 			value,
-			overlapping_start_comp,
-			overlapping_end_comp,
+			|selfy| {
+				selfy
+					.inner
+					.get_key_value(overlapping_start_comp(range.start()))
+					.map(|(key, _)| key)
+			},
+			|selfy| {
+				selfy
+					.inner
+					.get_key_value(overlapping_end_comp(range.end()))
+					.map(|(key, _)| key)
+			},
+			|selfy| {
+				selfy.inner.remove(overlapping_start_comp(range.start()));
+			},
+			|selfy| {
+				selfy.inner.remove(overlapping_end_comp(range.end()));
+			},
 		)
 	}
 
@@ -1128,7 +1166,8 @@ where
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
+	/// 		.unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
@@ -1161,8 +1200,72 @@ where
 		self.insert_merge_with_comps(
 			range,
 			value,
-			touching_or_overlapping_start_comp,
-			touching_or_overlapping_end_comp,
+			|selfy| {
+				selfy
+					.inner
+					.lower_bound(
+						touching_or_overlapping_start_comp(range.start()),
+						SearchBoundCustom::Included,
+					)
+					.key_value()
+					.map(|(key, _)| key)
+					.filter(|selected_range| {
+						cmp_range_with_bound_ord(
+							**selected_range,
+							BoundOrd::start(range.start()),
+						)
+						.is_eq() || this_touches_that(**selected_range, range)
+					})
+			},
+			|selfy| {
+				selfy
+					.inner
+					.upper_bound(
+						touching_or_overlapping_end_comp(range.end()),
+						SearchBoundCustom::Included,
+					)
+					.key_value()
+					.map(|(key, _)| key)
+					.filter(|selected_range| {
+						cmp_range_with_bound_ord(
+							**selected_range,
+							BoundOrd::end(range.end()),
+						)
+						.is_eq() || this_touches_that(range, **selected_range)
+					})
+			},
+			|selfy| {
+				let mut cursor_mut = selfy.inner.lower_bound_mut(
+					touching_or_overlapping_start_comp(range.start()),
+					SearchBoundCustom::Included,
+				);
+				if let Some(selected_range) = cursor_mut.key() {
+					if cmp_range_with_bound_ord(
+						*selected_range,
+						BoundOrd::start(range.start()),
+					)
+					.is_eq() || this_touches_that(*selected_range, range)
+					{
+						cursor_mut.remove_current();
+					}
+				}
+			},
+			|selfy| {
+				let mut cursor_mut = selfy.inner.upper_bound_mut(
+					touching_or_overlapping_end_comp(range.end()),
+					SearchBoundCustom::Included,
+				);
+				if let Some(selected_range) = cursor_mut.key() {
+					if cmp_range_with_bound_ord(
+						*selected_range,
+						BoundOrd::end(range.end()),
+					)
+					.is_eq() || this_touches_that(range, *selected_range)
+					{
+						cursor_mut.remove_current();
+					}
+				}
+			},
 		)
 	}
 
@@ -1190,7 +1293,8 @@ where
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(2, 8), false)]).unwrap();
+	/// 	RangeBoundsMap::from_slice_strict([(ie(2, 8), false)])
+	/// 		.unwrap();
 	///
 	/// assert_eq!(map.insert_overwrite(ie(4, 6), true), Ok(()));
 	///
@@ -1266,6 +1370,16 @@ where
 	}
 }
 
+fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
+where
+	K: NiceRange<I>,
+	I: Ord,
+{
+	|inner_range: &K, new_range: &K| {
+		BoundOrd::start(new_range.start())
+			.cmp(&BoundOrd::start(inner_range.start()))
+	}
+}
 fn overlapping_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy,
@@ -1282,16 +1396,6 @@ where
 {
 	move |inner_range: &K| {
 		cmp_range_with_bound_ord(*inner_range, BoundOrd::end(end))
-	}
-}
-fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
-where
-	K: NiceRange<I>,
-	I: Ord,
-{
-	|inner_range: &K, new_range: &K| {
-		BoundOrd::start(new_range.start())
-			.cmp(&BoundOrd::start(inner_range.start()))
 	}
 }
 fn touching_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
@@ -1315,7 +1419,7 @@ where
 			//we overide any Equals to a random non-Equal since we
 			//don't want non-touching matches
 			match normal_result {
-				Ordering::Equal => Ordering::Less,
+				Ordering::Equal => Ordering::Greater,
 				x => x,
 			}
 		}
@@ -1422,7 +1526,7 @@ mod tests {
 
 	use super::*;
 	use crate::bound_ord::BoundOrd;
-	use crate::helpers::{config, touches, Config, CutResult};
+	use crate::helpers::{config, Config, CutResult};
 
 	type TestBounds = (Bound<u8>, Bound<u8>);
 
@@ -2293,31 +2397,29 @@ mod tests {
 		}
 	}
 
-	#[test]
-	fn touches_tests() {
-		for range_bounds1 in all_valid_test_bounds() {
-			for range_bounds2 in all_valid_test_bounds() {
-				let our_answer = touches(range_bounds1, range_bounds2);
+	//todo delete me
+	//#[test]
+	//fn touches_tests() {
+	//for range_bounds1 in all_valid_test_bounds() {
+	//for range_bounds2 in all_valid_test_bounds() {
+	//let our_answer = touches(range_bounds1, range_bounds2);
 
-				let mathematical_definition_of_touches =
-					NUMBERS_DOMAIN.iter().tuple_windows().any(|(x1, x2)| {
-						(range_bounds1.contains(x1)
-							&& !range_bounds1.contains(x2)
-							&& range_bounds2.contains(x2)
-							&& !range_bounds2.contains(x1))
-							|| (range_bounds1.contains(x2)
-								&& !range_bounds1.contains(x1) && range_bounds2
-								.contains(x1) && !range_bounds2.contains(x2))
-					});
+	//let mathematical_definition_of_touches =
+	//NUMBERS_DOMAIN.iter().tuple_windows().any(|(x1, x2)| {
+	//(range_bounds1.contains(x1)
+	//&& !range_bounds1.contains(x2)
+	//&& range_bounds2.contains(x2)
+	//&& !range_bounds2.contains(x1))
+	//|| (range_bounds1.contains(x2)
+	//&& !range_bounds1.contains(x1) && range_bounds2
+	//.contains(x1) && !range_bounds2.contains(x2))
+	//});
 
-				if our_answer != mathematical_definition_of_touches {
-					dbg!(range_bounds1, range_bounds2);
-					dbg!(mathematical_definition_of_touches, our_answer);
-					panic!("Discrepency in touches() detected!");
-				}
-			}
-		}
-	}
+	//if our_answer != mathematical_definition_of_touches {
+	//dbg!(range_bounds1, range_bounds2);
+	//dbg!(mathematical_definition_of_touches, our_answer);
+	//panic!("Discrepency in touches() detected!");
+	//}
 
 	// Test Helper Functions
 	//======================

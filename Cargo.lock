@@ -9,10 +9,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
-name = "btree_monstousity"
-version = "0.0.4"
+name = "btree_monstrousity"
+version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a596671a3fb8cd1899005c5cdc5ce442fe4d0153abbe12917171f7d435831563"
+checksum = "e30d101bbd3dff04ef3aae2c6d01bf4d250269a477a20e3d56af229371b4e243"
 dependencies = [
  "cfg-if",
  "rustversion",
@@ -116,7 +116,7 @@ dependencies = [
 name = "range_bounds_map"
 version = "0.1.1"
 dependencies = [
- "btree_monstousity",
+ "btree_monstrousity",
  "either",
  "itertools",
  "ordered-float",

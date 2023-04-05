@@ -204,19 +204,19 @@ where
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
 
-pub(crate) fn touches<I, A, B>(a: A, b: B) -> bool
+pub(crate) fn this_touches_that<I, A, B>(a: A, b: B) -> bool
 where
 	A: NiceRange<I>,
 	B: NiceRange<I>,
 	I: Ord,
 {
-	match sorted_config(a, b) {
-		SortedConfig::NonOverlapping(a, b) => match (a.1, b.0) {
-			(Bound::Included(point1), Bound::Excluded(point2)) => {
-				point1 == point2
+	match config(a, b) {
+		Config::LeftFirstNonOverlapping => match (a.end(), b.start()) {
+			(Bound::Included(end), Bound::Excluded(start)) if end == start => {
+				true
 			}
-			(Bound::Excluded(point1), Bound::Included(point2)) => {
-				point1 == point2
+			(Bound::Excluded(end), Bound::Included(start)) if end == start => {
+				true
 			}
 			_ => false,
 		},
