@@ -41,7 +41,6 @@ where
 	}
 }
 
-#[derive(Debug, PartialEq)]
 enum Config {
 	LeftFirstNonOverlapping,
 	LeftFirstPartialOverlap,
@@ -51,7 +50,6 @@ enum Config {
 	RightFirstPartialOverlap,
 	RightContainsLeft,
 }
-
 fn config<I, A, B>(a: A, b: B) -> Config
 where
 	A: NiceRange<I>,
@@ -84,29 +82,30 @@ where
 	}
 }
 
-#[derive(Debug, PartialEq)]
 enum SortedConfig<I> {
 	NonOverlapping((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
 	PartialOverlap((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
 	Swallowed((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
 }
-
-#[rustfmt::skip]
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
 	A: NiceRange<I>,
 	B: NiceRange<I>,
 	I: Ord,
 {
-    let ae = (a.start(), a.end());
-    let be = (b.start(), b.end());
+	let ae = (a.start(), a.end());
+	let be = (b.start(), b.end());
 	match config(a, b) {
-        Config::LeftFirstNonOverlapping => SortedConfig::NonOverlapping(ae, be),
+		Config::LeftFirstNonOverlapping => SortedConfig::NonOverlapping(ae, be),
 		Config::LeftFirstPartialOverlap => SortedConfig::Swallowed(ae, be),
 		Config::LeftContainsRight => SortedConfig::Swallowed(ae, be),
 
-        Config::RightFirstNonOverlapping => SortedConfig::NonOverlapping(be, ae),
-        Config::RightFirstPartialOverlap => SortedConfig::PartialOverlap(be, ae),
+		Config::RightFirstNonOverlapping => {
+			SortedConfig::NonOverlapping(be, ae)
+		}
+		Config::RightFirstPartialOverlap => {
+			SortedConfig::PartialOverlap(be, ae)
+		}
 		Config::RightContainsLeft => SortedConfig::Swallowed(be, ae),
 	}
 }
@@ -122,18 +121,16 @@ where
 	return bound_ord >= start_bound_ord && bound_ord <= end_bound_ord;
 }
 
-#[derive(Debug)]
-struct CutResult<I> {
+pub(crate) struct CutResult<I> {
 	pub(crate) before_cut: Option<(Bound<I>, Bound<I>)>,
 	pub(crate) inside_cut: Option<(Bound<I>, Bound<I>)>,
 	pub(crate) after_cut: Option<(Bound<I>, Bound<I>)>,
 }
-
 pub(crate) fn cut_range<I, B, C>(base: B, cut: C) -> CutResult<I>
 where
 	B: NiceRange<I>,
 	C: NiceRange<I>,
-	I: Ord + Clone,
+	I: Ord + Copy,
 {
 	let mut result = CutResult {
 		before_cut: None,

@@ -20,7 +20,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 use std::cmp::Ordering;
 use std::ops::Bound;
 
-use labels::{parent_tested, tested, trivial};
 use serde::{Deserialize, Serialize};
 
 /// An newtype of [`Bound`] to implement [`Ord`].
@@ -51,7 +50,6 @@ pub(crate) enum BoundOrd<T> {
 }
 
 impl<T> BoundOrd<T> {
-	#[trivial]
 	pub(crate) fn start(bound: Bound<T>) -> Self {
 		match bound {
 			Bound::Included(point) => BoundOrd::Included(point),
@@ -59,24 +57,11 @@ impl<T> BoundOrd<T> {
 			Bound::Unbounded => BoundOrd::StartUnbounded,
 		}
 	}
-	#[trivial]
 	pub(crate) fn end(bound: Bound<T>) -> Self {
 		match bound {
 			Bound::Included(point) => BoundOrd::Included(point),
 			Bound::Excluded(point) => BoundOrd::EndExcluded(point),
 			Bound::Unbounded => BoundOrd::EndUnbounded,
-		}
-	}
-
-	#[trivial]
-	pub fn as_ref(&self) -> BoundOrd<&T> {
-		//I can't believe this is neccessary but apparently so
-		match self {
-			BoundOrd::Included(x) => BoundOrd::Included(x),
-			BoundOrd::StartExcluded(x) => BoundOrd::StartExcluded(x),
-			BoundOrd::StartUnbounded => BoundOrd::StartUnbounded,
-			BoundOrd::EndExcluded(x) => BoundOrd::EndExcluded(x),
-			BoundOrd::EndUnbounded => BoundOrd::EndUnbounded,
 		}
 	}
 }
@@ -86,7 +71,6 @@ where
 	T: Ord,
 {
 	#[rustfmt::skip]
-    #[tested]
 	fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (BoundOrd::Included(start1), BoundOrd::Included(start2)) => start1.cmp(start2),
@@ -144,7 +128,6 @@ impl<T> Eq for BoundOrd<T> where T: Ord {}
 
 /// If they are equal say the item with priority is larger
 /// where false means left has priority and true means right.
-#[parent_tested]
 fn cmp_with_priority<T>(left: &T, right: &T, priority: bool) -> Ordering
 where
 	T: Ord,
@@ -161,7 +144,6 @@ where
 }
 
 impl<T> From<BoundOrd<T>> for Bound<T> {
-	#[trivial]
 	fn from(start_bound: BoundOrd<T>) -> Bound<T> {
 		match start_bound {
 			BoundOrd::Included(point) => Bound::Included(point),

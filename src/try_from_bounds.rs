@@ -22,8 +22,6 @@ use std::ops::{
 	RangeToInclusive,
 };
 
-use labels::{not_a_fn, trivial};
-
 use crate::TryFromBoundsError;
 
 /// A "newtype" trait to copy [`TryFrom`].
@@ -39,7 +37,6 @@ use crate::TryFromBoundsError;
 /// [`TryFrom`]: https://doc.rust-lang.org/std/convert/trait.TryFrom.html
 /// [`Range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
 pub trait TryFromBounds<I> {
-	#[not_a_fn]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -49,7 +46,6 @@ pub trait TryFromBounds<I> {
 }
 
 impl<I> TryFromBounds<I> for (Bound<I>, Bound<I>) {
-	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -59,7 +55,6 @@ impl<I> TryFromBounds<I> for (Bound<I>, Bound<I>) {
 }
 
 impl<I> TryFromBounds<I> for Range<I> {
-	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -72,7 +67,6 @@ impl<I> TryFromBounds<I> for Range<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeInclusive<I> {
-	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -85,7 +79,6 @@ impl<I> TryFromBounds<I> for RangeInclusive<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeFrom<I> {
-	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -98,7 +91,6 @@ impl<I> TryFromBounds<I> for RangeFrom<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeTo<I> {
-	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -111,7 +103,6 @@ impl<I> TryFromBounds<I> for RangeTo<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeToInclusive<I> {
-	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
@@ -124,7 +115,6 @@ impl<I> TryFromBounds<I> for RangeToInclusive<I> {
 }
 
 impl<I> TryFromBounds<I> for RangeFull {
-	#[trivial]
 	fn try_from_bounds(
 		start_bound: Bound<I>,
 		end_bound: Bound<I>,
