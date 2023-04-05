@@ -728,52 +728,6 @@ where
 	pub fn last(&self) -> Option<&K> {
 		self.map.last_entry().map(|(key, _)| key)
 	}
-
-	/// Splits the set in two at the given `start_bound()`. Returns
-	/// the full or partial `RangeBounds` after the split.
-	///
-	/// If the remaining `RangeBounds` left in either the base or the
-	/// returned set are not able be created with the
-	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
-	/// returned and the base set will not be split.
-	///
-	/// # Examples
-	/// ```
-	/// use std::ops::Bound;
-	///
-	/// use range_bounds_map::{RangeBoundsSet, TryFromBoundsError};
-	///
-	/// let mut a =
-	/// 	RangeBoundsSet::from_slice_strict([1..2, 4..8, 10..16])
-	/// 		.unwrap();
-	///
-	/// // Fails because that would leave an Inclusive-Inclusive
-	/// // `RangeBounds` in `a`
-	/// assert_eq!(
-	/// 	a.split_off(Bound::Excluded(6)),
-	/// 	Err(TryFromBoundsError)
-	/// );
-	///
-	/// let b = a.split_off(Bound::Included(6)).unwrap();
-	///
-	/// assert_eq!(a.into_iter().collect::<Vec<_>>(), [1..2, 4..6],);
-	/// assert_eq!(b.into_iter().collect::<Vec<_>>(), [6..8, 10..16],);
-	/// ```
-	#[trivial]
-	pub fn split_off(
-		&mut self,
-		start_bound: Bound<I>,
-	) -> Result<RangeBoundsSet<I, K>, TryFromBoundsError>
-	where
-		K: TryFromBounds<I> + Clone,
-	{
-		let mut set = RangeBoundsSet::new();
-		for (range_bounds, _) in self.map.split_off(start_bound)? {
-			set.insert_strict(range_bounds).unwrap();
-		}
-
-		Ok(set)
-	}
 }
 
 impl<I, K> IntoIterator for RangeBoundsSet<I, K>
