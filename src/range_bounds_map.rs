@@ -395,8 +395,8 @@ where
 	where
 		Q: NiceRange<I>,
 	{
-		let lower_comp = start_comp(range.start());
-		let upper_comp = end_comp(range.end());
+		let lower_comp = overlapping_start_comp(range.start());
+		let upper_comp = overlapping_end_comp(range.end());
 
 		let lower_bound = SearchBoundCustom::Included;
 		let upper_bound = SearchBoundCustom::Included;
@@ -467,7 +467,8 @@ where
 	/// assert_eq!(map.get_at_point(&1), Some(&true));
 	/// ```
 	pub fn get_at_point_mut(&mut self, point: I) -> Option<&mut V> {
-		self.inner.get_mut(start_comp(Bound::Included(point)))
+		self.inner
+			.get_mut(overlapping_start_comp(Bound::Included(point)))
 	}
 
 	/// Returns an (`RangeBounds`, `Value`) entry corresponding to the
@@ -489,7 +490,8 @@ where
 	/// assert_eq!(map.get_entry_at_point(&101), None);
 	/// ```
 	pub fn get_entry_at_point(&self, point: I) -> Option<(&K, &V)> {
-		self.inner.get_key_value(start_comp(Bound::Included(point)))
+		self.inner
+			.get_key_value(overlapping_start_comp(Bound::Included(point)))
 	}
 
 	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
@@ -625,8 +627,8 @@ where
 		Q: NiceRange<I> + 'a,
 		V: Clone,
 	{
-		let start_comp = start_comp(range.start());
-		let end_comp = end_comp(range.end());
+		let start_comp = overlapping_start_comp(range.start());
+		let end_comp = overlapping_end_comp(range.end());
 
 		let left_overlapping =
 			self.inner.get_key_value(start_comp).map(|(key, _)| *key);
@@ -661,7 +663,10 @@ where
 			None => None,
 		};
 
-		let value = self.inner.remove(start_comp(range.start())).unwrap();
+		let value = self
+			.inner
+			.remove(overlapping_start_comp(range.start()))
+			.unwrap();
 
 		if let Some(before) = returning_before_cut {
 			self.insert_unchecked(before, value.clone());
@@ -718,8 +723,9 @@ where
 			None => None,
 		};
 
-		let before_value = self.inner.remove(start_comp(range.start()));
-		let after_value = self.inner.remove(end_comp(range.end()));
+		let before_value =
+			self.inner.remove(overlapping_start_comp(range.start()));
+		let after_value = self.inner.remove(overlapping_end_comp(range.end()));
 
 		if let Some((Some(returning_before_cut), _)) = before_config {
 			self.insert_unchecked(
@@ -821,10 +827,12 @@ where
 			.chain(overlapping)
 			.chain(once(artificial_end));
 
-		let start_contained =
-			self.inner.contains_key(start_comp(outer_range.start()));
-		let end_contained =
-			self.inner.contains_key(end_comp(outer_range.end()));
+		let start_contained = self
+			.inner
+			.contains_key(overlapping_start_comp(outer_range.start()));
+		let end_contained = self
+			.inner
+			.contains_key(overlapping_end_comp(outer_range.end()));
 
 		if start_contained {
 			artificials.next();
@@ -1060,10 +1068,40 @@ where
 	/// ```
 	pub fn insert_merge_overlapping(
 		&mut self,
-		range_bounds: K,
+		range: K,
 		value: V,
-	) -> Result<&K, TryFromBoundsError> {
-		todo!()
+	) -> Result<K, TryFromBoundsError> {
+		let overlapping_start = self
+			.inner
+			.get_key_value(overlapping_start_comp(range.start()))
+			.map(|(key, _)| key);
+		let overlapping_end = self
+			.inner
+			.get_key_value(overlapping_end_comp(range.end()))
+			.map(|(key, _)| key);
+
+		let returning = match (overlapping_start, overlapping_end) {
+			(Some(overlapping_start), Some(overlapping_end)) => {
+				K::try_from_bounds(
+					overlapping_start.start(),
+					overlapping_end.end(),
+				)?
+			}
+			(Some(overlapping_start), None) => {
+				K::try_from_bounds(overlapping_start.start(), range.end())?
+			}
+			(None, Some(overlapping_end)) => {
+				K::try_from_bounds(range.start(), overlapping_end.end())?
+			}
+			(None, None) => range,
+		};
+
+		self.inner.remove(overlapping_start_comp(range.start()));
+		self.inner.remove(overlapping_end_comp(range.end()));
+
+		self.insert_unchecked(returning, value);
+
+		Ok(returning)
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
@@ -1119,10 +1157,48 @@ where
 	/// ```
 	pub fn insert_merge_touching_or_overlapping(
 		&mut self,
-		range_bounds: K,
+		range: K,
 		value: V,
-	) -> Result<&K, TryFromBoundsError> {
-		todo!()
+	) -> Result<K, TryFromBoundsError> {
+		let touching_or_overlapping = self
+			.inner
+			.get_key_value(touching_or_overlapping_start_comp(range.start()))
+			.map(|(key, _)| key);
+		let touching_or_overlapping_end = self
+			.inner
+			.get_key_value(touching_or_overlapping_end_comp(range.end()))
+			.map(|(key, _)| key);
+
+		let returning =
+			match (touching_or_overlapping, touching_or_overlapping_end) {
+				(
+					Some(touching_or_overlapping_start),
+					Some(touching_or_overlapping),
+				) => K::try_from_bounds(
+					touching_or_overlapping_start.start(),
+					touching_or_overlapping.end(),
+				)?,
+				(Some(touching_or_overlapping_start), None) => {
+					K::try_from_bounds(
+						touching_or_overlapping_start.start(),
+						range.end(),
+					)?
+				}
+				(None, Some(touching_or_overlapping_end)) => {
+					K::try_from_bounds(
+						range.start(),
+						touching_or_overlapping_end.end(),
+					)?
+				}
+				(None, None) => range,
+			};
+
+		self.inner.remove(overlapping_start_comp(range.start()));
+		self.inner.remove(overlapping_end_comp(range.end()));
+
+		self.insert_unchecked(returning, value);
+
+		Ok(returning)
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
@@ -1259,7 +1335,7 @@ where
 	}
 }
 
-fn start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
+fn overlapping_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy,
 	K: NiceRange<I>,
@@ -1268,7 +1344,7 @@ where
 		cmp_range_with_bound_ord(*inner_range, BoundOrd::start(start))
 	}
 }
-fn end_comp<I, K>(end: Bound<I>) -> impl FnMut(&K) -> Ordering
+fn overlapping_end_comp<I, K>(end: Bound<I>) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy,
 	K: NiceRange<I>,
@@ -1339,6 +1415,52 @@ where
 				Ordering::Equal => Ordering::Less,
 				x => x,
 			}
+		}
+	}
+}
+fn touching_or_overlapping_start_comp<I, K>(
+	start: Bound<I>,
+) -> impl FnMut(&K) -> Ordering
+where
+	I: Ord + Copy,
+	K: NiceRange<I>,
+{
+	move |inner_range: &K| {
+		let normal_result =
+			cmp_range_with_bound_ord(*inner_range, BoundOrd::start(start));
+
+		//we overide touchings as matches also
+		match (inner_range.end(), start) {
+			(Bound::Included(end), Bound::Excluded(start)) if end == start => {
+				Ordering::Equal
+			}
+			(Bound::Excluded(end), Bound::Included(start)) if end == start => {
+				Ordering::Equal
+			}
+			x => normal_result,
+		}
+	}
+}
+fn touching_or_overlapping_end_comp<I, K>(
+	end: Bound<I>,
+) -> impl FnMut(&K) -> Ordering
+where
+	I: Ord + Copy,
+	K: NiceRange<I>,
+{
+	move |inner_range: &K| {
+		let normal_result =
+			cmp_range_with_bound_ord(*inner_range, BoundOrd::end(end));
+
+		//we overide touchings as matches also
+		match (end, inner_range.start()) {
+			(Bound::Included(end), Bound::Excluded(start)) if end == start => {
+				Ordering::Equal
+			}
+			(Bound::Excluded(end), Bound::Included(start)) if end == start => {
+				Ordering::Equal
+			}
+			x => normal_result,
 		}
 	}
 }
