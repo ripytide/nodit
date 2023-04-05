@@ -41,7 +41,8 @@ where
 	}
 }
 
-enum Config {
+#[derive(Debug, PartialEq)]
+pub(crate) enum Config {
 	LeftFirstNonOverlapping,
 	LeftFirstPartialOverlap,
 	LeftContainsRight,
@@ -50,7 +51,7 @@ enum Config {
 	RightFirstPartialOverlap,
 	RightContainsLeft,
 }
-fn config<I, A, B>(a: A, b: B) -> Config
+pub(crate) fn config<I, A, B>(a: A, b: B) -> Config
 where
 	A: NiceRange<I>,
 	B: NiceRange<I>,
@@ -121,6 +122,7 @@ where
 	return bound_ord >= start_bound_ord && bound_ord <= end_bound_ord;
 }
 
+#[derive(Debug)]
 pub(crate) struct CutResult<I> {
 	pub(crate) before_cut: Option<(Bound<I>, Bound<I>)>,
 	pub(crate) inside_cut: Option<(Bound<I>, Bound<I>)>,
