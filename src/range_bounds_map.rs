@@ -923,6 +923,43 @@ where
 		self.inner.insert(range, value, double_comp());
 	}
 
+	fn insert_merge_with_comps<C1, C2>(
+		&mut self,
+		range: K,
+		value: V,
+		start_comp: C1,
+		end_comp: C2,
+	) -> Result<K, TryFromBoundsError>
+	where
+		C1: FnMut(&K) -> Ordering,
+		C2: FnMut(&K) -> Ordering,
+	{
+		let matching_start =
+			self.inner.get_key_value(start_comp).map(|(key, _)| key);
+		let matching_end =
+			self.inner.get_key_value(end_comp).map(|(key, _)| key);
+
+		let returning = match (matching_start, matching_end) {
+			(Some(matching_start), Some(matching_end)) => {
+				K::try_from_bounds(matching_start.start(), matching_end.end())?
+			}
+			(Some(matching_start), None) => {
+				K::try_from_bounds(matching_start.start(), range.end())?
+			}
+			(None, Some(matching_end)) => {
+				K::try_from_bounds(range.start(), matching_end.end())?
+			}
+			(None, None) => range,
+		};
+
+		self.inner.remove(start_comp);
+		self.inner.remove(end_comp);
+
+		self.insert_unchecked(returning, value);
+
+		Ok(returning)
+	}
+
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
 	/// merges into other `RangeBounds` in the map which touch it.
 	///
@@ -985,37 +1022,13 @@ where
 			return Err(OverlapOrTryFromBoundsError::Overlap(OverlapError));
 		}
 
-		let touching_start = self
-			.inner
-			.get_key_value(touching_start_comp(range.start()))
-			.map(|(key, _)| key);
-		let touching_end = self
-			.inner
-			.get_key_value(touching_end_comp(range.end()))
-			.map(|(key, _)| key);
-
-		let returning = match (touching_start, touching_end) {
-			(Some(touching_start), Some(touching_end)) => {
-				K::try_from_bounds(touching_start.start(), touching_end.end())
-					.map_err(OverlapOrTryFromBoundsError::TryFromBounds)?
-			}
-			(Some(touching_start), None) => {
-				K::try_from_bounds(touching_start.start(), range.end())
-					.map_err(OverlapOrTryFromBoundsError::TryFromBounds)?
-			}
-			(None, Some(touching_end)) => {
-				K::try_from_bounds(range.start(), touching_end.end())
-					.map_err(OverlapOrTryFromBoundsError::TryFromBounds)?
-			}
-			(None, None) => range,
-		};
-
-		self.inner.remove(touching_start_comp(range.start()));
-		self.inner.remove(touching_end_comp(range.end()));
-
-		self.insert_unchecked(returning, value);
-
-		Ok(returning)
+		self.insert_merge_with_comps(
+			range,
+			value,
+			touching_start_comp(range.start()),
+			touching_end_comp(range.end()),
+		)
+		.map_err(OverlapOrTryFromBoundsError::TryFromBounds)
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
@@ -1071,37 +1084,12 @@ where
 		range: K,
 		value: V,
 	) -> Result<K, TryFromBoundsError> {
-		let overlapping_start = self
-			.inner
-			.get_key_value(overlapping_start_comp(range.start()))
-			.map(|(key, _)| key);
-		let overlapping_end = self
-			.inner
-			.get_key_value(overlapping_end_comp(range.end()))
-			.map(|(key, _)| key);
-
-		let returning = match (overlapping_start, overlapping_end) {
-			(Some(overlapping_start), Some(overlapping_end)) => {
-				K::try_from_bounds(
-					overlapping_start.start(),
-					overlapping_end.end(),
-				)?
-			}
-			(Some(overlapping_start), None) => {
-				K::try_from_bounds(overlapping_start.start(), range.end())?
-			}
-			(None, Some(overlapping_end)) => {
-				K::try_from_bounds(range.start(), overlapping_end.end())?
-			}
-			(None, None) => range,
-		};
-
-		self.inner.remove(overlapping_start_comp(range.start()));
-		self.inner.remove(overlapping_end_comp(range.end()));
-
-		self.insert_unchecked(returning, value);
-
-		Ok(returning)
+		self.insert_merge_with_comps(
+			range,
+			value,
+			overlapping_start_comp(range.start()),
+			overlapping_end_comp(range.end()),
+		)
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
@@ -1160,45 +1148,12 @@ where
 		range: K,
 		value: V,
 	) -> Result<K, TryFromBoundsError> {
-		let touching_or_overlapping = self
-			.inner
-			.get_key_value(touching_or_overlapping_start_comp(range.start()))
-			.map(|(key, _)| key);
-		let touching_or_overlapping_end = self
-			.inner
-			.get_key_value(touching_or_overlapping_end_comp(range.end()))
-			.map(|(key, _)| key);
-
-		let returning =
-			match (touching_or_overlapping, touching_or_overlapping_end) {
-				(
-					Some(touching_or_overlapping_start),
-					Some(touching_or_overlapping),
-				) => K::try_from_bounds(
-					touching_or_overlapping_start.start(),
-					touching_or_overlapping.end(),
-				)?,
-				(Some(touching_or_overlapping_start), None) => {
-					K::try_from_bounds(
-						touching_or_overlapping_start.start(),
-						range.end(),
-					)?
-				}
-				(None, Some(touching_or_overlapping_end)) => {
-					K::try_from_bounds(
-						range.start(),
-						touching_or_overlapping_end.end(),
-					)?
-				}
-				(None, None) => range,
-			};
-
-		self.inner.remove(overlapping_start_comp(range.start()));
-		self.inner.remove(overlapping_end_comp(range.end()));
-
-		self.insert_unchecked(returning, value);
-
-		Ok(returning)
+		self.insert_merge_with_comps(
+			range,
+			value,
+			touching_or_overlapping_start_comp(range.start()),
+			touching_or_overlapping_end_comp(range.end()),
+		)
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
