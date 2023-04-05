@@ -958,10 +958,10 @@ where
 			(None, None) => range,
 		};
 
+		let _ = self.remove_overlapping(range);
+
 		remove_start(self);
 		remove_end(self);
-
-		let _ = self.remove_overlapping(range);
 
 		self.insert_unchecked(returning, value);
 
@@ -1131,12 +1131,8 @@ where
 					.get_key_value(overlapping_end_comp(range.end()))
 					.map(|(key, _)| key)
 			},
-			|selfy| {
-				selfy.inner.remove(overlapping_start_comp(range.start()));
-			},
-			|selfy| {
-				selfy.inner.remove(overlapping_end_comp(range.end()));
-			},
+			|selfy| {},
+			|selfy| {},
 		)
 	}
 
@@ -1203,68 +1199,28 @@ where
 			|selfy| {
 				selfy
 					.inner
-					.lower_bound(
-						touching_or_overlapping_start_comp(range.start()),
-						SearchBoundCustom::Included,
-					)
-					.key_value()
+					.get_key_value(touching_start_comp(range.start()))
 					.map(|(key, _)| key)
-					.filter(|selected_range| {
-						cmp_range_with_bound_ord(
-							**selected_range,
-							BoundOrd::start(range.start()),
-						)
-						.is_eq() || this_touches_that(**selected_range, range)
-					})
+					.or(selfy
+						.inner
+						.get_key_value(overlapping_start_comp(range.start()))
+						.map(|(key, _)| key))
 			},
 			|selfy| {
 				selfy
 					.inner
-					.upper_bound(
-						touching_or_overlapping_end_comp(range.end()),
-						SearchBoundCustom::Included,
-					)
-					.key_value()
+					.get_key_value(touching_end_comp(range.end()))
 					.map(|(key, _)| key)
-					.filter(|selected_range| {
-						cmp_range_with_bound_ord(
-							**selected_range,
-							BoundOrd::end(range.end()),
-						)
-						.is_eq() || this_touches_that(range, **selected_range)
-					})
+					.or(selfy
+						.inner
+						.get_key_value(overlapping_end_comp(range.end()))
+						.map(|(key, _)| key))
 			},
 			|selfy| {
-				let mut cursor_mut = selfy.inner.lower_bound_mut(
-					touching_or_overlapping_start_comp(range.start()),
-					SearchBoundCustom::Included,
-				);
-				if let Some(selected_range) = cursor_mut.key() {
-					if cmp_range_with_bound_ord(
-						*selected_range,
-						BoundOrd::start(range.start()),
-					)
-					.is_eq() || this_touches_that(*selected_range, range)
-					{
-						cursor_mut.remove_current();
-					}
-				}
+				selfy.inner.remove(touching_start_comp(range.start()));
 			},
 			|selfy| {
-				let mut cursor_mut = selfy.inner.upper_bound_mut(
-					touching_or_overlapping_end_comp(range.end()),
-					SearchBoundCustom::Included,
-				);
-				if let Some(selected_range) = cursor_mut.key() {
-					if cmp_range_with_bound_ord(
-						*selected_range,
-						BoundOrd::end(range.end()),
-					)
-					.is_eq() || this_touches_that(range, *selected_range)
-					{
-						cursor_mut.remove_current();
-					}
-				}
+				selfy.inner.remove(touching_end_comp(range.end()));
 			},
 		)
 	}
@@ -1450,52 +1406,6 @@ where
 				Ordering::Equal => Ordering::Less,
 				x => x,
 			}
-		}
-	}
-}
-fn touching_or_overlapping_start_comp<I, K>(
-	start: Bound<I>,
-) -> impl FnMut(&K) -> Ordering
-where
-	I: Ord + Copy,
-	K: NiceRange<I>,
-{
-	move |inner_range: &K| {
-		let normal_result =
-			cmp_range_with_bound_ord(*inner_range, BoundOrd::start(start));
-
-		//we overide touchings as matches also
-		match (inner_range.end(), start) {
-			(Bound::Included(end), Bound::Excluded(start)) if end == start => {
-				Ordering::Equal
-			}
-			(Bound::Excluded(end), Bound::Included(start)) if end == start => {
-				Ordering::Equal
-			}
-			x => normal_result,
-		}
-	}
-}
-fn touching_or_overlapping_end_comp<I, K>(
-	end: Bound<I>,
-) -> impl FnMut(&K) -> Ordering
-where
-	I: Ord + Copy,
-	K: NiceRange<I>,
-{
-	move |inner_range: &K| {
-		let normal_result =
-			cmp_range_with_bound_ord(*inner_range, BoundOrd::end(end));
-
-		//we overide touchings as matches also
-		match (end, inner_range.start()) {
-			(Bound::Included(end), Bound::Excluded(start)) if end == start => {
-				Ordering::Equal
-			}
-			(Bound::Excluded(end), Bound::Included(start)) if end == start => {
-				Ordering::Equal
-			}
-			x => normal_result,
 		}
 	}
 }
