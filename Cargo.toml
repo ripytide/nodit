@@ -19,6 +19,7 @@ categories = ["data-structures"]
 serde = {version = "1.0.148", features = ["derive"]}
 itertools = "0.10.5"
 btree_monstousity = {version ="0.0.4", features = ["btree_drain_filter"]}
+either = "1.8.1"
 
 [dev-dependencies]
 ordered-float = "3.4.0"

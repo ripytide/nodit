@@ -25,13 +25,14 @@ use std::ops::{Bound, RangeBounds};
 
 use btree_monstousity::btree_map::SearchBoundCustom;
 use btree_monstousity::BTreeMap;
+use either::Either;
 use itertools::Itertools;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
-use crate::helpers::{cmp_range_with_bound_ord, overlaps};
+use crate::helpers::{cmp_range_with_bound_ord, cut_range, overlaps};
 use crate::TryFromBounds;
 
 /// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
@@ -552,7 +553,7 @@ where
 	where
 		Q: NiceRange<I> + 'a,
 	{
-		//optimisation, switch to BTreeMap::drain if it ever gets
+		//optimisation, switch to BTreeMap::drain_range if it ever gets
 		//implemented
 		return self
 			.inner
@@ -611,19 +612,143 @@ where
 	/// assert_eq!(base, after_cut);
 	/// assert!(base.cut(&(60..=80)).is_err());
 	/// ```
-	//pub fn cut<Q>(
-		//&mut self,
-		//range: Q,
-	//) -> Result<
-		//impl Iterator<Item = ((Bound<I>, Bound<I>), V)>,
-		//TryFromBoundsError,
-	//>
-	//where
-		//Q: NiceRange<I>,
-		//V: Clone,
-	//{
-		//todo!()
-	//}
+	pub fn cut<'a, Q>(
+		&'a mut self,
+		range: Q,
+	) -> Result<
+		impl Iterator<Item = ((Bound<I>, Bound<I>), V)> + '_,
+		TryFromBoundsError,
+	>
+	where
+		Q: NiceRange<I> + 'a,
+		V: Clone,
+	{
+		let start_comp = comp_start(range.start());
+		let end_comp = comp_end(range.end());
+
+		let left_overlapping =
+			self.inner.get_key_value(start_comp).map(|(key, _)| *key);
+		let right_overlapping =
+			self.inner.get_key_value(end_comp).map(|(key, _)| *key);
+
+		if let Some(left) = left_overlapping && let Some(right) = right_overlapping && left.start() == right.start() {
+            Ok(Either::Left(self.cut_single_overlapping(range, left)?))
+        } else {
+            Ok(Either::Right(self.cut_non_single_overlapping(range, left_overlapping, right_overlapping)?))
+        }
+	}
+	pub fn cut_single_overlapping<Q>(
+		&mut self,
+		range: Q,
+		single_overlapping_range: K,
+	) -> Result<
+		impl Iterator<Item = ((Bound<I>, Bound<I>), V)>,
+		TryFromBoundsError,
+	>
+	where
+		Q: NiceRange<I>,
+		V: Clone,
+	{
+		let cut_result = cut_range(single_overlapping_range, range);
+		let returning_before_cut = match cut_result.before_cut {
+			Some((start, end)) => Some(K::try_from_bounds(start, end)?),
+			None => None,
+		};
+		let returning_after_cut = match cut_result.after_cut {
+			Some((start, end)) => Some(K::try_from_bounds(start, end)?),
+			None => None,
+		};
+
+		let value = self.inner.remove(comp_start(range.start())).unwrap();
+
+		if let Some(before) = returning_before_cut {
+			self.insert_unchecked(before, value.clone());
+		}
+		if let Some(after) = returning_after_cut {
+			self.insert_unchecked(after, value.clone());
+		}
+
+		Ok(once((cut_result.inside_cut.unwrap(), value)))
+	}
+	pub fn cut_non_single_overlapping<'a, Q>(
+		&'a mut self,
+		range: Q,
+		left_overlapping: Option<K>,
+		right_overlapping: Option<K>,
+	) -> Result<
+		impl Iterator<Item = ((Bound<I>, Bound<I>), V)> + '_,
+		TryFromBoundsError,
+	>
+	where
+		Q: NiceRange<I> + 'a,
+		V: Clone,
+	{
+		let before_config = match left_overlapping {
+			Some(before) => {
+				let cut_result = cut_range(before, range);
+
+				Some((
+					match cut_result.before_cut {
+						Some((start, end)) => {
+							Some(K::try_from_bounds(start, end)?)
+						}
+						None => None,
+					},
+					cut_result.inside_cut.unwrap(),
+				))
+			}
+			None => None,
+		};
+		let after_config = match right_overlapping {
+			Some(after) => {
+				let cut_result = cut_range(after, range);
+
+				Some((
+					match cut_result.after_cut {
+						Some((start, end)) => {
+							Some(K::try_from_bounds(start, end)?)
+						}
+						None => None,
+					},
+					cut_result.inside_cut.unwrap(),
+				))
+			}
+			None => None,
+		};
+
+		let before_value = self.inner.remove(comp_start(range.start()));
+		let after_value = self.inner.remove(comp_end(range.end()));
+
+		if let Some((Some(returning_before_cut), _)) = before_config {
+			self.insert_unchecked(
+				returning_before_cut,
+				before_value.as_ref().cloned().unwrap(),
+			);
+		}
+		if let Some((Some(returning_after_cut), _)) = after_config {
+			self.insert_unchecked(
+				returning_after_cut,
+				after_value.as_ref().cloned().unwrap(),
+			);
+		}
+
+		let keeping_before_entry =
+			before_config.map(|(_, keeping_before_entry)| {
+				(keeping_before_entry, before_value.unwrap())
+			});
+		let keeping_after_entry =
+			after_config.map(|(_, keeping_after_entry)| {
+				(keeping_after_entry, after_value.unwrap())
+			});
+
+		return Ok(keeping_before_entry
+			.into_iter()
+			.chain(
+				self.remove_overlapping(range)
+					.map(|(key, value)| ((key.start(), key.end()), value)),
+			)
+			.chain(keeping_after_entry.into_iter()));
+	}
 
 	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
 	/// maximally-sized gaps in the map that are also within the given
@@ -665,12 +790,12 @@ where
 	/// );
 	/// ```
 	//pub fn gaps<'a, Q>(
-		//&'a self,
-		//outer_range_bounds: Q,
+	//&'a self,
+	//outer_range_bounds: Q,
 	//) -> impl Iterator<Item = (Bound<I>, Bound<I>)> + '_
 	//where
-		//Q: 'a + RangeBounds<I> + Clone,
-		//I: Clone,
+	//Q: 'a + RangeBounds<I> + Clone,
+	//I: Clone,
 	//{
 	//}
 
@@ -701,11 +826,11 @@ where
 	/// ```
 	//pub fn contains_range_bounds<Q>(&self, range_bounds: Q) -> bool
 	//where
-		//Q: RangeBounds<I> + Clone,
-		//I: Clone,
+	//Q: RangeBounds<I> + Clone,
+	//I: Clone,
 	//{
-		//// Soooo clean and mathematical 🥰!
-		//self.gaps(range_bounds).next().is_none()
+	//// Soooo clean and mathematical 🥰!
+	//self.gaps(range_bounds).next().is_none()
 	//}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map without
@@ -744,6 +869,9 @@ where
 		self.inner.insert(range, value, double_comp());
 
 		return Ok(());
+	}
+	fn insert_unchecked(&mut self, range: K, value: V) {
+		self.inner.insert(range, value, double_comp());
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
