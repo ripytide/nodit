@@ -1,4 +1,10 @@
+use std::fmt;
+use std::marker::PhantomData;
 use std::ops::Bound;
+
+use serde::de::{SeqAccess, Visitor};
+use serde::ser::SerializeSeq;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::range_bounds_map::{IntoIter as RangeBoundsMapIntoIter, NiceRange};
 use crate::{
@@ -202,5 +208,78 @@ impl<I, K> Iterator for IntoIter<I, K> {
 	type Item = K;
 	fn next(&mut self) -> Option<Self::Item> {
 		self.inner.next().map(first)
+	}
+}
+
+impl<I, K> Default for RangeBoundsSet<I, K>
+where
+	I: PartialOrd,
+{
+	fn default() -> Self {
+		RangeBoundsSet {
+			inner: RangeBoundsMap::default(),
+		}
+	}
+}
+
+impl<I, K> Serialize for RangeBoundsSet<I, K>
+where
+    I: Ord + Copy,
+	K: NiceRange<I> + Serialize,
+{
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		let mut seq = serializer.serialize_seq(Some(self.len()))?;
+		for range_bounds in self.iter() {
+			seq.serialize_element(&range_bounds)?;
+		}
+		seq.end()
+	}
+}
+
+impl<'de, I, K> Deserialize<'de> for RangeBoundsSet<I, K>
+where
+    I: Ord + Copy,
+	K: NiceRange<I> + Deserialize<'de>,
+{
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		deserializer.deserialize_seq(RangeBoundsSetVisitor {
+			i: PhantomData,
+			k: PhantomData,
+		})
+	}
+}
+
+struct RangeBoundsSetVisitor<I, K> {
+	i: PhantomData<I>,
+	k: PhantomData<K>,
+}
+
+impl<'de, I, K> Visitor<'de> for RangeBoundsSetVisitor<I, K>
+where
+	I: Ord + Copy,
+	K: NiceRange<I> + Deserialize<'de>,
+{
+	type Value = RangeBoundsSet<I, K>;
+
+	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		formatter.write_str("a RangeBoundsSet")
+	}
+
+	fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
+	where
+		A: SeqAccess<'de>,
+	{
+		let mut set = RangeBoundsSet::new();
+		while let Some(range_bounds) = access.next_element()? {
+			set.insert_strict(range_bounds)
+				.map_err(|_| serde::de::Error::custom("RangeBounds overlap"))?;
+		}
+		Ok(set)
 	}
 }

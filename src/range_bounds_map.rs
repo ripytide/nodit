@@ -1511,8 +1511,7 @@ where
 
 // Trait Impls ==========================
 
-impl<I, K, V> IntoIterator for RangeBoundsMap<I, K, V>
-{
+impl<I, K, V> IntoIterator for RangeBoundsMap<I, K, V> {
 	type Item = (K, V);
 	type IntoIter = IntoIter<I, K, V>;
 	fn into_iter(self) -> Self::IntoIter {
@@ -1538,6 +1537,82 @@ impl<I, K, V> Iterator for IntoIter<I, K, V> {
 	type Item = (K, V);
 	fn next(&mut self) -> Option<Self::Item> {
 		self.inner.next()
+	}
+}
+
+impl<I, K, V> Default for RangeBoundsMap<I, K, V> {
+	fn default() -> Self {
+		RangeBoundsMap {
+			inner: BTreeMap::default(),
+			phantom: PhantomData,
+		}
+	}
+}
+
+impl<I, K, V> Serialize for RangeBoundsMap<I, K, V>
+where
+	I: Ord + Copy,
+	K: NiceRange<I> + Serialize,
+	V: Serialize,
+{
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		let mut map = serializer.serialize_map(Some(self.len()))?;
+		for (range_bounds, value) in self.iter() {
+			map.serialize_entry(range_bounds, value)?;
+		}
+		map.end()
+	}
+}
+
+impl<'de, I, K, V> Deserialize<'de> for RangeBoundsMap<I, K, V>
+where
+	I: Ord + Copy,
+	K: NiceRange<I> + Deserialize<'de>,
+	V: Deserialize<'de>,
+{
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		deserializer.deserialize_map(RangeBoundsMapVisitor {
+			i: PhantomData,
+			k: PhantomData,
+			v: PhantomData,
+		})
+	}
+}
+
+struct RangeBoundsMapVisitor<I, K, V> {
+	i: PhantomData<I>,
+	k: PhantomData<K>,
+	v: PhantomData<V>,
+}
+
+impl<'de, I, K, V> Visitor<'de> for RangeBoundsMapVisitor<I, K, V>
+where
+	I: Ord + Copy,
+	K: NiceRange<I> + Deserialize<'de>,
+	V: Deserialize<'de>,
+{
+	type Value = RangeBoundsMap<I, K, V>;
+
+	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		formatter.write_str("a RangeBoundsMap")
+	}
+
+	fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
+	where
+		A: MapAccess<'de>,
+	{
+		let mut map = RangeBoundsMap::new();
+		while let Some((range_bounds, value)) = access.next_entry()? {
+			map.insert_strict(range_bounds, value)
+				.map_err(|_| serde::de::Error::custom("RangeBounds overlap"))?;
+		}
+		Ok(map)
 	}
 }
 
