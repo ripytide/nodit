@@ -45,7 +45,7 @@ pub struct InExRange {
 	end: i8,
 }
 
-pub fn ran(start: i8, end: i8) -> InExRange {
+pub fn ie_strict(start: i8, end: i8) -> InExRange {
 	InExRange { start, end }
 }
 

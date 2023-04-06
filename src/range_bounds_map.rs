@@ -164,11 +164,11 @@ pub struct OverlapError;
 /// return Err(TryFromBoundsError).
 ///
 /// ```
-/// use range_bounds_map::test_ranges::{ii, ran};
+/// use range_bounds_map::test_ranges::{ii, ie_strict};
 /// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 ///
 /// let mut map =
-/// 	RangeBoundsMap::from_slice_strict([(ran(2, 8), true)])
+/// 	RangeBoundsMap::from_slice_strict([(ie_strict(2, 8), true)])
 /// 		.unwrap();
 ///
 /// assert!(map.cut(ii(4, 6)).is_err());
@@ -613,19 +613,19 @@ where
 	/// ```
 	/// use std::ops::Bound;
 	///
-	/// use range_bounds_map::test_ranges::{ie, ii, ran};
+	/// use range_bounds_map::test_ranges::{ie, ii, ie_strict};
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
 	/// let mut base = RangeBoundsMap::from_slice_strict([
-	/// 	(ran(1, 4), false),
-	/// 	(ran(4, 8), true),
-	/// 	(ran(8, 100), false),
+	/// 	(ie_strict(1, 4), false),
+	/// 	(ie_strict(4, 8), true),
+	/// 	(ie_strict(8, 100), false),
 	/// ])
 	/// .unwrap();
 	///
 	/// let after_cut = RangeBoundsMap::from_slice_strict([
-	/// 	(ran(1, 2), false),
-	/// 	(ran(40, 100), false),
+	/// 	(ie_strict(1, 2), false),
+	/// 	(ie_strict(40, 100), false),
 	/// ])
 	/// .unwrap();
 	///
