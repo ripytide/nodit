@@ -120,7 +120,7 @@ where
 	T: Ord,
 {
 	fn eq(&self, other: &Self) -> bool {
-		self.cmp(&other).is_eq()
+		self.cmp(other).is_eq()
 	}
 }
 

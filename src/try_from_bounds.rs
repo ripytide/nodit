@@ -18,7 +18,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::ops::{
-	Bound, Range, RangeBounds, RangeFrom, RangeFull, RangeInclusive, RangeTo,
+	Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo,
 	RangeToInclusive,
 };
 

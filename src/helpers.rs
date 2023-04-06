@@ -22,7 +22,6 @@ use std::ops::Bound;
 
 use crate::bound_ord::BoundOrd;
 use crate::range_bounds_map::NiceRange;
-use crate::{TryFromBounds, TryFromBoundsError};
 
 pub(crate) fn cmp_range_with_bound_ord<A, B>(
 	range: A,

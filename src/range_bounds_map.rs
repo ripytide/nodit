@@ -442,7 +442,7 @@ where
 	/// assert_eq!(map.get_at_point(101), None);
 	/// ```
 	pub fn get_at_point(&self, point: I) -> Option<&V> {
-		self.get_entry_at_point(point).map(|(key, value)| value)
+		self.get_entry_at_point(point).map(|(_, value)| value)
 	}
 
 	/// Returns `true` if the map contains a `RangeBounds` that
@@ -1188,8 +1188,8 @@ where
 					.get_key_value(overlapping_end_comp(range.end()))
 					.map(|(key, _)| key)
 			},
-			|selfy| {},
-			|selfy| {},
+			|_selfy| {},
+			|_selfy| {},
 		)
 	}
 
@@ -1502,7 +1502,7 @@ where
 			Ordering::Equal
 		}
 
-		(end, start) => {
+		(end, _start) => {
 			let normal_result =
 				BoundOrd::end(end).cmp(&BoundOrd::start(inner_range.start()));
 
