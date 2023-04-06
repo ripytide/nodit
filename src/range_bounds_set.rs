@@ -20,6 +20,8 @@ use crate::{
 /// `K` is the generic type parameter for the [`RangeBounds`]
 /// implementing type in the set.
 ///
+/// Phrasing it another way: `I` is the point type and `K` is the range type.
+///
 /// See [`RangeBoundsMap`] for more details.
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html

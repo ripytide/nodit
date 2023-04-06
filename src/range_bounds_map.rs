@@ -50,6 +50,8 @@ use crate::TryFromBounds;
 /// `V` is the generic type parameter for the values associated with the
 /// keys in the map.
 ///
+/// Phrasing it another way: `I` is the point type, `K` is the range type, and `V` is the value type.
+///
 /// # Examples
 /// ```
 /// use range_bounds_map::test_ranges::ie;
@@ -303,7 +305,7 @@ where
 		}
 	}
 
-	/// Returns the number of `RangeBounds` in the map.
+	/// Returns the number of ranges in the map.
 	///
 	/// # Examples
 	/// ```
@@ -320,7 +322,7 @@ where
 		self.inner.len()
 	}
 
-	/// Returns `true` if the map contains no `RangeBounds`, and
+	/// Returns `true` if the map contains no ranges, and
 	/// `false` if it does.
 	///
 	/// # Examples
@@ -338,8 +340,8 @@ where
 		self.inner.is_empty()
 	}
 
-	/// Returns `true` if the given `RangeBounds` overlaps any of the
-	/// `RangeBounds` in the map, and `false` if not.
+	/// Returns `true` if the given range overlaps any of the
+	/// other ranges in the map, and `false` if not.
 	///
 	/// # Panics
 	///
@@ -372,9 +374,8 @@ where
 		self.overlapping(range).next().is_some()
 	}
 
-	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
-	/// in the map which overlap the given `RangeBounds` in
-	/// ascending order.
+	/// Returns an iterator over every entry in the map that overlaps
+	/// the given range in ascending order.
 	///
 	/// # Panics
 	///
@@ -421,9 +422,8 @@ where
 			.range(start_comp, start_bound, end_comp, end_bound)
 	}
 
-	/// Returns a reference to the `Value` corresponding to the
-	/// `RangeBounds` in the map that overlaps the given point, if
-	/// any.
+	/// Returns a reference to the value corresponding to the range in
+	/// the map that overlaps the given point, if any.
 	///
 	/// # Examples
 	/// ```
@@ -445,8 +445,30 @@ where
 		self.get_entry_at_point(point).map(|(_, value)| value)
 	}
 
-	/// Returns `true` if the map contains a `RangeBounds` that
-	/// overlaps the given point, and `false` if not.
+	/// Returns a mutable reference to the value corresponding to the
+	/// range that overlaps the given point, if any.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::test_ranges::ie;
+	/// use range_bounds_map::RangeBoundsMap;
+	/// let mut map =
+	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
+	/// 		.unwrap();
+	///
+	/// if let Some(x) = map.get_at_point_mut(2) {
+	/// 	*x = true;
+	/// }
+	///
+	/// assert_eq!(map.get_at_point(1), Some(&true));
+	/// ```
+	pub fn get_at_point_mut(&mut self, point: I) -> Option<&mut V> {
+		self.inner
+			.get_mut(overlapping_start_comp(Bound::Included(point)))
+	}
+
+	/// Returns `true` if the map contains a range that overlaps the
+	/// given point, and `false` if not.
 	///
 	/// # Examples
 	/// ```
@@ -468,30 +490,8 @@ where
 		self.get_entry_at_point(point).is_some()
 	}
 
-	/// Returns a mutable reference to the `Value` corresponding to
-	/// the `RangeBounds` that overlaps the given point, if any.
-	///
-	/// # Examples
-	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
-	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
-	/// 		.unwrap();
-	///
-	/// if let Some(x) = map.get_at_point_mut(2) {
-	/// 	*x = true;
-	/// }
-	///
-	/// assert_eq!(map.get_at_point(1), Some(&true));
-	/// ```
-	pub fn get_at_point_mut(&mut self, point: I) -> Option<&mut V> {
-		self.inner
-			.get_mut(overlapping_start_comp(Bound::Included(point)))
-	}
-
-	/// Returns an (`RangeBounds`, `Value`) entry corresponding to the
-	/// `RangeBounds` that overlaps the given point, if any.
+	/// Returns the entry corresponding to the range that
+	/// overlaps the given point, if any.
 	///
 	/// # Examples
 	/// ```
@@ -514,8 +514,8 @@ where
 			.get_key_value(overlapping_start_comp(Bound::Included(point)))
 	}
 
-	/// Returns an iterator over every (`RangeBounds`, `Value`) entry
-	/// in the map in ascending order.
+	/// Returns an iterator over every entry in the map in ascending
+	/// order.
 	///
 	/// # Examples
 	/// ```
@@ -540,9 +540,8 @@ where
 		self.inner.iter()
 	}
 
-	/// Removes every (`RangeBounds`, `Value`) entry in the map which
-	/// overlaps the given `RangeBounds` and returns them in
-	/// an iterator.
+	/// Removes every entry in the map which overlaps the given range
+	/// and returns them in an iterator.
 	///
 	/// # Panics
 	///
@@ -591,20 +590,18 @@ where
 			.drain_filter(move |inner_range, _| overlaps(*inner_range, range));
 	}
 
-	/// Cuts a given `RangeBounds` out of the map and returns an
-	/// iterator of the full or partial `RangeBounds` that were cut in
-	/// as `((Bound, Bound), Value)`.
+	/// Cuts a given range out of the map and returns an iterator of
+	/// the full or partial ranges that were cut.
 	///
-	/// If the remaining `RangeBounds` left in the map after the cut
-	/// are not able be created with the [`TryFromBounds`] trait then
-	/// a [`TryFromBoundsError`] will be returned and the map will not
-	/// be cut.
+	/// If the remaining ranges left in the map after the cut would
+	/// not be able be created with the [`TryFromBounds`] trait then a
+	/// [`TryFromBoundsError`] will be returned and the map will not
+	/// be cut at all.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
-	/// of a `RangeBounds` in the map it will split into two different
-	/// (`RangeBounds`, `Value`) entries using `Clone`. Or if you
-	/// partially cut a `RangeBounds` then `V` must be cloned to be
-	/// returned in the iterator.
+	/// of a range in the map it will split into two different entries
+	/// using `Clone`. Or if you partially cut a range then
+	/// `V` must be cloned to be returned in the iterator.
 	///
 	/// # Panics
 	///
@@ -795,9 +792,8 @@ where
 			.chain(keeping_after_entry.into_iter()));
 	}
 
-	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
-	/// maximally-sized gaps in the map that are also within the given
-	/// `outer_range`.
+	/// Returns an iterator of ranges over all the maximally-sized
+	/// gaps in the map that are also within the given `outer_range`.
 	///
 	/// To get all possible gaps call `gaps()` with an unbounded
 	/// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
@@ -890,7 +886,7 @@ where
 	}
 
 	/// Returns `true` if the map covers every point in the given
-	/// `RangeBounds`, and `false` if it doesn't.
+	/// range, and `false` if it does not.
 	///
 	/// # Panics
 	///
@@ -925,12 +921,11 @@ where
 		self.gaps(range).next().is_none()
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) entry to the map without
-	/// modifying other entries.
+	/// Adds a new entry to the map without modifying other entries.
 	///
-	/// If the given `RangeBounds` overlaps one or more `RangeBounds`
-	/// already in the map, then an [`OverlapError`] is returned and
-	/// the map is not updated.
+	/// If the given range overlaps one or more ranges already in the
+	/// map, then an [`OverlapError`] is returned and the map is not
+	/// updated.
 	///
 	/// # Panics
 	///
@@ -1013,20 +1008,21 @@ where
 		Ok(returning)
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
-	/// merges into other `RangeBounds` in the map which touch it.
+	/// Adds a new entry to the map and merges into other ranges in
+	/// the map which touch it.
 	///
-	/// The `Value` of the merged `RangeBounds` is set to the given
-	/// `Value`.
+	/// The value of the merged-together range is set to the value given for
+	/// this insertion.
 	///
-	/// If successful then a reference to the newly inserted
-	/// `RangeBounds` is returned.
+	/// If successful then the newly inserted (possibly merged) range is
+	/// returned.
 	///
-	/// If the given `RangeBounds` overlaps one or more `RangeBounds`
-	/// already in the map, then an [`OverlapError`] is returned and
-	/// the map is not updated.
+	/// If the given range overlaps one or more ranges already in the
+	/// map, then an [`OverlapError`] is returned and the map is not
+	/// updated.
 	///
-	/// If the merged `RangeBounds` cannot be created with the
+	/// If the range merges with one or two touching ranges and the
+	/// merged-together range cannot be created with the
 	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
 	/// returned.
 	///
@@ -1110,19 +1106,18 @@ where
 		.map_err(OverlapOrTryFromBoundsError::TryFromBounds)
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
-	/// merges into other `RangeBounds` in the map which overlap
-	/// it.
+	/// Adds a new entry to the map and merges into other ranges in
+	/// the map which overlap it.
 	///
-	/// The `Value` of the merged `RangeBounds` is set to the given
-	/// `Value`.
+	/// The value of the merged-together range is set to the value given for
+	/// this insertion.
 	///
-	/// If successful then a reference to the newly inserted
-	/// `RangeBounds` is returned.
-	///
-	/// If the merged `RangeBounds` cannot be created with the
-	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// If successful then the newly inserted (possibly merged) range is
 	/// returned.
+	///
+	/// If the range merges other ranges and the merged-together range
+	/// cannot be created with the [`TryFromBounds`] trait then a
+	/// [`TryFromBoundsError`] will be returned.
 	///
 	/// # Panics
 	///
@@ -1193,19 +1188,18 @@ where
 		)
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
-	/// merges into other `RangeBounds` in the map which touch or
-	/// overlap it.
+	/// Adds a new entry to the map and merges into other ranges in
+	/// the map which touch or overlap it.
 	///
-	/// The `Value` of the merged `RangeBounds` is set to the given
-	/// `Value`.
+	/// The value of the merged-together range is set to the value given for
+	/// this insertion.
 	///
-	/// If successful then a reference to the newly inserted
-	/// `RangeBounds` is returned.
-	///
-	/// If the merged `RangeBounds` cannot be created with the
-	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// If successful then the newly inserted (possibly merged) range is
 	/// returned.
+	///
+	/// If the range merges other ranges and the merged-together range
+	/// cannot be created with the [`TryFromBounds`] trait then a
+	/// [`TryFromBoundsError`] will be returned.
 	///
 	/// # Panics
 	///
@@ -1288,16 +1282,15 @@ where
 		)
 	}
 
-	/// Adds a new (`RangeBounds`, `Value`) entry to the map and
-	/// overwrites any other `RangeBounds` that overlap the new
-	/// `RangeBounds`.
+	/// Adds a new entry to the map and overwrites any other ranges
+	/// that overlap the new range.
 	///
 	/// This is equivalent to using [`RangeBoundsMap::cut()`]
 	/// followed by [`RangeBoundsMap::insert_strict()`]. Hence the
 	/// same `V: Clone` trait bound applies.
 	///
-	/// If the remaining `RangeBounds` left after the cut are not able
-	/// to be created with the [`TryFromBounds`] trait then a
+	/// If the remaining ranges left after the cut are not able to be
+	/// created with the [`TryFromBounds`] trait then a
 	/// [`TryFromBoundsError`] will be returned.
 	///
 	/// # Panics
@@ -1340,8 +1333,7 @@ where
 		return Ok(());
 	}
 
-	/// Returns the first (`RangeBounds`, `Value`) entry in the map, if
-	/// any.
+	/// Returns the first entry in the map, if any.
 	///
 	/// # Examples
 	/// ```
@@ -1361,8 +1353,7 @@ where
 		self.inner.first_key_value()
 	}
 
-	/// Returns the last (`RangeBounds`, `Value`) entry in the map, if
-	/// any.
+	/// Returns the last entry in the map, if any.
 	///
 	/// # Examples
 	/// ```
@@ -1384,8 +1375,8 @@ where
 		self.inner.last_key_value()
 	}
 
-	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
-	/// `Value`) entries from the slice into the map using
+	/// Allocates a `RangeBoundsMap` and moves the given entries from
+	/// the given slice into the map using
 	/// [`RangeBoundsMap::insert_strict()`].
 	///
 	/// May return an `Err` while inserting. See
@@ -1650,8 +1641,8 @@ mod tests {
 
 	use super::*;
 	use crate::bound_ord::BoundOrd;
-	use crate::utils::{config, Config, CutResult};
 	use crate::test_ranges::{ee, ei, ie, ii, iu, u, ue, ui, uu, AnyRange};
+	use crate::utils::{config, Config, CutResult};
 
 	//only every other number to allow mathematical_overlapping_definition
 	//to test between bounds in finite using smaller intervalled finite

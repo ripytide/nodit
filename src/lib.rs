@@ -17,13 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`].
-//!
-//! [`RangeBoundsMap`] is an ordered map of non-overlapping [`RangeBounds`]
-//! based on [`BTreeMap`].
-//!
-//! [`RangeBoundsSet`] is an ordered set of non-overlapping [`RangeBounds`]
-//! based on [`RangeBoundsMap`].
+//! This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`], Data
+//! Structures for storing non-overlapping intervals based of [`BTreeMap`].
 //!
 //! ## Example using [`Range`]s
 //!
@@ -105,21 +100,22 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ### Invalid RangeBounds
 //!
-//! Within this crate, not all `RangeBounds` are considered valid
-//! `RangeBounds`. The definition of the validity of a `RangeBounds` used
-//! within this crate is that a `RangeBounds` is only valid if it contains
+//! Within this crate, not all ranges are considered valid
+//! ranges. The definition of the validity of a range used
+//! within this crate is that a range is only valid if it contains
 //! at least one value of the underlying domain.
 //!
-//! For example, `4..6` is considered valid as it contains the values `4`
-//! and `5`, however, `4..4` is considered invalid as it contains no
-//! values. Another example of invalid `RangeBounds` are those with
-//! `start_bound()`s with greater values than their `end_bound()`s, such
-//! as `5..2` or `100..=40`.
+//! For example, `4..6` is considered valid as it contains the values
+//! `4` and `5`, however, `4..4` is considered invalid as it contains
+//! no values. Another example of invalid range are those whose start
+//! values are greater than their end values. such as `5..2` or
+//! `100..=40`.
 //!
-//! Here are a few examples of `RangeBounds` and whether they are valid:
+//! Here are a few examples of ranges and whether they are valid:
 //!
-//! | `RangeBounds`  | Valid |
+//! | range          | valid |
 //! | -------------- | ----- |
+//! | 0..=0          | YES   |
 //! | 0..0           | NO    |
 //! | 0..1           | YES   |
 //! | 9..8           | NO    |
@@ -131,35 +127,29 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ### Overlap
 //!
-//! Two `RangeBounds` are "overlapping" if there exists a point that is
-//! contained within both `RangeBounds`.
+//! Two ranges are "overlapping" if there exists a point that is contained
+//! within both ranges.
 //!
 //! ### Touching
 //!
-//! Two `RangeBounds` are "touching" if they do not overlap and
-//! there exists no value between them. For example, `2..4` and
-//! `4..6` are touching but `2..4` and `6..8` are not, neither are
-//! `2..6` and `4..8`.
+//! Two ranges are "touching" if they do not overlap and there exists no
+//! value between them. For example, `2..4` and `4..6` are touching but
+//! `2..4` and `6..8` are not, neither are `2..6` and `4..8`.
 //!
 //! ### Merging
 //!
-//! When a `RangeBounds` "merges" other `RangeBounds` it absorbs them
-//! to become larger.
+//! When a range "merges" other ranges it absorbs them to become larger.
 //!
 //! ### Further Reading
 //!
-//! See Wikipedia's article on Intervals:
+//! See Wikipedia's article on mathematical Intervals:
 //! <https://en.wikipedia.org/wiki/Interval_(mathematics)>
 //!
 //! # Improvements/Caveats
 //!
-//! - Missing some functions common to BTreeMap and BTreeSet like:
-//!   - `clear()`
-//!   - `is_subset()`
-//!   - etc... prob a bunch more
-//! - Not particularly optimized, (which doesn't mean it's neccessarily slow)
-//! - Can't use TryFrom<(Bound, Bound)> instead of [`TryFromBounds`] (relys on
-//!   upstream to impl, see [this thread](https://internals.rust-lang.org/t/range-should-impl-tryfrom-bound-bound))
+//! - I had to create a new trait: [`TryFromBounds`] rather than using
+//!   `TryFrom<(Bound, Bound)>` (relys on upstream to impl, see [this
+//!   thread](https://internals.rust-lang.org/t/range-should-impl-tryfrom-bound-bound))
 //!
 //! # Credit
 //!
@@ -168,15 +158,19 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! `StartBound`: [`Ord`] bodge. [`rangemap`] then became my main source
 //! of inspiration.
 //!
-//! The aim for my library was to become a more generic
-//! superset of [`rangemap`], following from [this
+//! Later I then undid the [`Ord`] bodge and switched to my own full-code
+//! port of [`BTreeMap`], inspired and forked from [`copse`], for it's
+//! increased flexibility.
+//!
+//! # Origin
+//!
+//! The aim for this library was to become a more generic superset of
+//! [`rangemap`], following from [this
 //! issue](https://github.com/jeffparsons/rangemap/issues/56) and [this
 //! pull request](https://github.com/jeffparsons/rangemap/pull/57) in
 //! which I changed [`rangemap`]'s [`RangeMap`] to use [`RangeBounds`]s as
 //! keys before I realized it might be easier and simpler to just write it
-//! all from scratch. Which ended up working really well with some
-//! simplifications (BoundOrd) I made which made some of the code much
-//! easier to work with.
+//! all from scratch.
 //!
 //! # Similar Crates
 //!
@@ -219,8 +213,9 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 //! [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
 //! [`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
-//! [`RangeBoundsMap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.RangeBoundsMap.html
-//! [`RangeBoundsSet`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.RangeBoundsSet.html
+//! [`rangeboundsmap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.RangeBoundsMap.html
+//! [`rangeboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.RangeBoundsSet.html
+//! [`copse`]: https://github.com/eggyal/copse
 
 #![feature(is_some_and)]
 #![feature(let_chains)]
@@ -229,8 +224,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 #![allow(clippy::needless_return)]
 
 pub(crate) mod bound_ord;
-pub(crate) mod utils;
 pub mod test_ranges;
+pub(crate) mod utils;
 
 pub mod range_bounds_map;
 pub mod range_bounds_set;
