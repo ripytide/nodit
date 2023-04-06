@@ -6,7 +6,7 @@
 [![Crates.io](https://img.shields.io/crates/v/range_bounds_map)](https://crates.io/crates/range_bounds_map)
 
 <p align="center">
-<img src="logo.svg" alt="range_bounds_map_logo" width="350">
+<img src="logo.png" alt="range_bounds_map_logo" width="350">
 </p>
 
 This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`], Data
