@@ -538,6 +538,35 @@ where
 		self.inner.iter()
 	}
 
+	/// Returns an mutable iterator over every entry in the map in
+	/// ascending order.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::test_ranges::ie;
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// 	(ie(1, 4), false),
+	/// 	(ie(4, 8), true),
+	/// 	(ie(8, 100), false),
+	/// ])
+	/// .unwrap();
+	///
+	/// for (range, value) in map.iter_mut() {
+	/// 	if *range == ie(4, 8) {
+	/// 		*value = false
+	/// 	} else {
+	/// 		*value = true
+	/// 	}
+	/// }
+	/// ```
+	pub fn iter_mut(
+		&mut self,
+	) -> impl DoubleEndedIterator<Item = (&K, &mut V)> {
+		self.inner.iter_mut()
+	}
+
 	/// Removes every entry in the map which overlaps the given range
 	/// and returns them in an iterator.
 	///
