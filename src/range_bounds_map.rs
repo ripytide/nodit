@@ -1488,7 +1488,7 @@ mod tests {
 	use super::*;
 	use crate::bound_ord::BoundOrd;
 	use crate::helpers::{config, Config, CutResult};
-	use crate::test_ranges::{ee, ei, ie, ii, iu, u, ue, ui, uu, TestBounds};
+	use crate::test_ranges::{ee, ei, ie, ii, iu, u, ue, ui, uu, AnyRange};
 
 	//only every other number to allow mathematical_overlapping_definition
 	//to test between bounds in finite using smaller intervalled finite
@@ -1497,7 +1497,7 @@ mod tests {
 	pub(crate) const NUMBERS_DOMAIN: &'static [i8] =
 		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-	fn basic() -> RangeBoundsMap<i8, TestBounds, bool> {
+	fn basic() -> RangeBoundsMap<i8, AnyRange, bool> {
 		RangeBoundsMap::from_slice_strict([
 			(ui(4), false),
 			(ee(5, 7), true),
@@ -1606,10 +1606,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_strict<const N: usize>(
-		mut before: RangeBoundsMap<i8, TestBounds, bool>,
-		to_insert: (TestBounds, bool),
+		mut before: RangeBoundsMap<i8, AnyRange, bool>,
+		to_insert: (AnyRange, bool),
 		result: Result<(), OverlapError>,
-		after: Option<[(TestBounds, bool); N]>,
+		after: Option<[(AnyRange, bool); N]>,
 	) {
 		let clone = before.clone();
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
@@ -1630,7 +1630,7 @@ mod tests {
 		for overlap_range in all_valid_test_bounds() {
 			//you can't overlap nothing
 			assert!(
-				RangeBoundsMap::<i8, TestBounds, ()>::new()
+				RangeBoundsMap::<i8, AnyRange, ()>::new()
 					.overlapping(overlap_range)
 					.next()
 					.is_none()
@@ -1734,10 +1734,10 @@ mod tests {
 		);
 	}
 	fn assert_remove_overlapping<const N: usize, const Y: usize>(
-		mut before: RangeBoundsMap<i8, TestBounds, bool>,
-		to_remove: TestBounds,
-		result: [(TestBounds, bool); N],
-		after: Option<[(TestBounds, bool); Y]>,
+		mut before: RangeBoundsMap<i8, AnyRange, bool>,
+		to_remove: AnyRange,
+		result: [(AnyRange, bool); N],
+		after: Option<[(AnyRange, bool); Y]>,
 	) {
 		let clone = before.clone();
 		assert_eq!(
@@ -1871,9 +1871,9 @@ mod tests {
 		assert_gaps(basic(), ii(8, 8), [ii(8, 8)]);
 	}
 	fn assert_gaps<const N: usize>(
-		map: RangeBoundsMap<i8, TestBounds, bool>,
-		outer_range: TestBounds,
-		result: [TestBounds; N],
+		map: RangeBoundsMap<i8, AnyRange, bool>,
+		outer_range: AnyRange,
+		result: [AnyRange; N],
 	) {
 		assert_eq!(
 			map.gaps(outer_range)
@@ -2358,7 +2358,7 @@ mod tests {
 
 	// Test Helper Functions
 	//======================
-	fn all_non_overlapping_test_bound_entries() -> Vec<(TestBounds, TestBounds)>
+	fn all_non_overlapping_test_bound_entries() -> Vec<(AnyRange, AnyRange)>
 	{
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
@@ -2372,7 +2372,7 @@ mod tests {
 		return output;
 	}
 
-	fn all_valid_test_bounds() -> Vec<TestBounds> {
+	fn all_valid_test_bounds() -> Vec<AnyRange> {
 		let mut output = Vec::new();
 
 		//bounded-bounded

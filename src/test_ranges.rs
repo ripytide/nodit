@@ -2,33 +2,33 @@ use std::ops::{Bound, RangeBounds};
 
 use crate::{TryFromBounds, TryFromBoundsError};
 
-pub type TestBounds = (Bound<i8>, Bound<i8>);
+pub type AnyRange = (Bound<i8>, Bound<i8>);
 
-pub fn uu() -> TestBounds {
+pub fn uu() -> AnyRange {
 	(Bound::Unbounded, Bound::Unbounded)
 }
-pub fn ui(x: i8) -> TestBounds {
+pub fn ui(x: i8) -> AnyRange {
 	(Bound::Unbounded, Bound::Included(x))
 }
-pub fn ue(x: i8) -> TestBounds {
+pub fn ue(x: i8) -> AnyRange {
 	(Bound::Unbounded, Bound::Excluded(x))
 }
-pub fn iu(x: i8) -> TestBounds {
+pub fn iu(x: i8) -> AnyRange {
 	(Bound::Included(x), Bound::Unbounded)
 }
 //fn eu(x: i8) -> TestBounds {
 //(Bound::Excluded(x), Bound::Unbounded)
 //}
-pub fn ii(x1: i8, x2: i8) -> TestBounds {
+pub fn ii(x1: i8, x2: i8) -> AnyRange {
 	(Bound::Included(x1), Bound::Included(x2))
 }
-pub fn ie(x1: i8, x2: i8) -> TestBounds {
+pub fn ie(x1: i8, x2: i8) -> AnyRange {
 	(Bound::Included(x1), Bound::Excluded(x2))
 }
-pub fn ei(x1: i8, x2: i8) -> TestBounds {
+pub fn ei(x1: i8, x2: i8) -> AnyRange {
 	(Bound::Excluded(x1), Bound::Included(x2))
 }
-pub fn ee(x1: i8, x2: i8) -> TestBounds {
+pub fn ee(x1: i8, x2: i8) -> AnyRange {
 	(Bound::Excluded(x1), Bound::Excluded(x2))
 }
 
