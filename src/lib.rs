@@ -229,7 +229,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 #![allow(clippy::needless_return)]
 
 pub(crate) mod bound_ord;
-pub(crate) mod helpers;
+pub(crate) mod utils;
 pub mod test_ranges;
 
 pub mod range_bounds_map;

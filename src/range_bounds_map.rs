@@ -34,7 +34,7 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::BoundOrd;
-use crate::helpers::{
+use crate::utils::{
 	cmp_range_with_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
 };
 use crate::TryFromBounds;
@@ -411,14 +411,14 @@ where
 	{
 		invalid_range_panic(range);
 
-		let lower_comp = overlapping_start_comp(range.start());
-		let upper_comp = overlapping_end_comp(range.end());
+		let start_comp = overlapping_start_comp(range.start());
+		let end_comp = overlapping_end_comp(range.end());
 
-		let lower_bound = SearchBoundCustom::Included;
-		let upper_bound = SearchBoundCustom::Included;
+		let start_bound = SearchBoundCustom::Included;
+		let end_bound = SearchBoundCustom::Included;
 
 		self.inner
-			.range(lower_comp, lower_bound, upper_comp, upper_bound)
+			.range(start_comp, start_bound, end_comp, end_bound)
 	}
 
 	/// Returns a reference to the `Value` corresponding to the
@@ -1400,12 +1400,13 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
-	/// 	(1..4, false),
-	/// 	(4..8, true),
-	/// 	(8..100, false),
+	/// 	(ie(1, 4), false),
+	/// 	(ie(4, 8), true),
+	/// 	(ie(8, 100), false),
 	/// ])
 	/// .unwrap();
 	/// ```
@@ -1649,7 +1650,7 @@ mod tests {
 
 	use super::*;
 	use crate::bound_ord::BoundOrd;
-	use crate::helpers::{config, Config, CutResult};
+	use crate::utils::{config, Config, CutResult};
 	use crate::test_ranges::{ee, ei, ie, ii, iu, u, ue, ui, uu, AnyRange};
 
 	//only every other number to allow mathematical_overlapping_definition
@@ -1844,8 +1845,8 @@ mod tests {
 				}
 				//make our expected_overlapping the correct order
 				if expected_overlapping.len() > 1 {
-					if BoundOrd::start(expected_overlapping[0].start_bound())
-						> BoundOrd::start(expected_overlapping[1].start_bound())
+					if BoundOrd::start(expected_overlapping[0].start())
+						> BoundOrd::start(expected_overlapping[1].start())
 					{
 						expected_overlapping.swap(0, 1);
 					}
