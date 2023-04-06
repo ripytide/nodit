@@ -39,7 +39,7 @@ use crate::utils::{
 };
 use crate::TryFromBounds;
 
-/// An ordered map of non-overlapping [`RangeBounds`] based on [`BTreeMap`].
+/// An ordered map of non-overlapping ranges based on [`BTreeMap`].
 ///
 /// `I` is the generic type parameter for the [`Ord`] type the `K` type
 /// is [`RangeBounds`] over.
@@ -346,7 +346,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -379,7 +379,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -426,7 +426,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -621,7 +621,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -680,7 +680,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -874,7 +874,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -962,7 +962,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -1000,7 +1000,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -1098,7 +1098,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -1190,7 +1190,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -1271,7 +1271,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -1362,7 +1362,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -1450,7 +1450,7 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
@@ -1484,7 +1484,9 @@ where
 	I: Ord,
 {
 	if !is_valid_range(range) {
-		panic!("Invalid RangeBounds!");
+		panic!(
+			"invalid range given to function see here for more details: https://docs.rs/range_bounds_map/latest/range_bounds_map/#invalid-ranges"
+		);
 	}
 }
 
@@ -1572,11 +1574,13 @@ where
 	}
 }
 
+/// A simple helper trait to make my implemtation nicer, if you
+/// already implement RangeBounds and Copy on your type then this will
+/// also be implemted.
 pub trait NiceRange<I>: Copy {
 	fn start(&self) -> Bound<I>;
 	fn end(&self) -> Bound<I>;
 }
-
 impl<K, I> NiceRange<I> for K
 where
 	I: Copy,
