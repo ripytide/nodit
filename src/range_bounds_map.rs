@@ -23,7 +23,9 @@ use std::iter::once;
 use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 
-use btree_monstrousity::btree_map::SearchBoundCustom;
+use btree_monstrousity::btree_map::{
+	IntoIter as BTreeMapIntoIter, SearchBoundCustom,
+};
 use btree_monstrousity::BTreeMap;
 use either::Either;
 use itertools::Itertools;
@@ -288,10 +290,10 @@ where
 	/// ```
 	/// use std::ops::Range;
 	///
-	/// use range_bounds_map::test_ranges::TestBounds;
+	/// use range_bounds_map::test_ranges::AnyRange;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let map: RangeBoundsMap<i8, TestBounds, bool> =
+	/// let map: RangeBoundsMap<i8, AnyRange, bool> =
 	/// 	RangeBoundsMap::new();
 	/// ```
 	pub fn new() -> Self {
@@ -365,6 +367,8 @@ where
 	where
 		Q: NiceRange<I>,
 	{
+		invalid_range_panic(range);
+
 		self.overlapping(range).next().is_some()
 	}
 
@@ -405,9 +409,7 @@ where
 	where
 		Q: NiceRange<I>,
 	{
-		if !is_valid_range(range) {
-			panic!("Invalid RangeBounds!");
-		}
+		invalid_range_panic(range);
 
 		let lower_comp = overlapping_start_comp(range.start());
 		let upper_comp = overlapping_end_comp(range.end());
@@ -569,8 +571,8 @@ where
 	/// );
 	///
 	/// assert_eq!(
-	/// 	map.iter().collect::<Vec<_>>(),
-	/// 	[(&(ie(8, 100)), &false)]
+	/// 	map.into_iter().collect::<Vec<_>>(),
+	/// 	[(ie(8, 100), false)]
 	/// );
 	/// ```
 	pub fn remove_overlapping<'a, Q>(
@@ -580,6 +582,8 @@ where
 	where
 		Q: NiceRange<I> + 'a,
 	{
+		invalid_range_panic(range);
+
 		//optimisation, switch to BTreeMap::drain_range if it ever gets
 		//implemented
 		return self
@@ -652,6 +656,8 @@ where
 		K: TryFromBounds<I>,
 		V: Clone,
 	{
+		invalid_range_panic(range);
+
 		let start_comp = overlapping_start_comp(range.start());
 		let end_comp = overlapping_end_comp(range.end());
 
@@ -666,7 +672,7 @@ where
             Ok(Either::Right(self.cut_non_single_overlapping(range, left_overlapping, right_overlapping)?))
         }
 	}
-	pub fn cut_single_overlapping<Q>(
+	fn cut_single_overlapping<Q>(
 		&mut self,
 		range: Q,
 		single_overlapping_range: K,
@@ -679,6 +685,8 @@ where
 		K: TryFromBounds<I>,
 		V: Clone,
 	{
+		invalid_range_panic(range);
+
 		let cut_result = cut_range(single_overlapping_range, range);
 		let returning_before_cut = match cut_result.before_cut {
 			Some((start, end)) => Some(K::try_from_bounds(start, end)?),
@@ -703,7 +711,7 @@ where
 
 		Ok(once((cut_result.inside_cut.unwrap(), value)))
 	}
-	pub fn cut_non_single_overlapping<'a, Q>(
+	fn cut_non_single_overlapping<'a, Q>(
 		&'a mut self,
 		range: Q,
 		left_overlapping: Option<K>,
@@ -717,6 +725,8 @@ where
 		K: TryFromBounds<I>,
 		V: Clone,
 	{
+		invalid_range_panic(range);
+
 		let before_config = match left_overlapping {
 			Some(before) => {
 				let cut_result = cut_range(before, range);
@@ -832,6 +842,8 @@ where
 	where
 		Q: NiceRange<I> + 'a,
 	{
+		invalid_range_panic(outer_range);
+
 		// I'm in love with how clean/mindblowing this entire function is
 		let overlapping = self
 			.overlapping(outer_range)
@@ -907,6 +919,8 @@ where
 	where
 		Q: NiceRange<I>,
 	{
+		invalid_range_panic(range);
+
 		// Soooo clean and mathematical 🥰!
 		self.gaps(range).next().is_none()
 	}
@@ -941,6 +955,8 @@ where
 		range: K,
 		value: V,
 	) -> Result<(), OverlapError> {
+		invalid_range_panic(range);
+
 		if self.overlaps(range) {
 			return Err(OverlapError);
 		}
@@ -969,6 +985,8 @@ where
 		R1: FnOnce(&mut Self),
 		R2: FnOnce(&mut Self),
 	{
+		invalid_range_panic(range);
+
 		let matching_start = get_start(self);
 		let matching_end = get_end(self);
 
@@ -1049,8 +1067,8 @@ where
 	/// );
 	///
 	/// assert_eq!(
-	/// 	map.iter().collect::<Vec<_>>(),
-	/// 	[(&ie(1, 6), &true), (&ie(10, 16), &false)]
+	/// 	map.into_iter().collect::<Vec<_>>(),
+	/// 	[(ie(1, 6), true), (ie(10, 16), false)]
 	/// );
 	/// ```
 	pub fn insert_merge_touching(
@@ -1061,6 +1079,8 @@ where
 	where
 		K: TryFromBounds<I>,
 	{
+		invalid_range_panic(range);
+
 		if self.overlaps(range) {
 			return Err(OverlapOrTryFromBoundsError::Overlap(OverlapError));
 		}
@@ -1139,12 +1159,8 @@ where
 	/// );
 	///
 	/// assert_eq!(
-	/// 	map.iter().collect::<Vec<_>>(),
-	/// 	[
-	/// 		(&ie(-4, 1), &true),
-	/// 		(&ie(1, 8), &true),
-	/// 		(&ie(10, 16), &false)
-	/// 	]
+	/// 	map.into_iter().collect::<Vec<_>>(),
+	/// 	[(ie(-4, 1), true), (ie(1, 8), true), (ie(10, 16), false)]
 	/// );
 	/// ```
 	pub fn insert_merge_overlapping(
@@ -1155,6 +1171,8 @@ where
 	where
 		K: TryFromBounds<I>,
 	{
+		invalid_range_panic(range);
+
 		self.insert_merge_with_comps(
 			range,
 			value,
@@ -1224,8 +1242,8 @@ where
 	/// );
 	///
 	/// assert_eq!(
-	/// 	map.iter().collect::<Vec<_>>(),
-	/// 	[(&ie(-4, 8), &true), (&ie(10, 16), &false)]
+	/// 	map.into_iter().collect::<Vec<_>>(),
+	/// 	[(ie(-4, 8), true), (ie(10, 16), false)]
 	/// );
 	/// ```
 	pub fn insert_merge_touching_or_overlapping(
@@ -1236,6 +1254,8 @@ where
 	where
 		K: TryFromBounds<I>,
 	{
+		invalid_range_panic(range);
+
 		self.insert_merge_with_comps(
 			range,
 			value,
@@ -1299,12 +1319,8 @@ where
 	/// assert_eq!(map.insert_overwrite(ie(4, 6), true), Ok(()));
 	///
 	/// assert_eq!(
-	/// 	map.iter().collect::<Vec<_>>(),
-	/// 	[
-	/// 		(&ie(2, 4), &false),
-	/// 		(&ie(4, 6), &true),
-	/// 		(&ie(6, 8), &false)
-	/// 	]
+	/// 	map.into_iter().collect::<Vec<_>>(),
+	/// 	[(ie(2, 4), false), (ie(4, 6), true), (ie(6, 8), false)]
 	/// );
 	/// ```
 	pub fn insert_overwrite(
@@ -1316,6 +1332,8 @@ where
 		K: TryFromBounds<I>,
 		V: Clone,
 	{
+		invalid_range_panic(range);
+
 		let _ = self.cut(range)?;
 		self.insert_unchecked(range, value);
 
@@ -1374,6 +1392,18 @@ where
 			map.insert_strict(range, value)?;
 		}
 		return Ok(map);
+	}
+}
+
+// Helper Functions ==========================
+
+fn invalid_range_panic<Q, I>(range: Q)
+where
+	Q: NiceRange<I>,
+	I: Ord,
+{
+	if !is_valid_range(range) {
+		panic!("Invalid RangeBounds!");
 	}
 }
 
@@ -1476,6 +1506,38 @@ where
 	}
 	fn end(&self) -> Bound<I> {
 		self.end_bound().cloned()
+	}
+}
+
+// Trait Impls ==========================
+
+impl<I, K, V> IntoIterator for RangeBoundsMap<I, K, V>
+{
+	type Item = (K, V);
+	type IntoIter = IntoIter<I, K, V>;
+	fn into_iter(self) -> Self::IntoIter {
+		return IntoIter {
+			inner: self.inner.into_iter(),
+			phantom: PhantomData,
+		};
+	}
+}
+/// An owning iterator over the entries of a [`RangeBoundsMap`].
+///
+/// This `struct` is created by the [`into_iter`] method on
+/// [`RangeBoundsMap`] (provided by the [`IntoIterator`] trait). See
+/// its documentation for more.
+///
+/// [`into_iter`]: IntoIterator::into_iter
+/// [`IntoIterator`]: core::iter::IntoIterator
+pub struct IntoIter<I, K, V> {
+	inner: BTreeMapIntoIter<K, V>,
+	phantom: PhantomData<I>,
+}
+impl<I, K, V> Iterator for IntoIter<I, K, V> {
+	type Item = (K, V);
+	fn next(&mut self) -> Option<Self::Item> {
+		self.inner.next()
 	}
 }
 
@@ -2358,8 +2420,7 @@ mod tests {
 
 	// Test Helper Functions
 	//======================
-	fn all_non_overlapping_test_bound_entries() -> Vec<(AnyRange, AnyRange)>
-	{
+	fn all_non_overlapping_test_bound_entries() -> Vec<(AnyRange, AnyRange)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {

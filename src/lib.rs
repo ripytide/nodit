@@ -235,12 +235,12 @@ pub(crate) mod helpers;
 pub mod test_ranges;
 
 pub mod range_bounds_map;
-//pub mod range_bounds_set;
+pub mod range_bounds_set;
 pub mod try_from_bounds;
 
 pub use crate::range_bounds_map::{
 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
 	TryFromBoundsError,
 };
-//pub use crate::range_bounds_set::RangeBoundsSet;
+pub use crate::range_bounds_set::RangeBoundsSet;
 pub use crate::try_from_bounds::TryFromBounds;
