@@ -88,7 +88,7 @@ assert_eq!(
 
 ## Key Definitions:
 
-### Invalid RangeBounds
+### Invalid Ranges
 
 Within this crate, not all ranges are considered valid
 ranges. The definition of the validity of a range used

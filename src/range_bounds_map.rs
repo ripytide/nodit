@@ -345,9 +345,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -379,9 +378,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -545,10 +543,9 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
-	/// for more details.
+    /// Panics if the given range is an invalid range. See [`Invalid
+    /// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+    /// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -605,9 +602,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -801,9 +797,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `outer_range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -890,9 +885,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -929,9 +923,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -1028,9 +1021,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -1121,9 +1113,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -1203,9 +1194,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -1295,9 +1285,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples
@@ -1384,9 +1373,8 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if any of the given `RangeBounds` is an invalid
-	/// `RangeBounds`. See [`Invalid
-	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
 	///
 	/// # Examples

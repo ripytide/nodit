@@ -98,7 +98,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ## Key Definitions:
 //!
-//! ### Invalid RangeBounds
+//! ### Invalid Ranges
 //!
 //! Within this crate, not all ranges are considered valid
 //! ranges. The definition of the validity of a range used
