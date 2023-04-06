@@ -29,13 +29,14 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ```rust
 //! use range_bounds_map::RangeBoundsMap;
+//! use range_bounds_map::test_ranges::ie;
 //!
 //! let mut map = RangeBoundsMap::new();
 //!
-//! map.insert_strict(0..5, true);
-//! map.insert_strict(5..10, false);
+//! map.insert_strict(ie(0, 5), true);
+//! map.insert_strict(ie(5, 10), false);
 //!
-//! assert_eq!(map.overlaps(-2..12), true);
+//! assert_eq!(map.overlaps(ie(-2, 12)), true);
 //! assert_eq!(map.contains_point(20), false);
 //! assert_eq!(map.contains_point(5), true);
 //! ```
@@ -46,18 +47,19 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! use std::ops::{Bound, RangeBounds};
 //!
 //! use range_bounds_map::RangeBoundsMap;
+//! use range_bounds_map::test_ranges::ie;
 //!
 //! #[derive(Debug, Copy, Clone)]
 //! enum Reservation {
 //! 	// Start, End (Inclusive-Inclusive)
-//! 	Finite(u8, u8),
+//! 	Finite(i8, i8),
 //! 	// Start (Exclusive)
-//! 	Infinite(u8),
+//! 	Infinite(i8),
 //! }
 //!
 //! // First, we need to implement RangeBounds
-//! impl RangeBounds<u8> for Reservation {
-//! 	fn start_bound(&self) -> Bound<&u8> {
+//! impl RangeBounds<i8> for Reservation {
+//! 	fn start_bound(&self) -> Bound<&i8> {
 //! 		match self {
 //! 			Reservation::Finite(start, _) => {
 //! 				Bound::Included(start)
@@ -67,7 +69,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! 			}
 //! 		}
 //! 	}
-//! 	fn end_bound(&self) -> Bound<&u8> {
+//! 	fn end_bound(&self) -> Bound<&i8> {
 //! 		match self {
 //! 			Reservation::Finite(_, end) => Bound::Included(end),
 //! 			Reservation::Infinite(_) => Bound::Unbounded,
@@ -82,7 +84,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! ])
 //! .unwrap();
 //!
-//! for (reservation, name) in reservation_map.overlapping(16..17)
+//! for (reservation, name) in reservation_map.overlapping(ie(16, 17))
 //! {
 //! 	println!(
 //! 		"{name} has reserved {reservation:?} inside the range 16..17"

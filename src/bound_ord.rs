@@ -196,13 +196,13 @@ mod tests {
 		assert!(BoundOrd::StartExcluded(2) < BoundOrd::EndUnbounded);
 
 		//StartUnbounded
-		assert!(BoundOrd::StartUnbounded::<u8> == BoundOrd::StartUnbounded);
-		assert!(BoundOrd::StartUnbounded::<u8> <= BoundOrd::StartUnbounded);
-		assert!(BoundOrd::StartUnbounded::<u8> >= BoundOrd::StartUnbounded);
+		assert!(BoundOrd::StartUnbounded::<i8> == BoundOrd::StartUnbounded);
+		assert!(BoundOrd::StartUnbounded::<i8> <= BoundOrd::StartUnbounded);
+		assert!(BoundOrd::StartUnbounded::<i8> >= BoundOrd::StartUnbounded);
 
 		assert!(BoundOrd::StartUnbounded < BoundOrd::EndExcluded(2));
 
-		assert!(BoundOrd::StartUnbounded::<u8> < BoundOrd::EndUnbounded);
+		assert!(BoundOrd::StartUnbounded::<i8> < BoundOrd::EndUnbounded);
 
 		//EndExcluded
 		assert!(BoundOrd::EndExcluded(2) == BoundOrd::EndExcluded(2));
@@ -212,8 +212,8 @@ mod tests {
 		assert!(BoundOrd::EndExcluded(2) > BoundOrd::EndExcluded(0));
 
 		//EndUnbounded
-		assert!(BoundOrd::EndUnbounded::<u8> == BoundOrd::EndUnbounded);
-		assert!(BoundOrd::EndUnbounded::<u8> <= BoundOrd::EndUnbounded);
-		assert!(BoundOrd::EndUnbounded::<u8> >= BoundOrd::EndUnbounded);
+		assert!(BoundOrd::EndUnbounded::<i8> == BoundOrd::EndUnbounded);
+		assert!(BoundOrd::EndUnbounded::<i8> <= BoundOrd::EndUnbounded);
+		assert!(BoundOrd::EndUnbounded::<i8> >= BoundOrd::EndUnbounded);
 	}
 }
