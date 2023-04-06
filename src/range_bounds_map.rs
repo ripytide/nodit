@@ -420,6 +420,54 @@ where
 			.range(start_comp, start_bound, end_comp, end_bound)
 	}
 
+	/// Returns an mutable iterator over every entry in the map that
+	/// overlaps the given range in ascending order.
+	///
+	/// # Panics
+	///
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::test_ranges::ie;
+	/// use range_bounds_map::RangeBoundsMap;
+	///
+	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// 	(ie(1, 4), false),
+	/// 	(ie(4, 8), true),
+	/// 	(ie(8, 100), false),
+	/// ])
+	/// .unwrap();
+	///
+	/// for (range, value) in map.overlapping_mut(ie(3, 7)) {
+	/// 	if *range == ie(4, 8) {
+	/// 		*value = false
+	/// 	} else {
+	/// 		*value = true
+	/// 	}
+	/// }
+	/// ```
+	pub fn overlapping_mut<Q>(
+		&mut self,
+		range: Q,
+	) -> impl DoubleEndedIterator<Item = (&K, &mut V)>
+	where
+		Q: NiceRange<I>,
+	{
+		invalid_range_panic(range);
+
+		let start_comp = overlapping_start_comp(range.start());
+		let end_comp = overlapping_end_comp(range.end());
+
+		let start_bound = SearchBoundCustom::Included;
+		let end_bound = SearchBoundCustom::Included;
+
+		self.inner
+			.range_mut(start_comp, start_bound, end_comp, end_bound)
+	}
+
 	/// Returns a reference to the value corresponding to the range in
 	/// the map that overlaps the given point, if any.
 	///

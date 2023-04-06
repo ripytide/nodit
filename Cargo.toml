@@ -18,7 +18,7 @@ categories = ["data-structures"]
 [dependencies]
 serde = {version = "1.0.148", features = ["derive"]}
 itertools = "0.10.5"
-btree_monstrousity = {version ="0.0.3", features = ["btree_drain_filter"]}
+btree_monstrousity = {version ="0.0.4", features = ["btree_drain_filter"]}
 either = "1.8.1"
 
 [dev-dependencies]
