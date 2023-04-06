@@ -224,7 +224,7 @@ where
 
 impl<I, K> Serialize for RangeBoundsSet<I, K>
 where
-    I: Ord + Copy,
+	I: Ord + Copy,
 	K: NiceRange<I> + Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -241,7 +241,7 @@ where
 
 impl<'de, I, K> Deserialize<'de> for RangeBoundsSet<I, K>
 where
-    I: Ord + Copy,
+	I: Ord + Copy,
 	K: NiceRange<I> + Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

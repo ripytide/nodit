@@ -1384,6 +1384,31 @@ where
 		self.inner.last_key_value()
 	}
 
+	/// Allocate a `RangeBoundsMap` and move the given (`RangeBounds`,
+	/// `Value`) entries from the slice into the map using
+	/// [`RangeBoundsMap::insert_strict()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`RangeBoundsMap::insert_strict()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if any of the given `RangeBounds` is an invalid
+	/// `RangeBounds`. See [`Invalid
+	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	///
+	/// let map = RangeBoundsMap::from_slice_strict([
+	/// 	(1..4, false),
+	/// 	(4..8, true),
+	/// 	(8..100, false),
+	/// ])
+	/// .unwrap();
+	/// ```
 	pub fn from_slice_strict<const N: usize>(
 		slice: [(K, V); N],
 	) -> Result<RangeBoundsMap<I, K, V>, OverlapError> {
