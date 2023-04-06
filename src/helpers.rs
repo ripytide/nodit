@@ -204,26 +204,6 @@ where
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
 
-pub(crate) fn this_touches_that<I, A, B>(a: A, b: B) -> bool
-where
-	A: NiceRange<I>,
-	B: NiceRange<I>,
-	I: Ord,
-{
-	match config(a, b) {
-		Config::LeftFirstNonOverlapping => match (a.end(), b.start()) {
-			(Bound::Included(end), Bound::Excluded(start)) if end == start => {
-				true
-			}
-			(Bound::Excluded(end), Bound::Included(start)) if end == start => {
-				true
-			}
-			_ => false,
-		},
-		_ => false,
-	}
-}
-
 pub(crate) fn flip_bound<I>(bound: Bound<I>) -> Bound<I> {
 	match bound {
 		Bound::Included(point) => Bound::Excluded(point),

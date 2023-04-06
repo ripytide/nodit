@@ -35,9 +35,9 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! map.insert_strict(0..5, true);
 //! map.insert_strict(5..10, false);
 //!
-//! assert_eq!(map.overlaps(&(-2..12)), true);
-//! assert_eq!(map.contains_point(&20), false);
-//! assert_eq!(map.contains_point(&5), true);
+//! assert_eq!(map.overlaps(-2..12), true);
+//! assert_eq!(map.contains_point(20), false);
+//! assert_eq!(map.contains_point(5), true);
 //! ```
 //!
 //! ## Example using a custom [`RangeBounds`] type
@@ -47,7 +47,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! use range_bounds_map::RangeBoundsMap;
 //!
-//! #[derive(Debug)]
+//! #[derive(Debug, Copy, Clone)]
 //! enum Reservation {
 //! 	// Start, End (Inclusive-Inclusive)
 //! 	Finite(u8, u8),
@@ -82,7 +82,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! ])
 //! .unwrap();
 //!
-//! for (reservation, name) in reservation_map.overlapping(&(16..17))
+//! for (reservation, name) in reservation_map.overlapping(16..17)
 //! {
 //! 	println!(
 //! 		"{name} has reserved {reservation:?} inside the range 16..17"
@@ -94,7 +94,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! }
 //!
 //! assert_eq!(
-//! 	reservation_map.overlaps(&Reservation::Infinite(0)),
+//! 	reservation_map.overlaps(Reservation::Infinite(0)),
 //! 	true
 //! );
 //! ```
@@ -227,11 +227,12 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 #![allow(clippy::needless_return)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
+
 pub(crate) mod bound_ord;
 pub(crate) mod helpers;
+pub mod test_ranges;
 
 pub mod range_bounds_map;
-pub mod delete_me;
 //pub mod range_bounds_set;
 pub mod try_from_bounds;
 

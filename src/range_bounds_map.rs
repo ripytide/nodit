@@ -34,7 +34,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::bound_ord::BoundOrd;
 use crate::helpers::{
 	cmp_range_with_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
-	this_touches_that,
 };
 use crate::TryFromBounds;
 
@@ -51,6 +50,7 @@ use crate::TryFromBounds;
 ///
 /// # Examples
 /// ```
+/// use range_bounds_map::test_ranges::ie;
 /// use range_bounds_map::RangeBoundsMap;
 ///
 /// // Make a map of ranges to booleans
@@ -62,9 +62,9 @@ use crate::TryFromBounds;
 /// .unwrap();
 ///
 /// // Change a value in the map
-/// *map.get_at_point_mut(&(7)).unwrap() = true;
+/// *map.get_at_point_mut(7).unwrap() = true;
 ///
-/// if map.contains_point(&99) {
+/// if map.contains_point(99) {
 /// 	println!("Map contains value at 99 :)");
 /// }
 ///
@@ -80,11 +80,12 @@ use crate::TryFromBounds;
 /// use ordered_float::NotNan;
 /// use range_bounds_map::RangeBoundsMap;
 ///
-/// // An Exclusive-Exclusive range of [`f32`]s not provided by any
-/// // std::ops ranges
+/// // An Exclusive-Exclusive range of [`f32`]s is not provided by any
+/// // std::ops ranges.
+///
 /// // We use [`ordered_float::NotNan`]s as the inner type must be Ord
-/// // similar to a normal [`BTreeMap`]
-/// #[derive(Debug, PartialEq)]
+/// // similar to a normal [`BTreeMap`].
+/// #[derive(Debug, Copy, Clone, PartialEq)]
 /// struct ExEx {
 /// 	start: NotNan<f32>,
 /// 	end: NotNan<f32>,
@@ -114,16 +115,13 @@ use crate::TryFromBounds;
 /// map.insert_strict(ExEx::new(0.0, 5.0), 8).unwrap();
 /// map.insert_strict(ExEx::new(5.0, 7.5), 32).unwrap();
 ///
-/// assert_eq!(map.contains_point(&NotNan::new(5.0).unwrap()), false);
+/// assert_eq!(map.contains_point(NotNan::new(5.0).unwrap()), false);
 ///
-/// assert_eq!(map.get_at_point(&NotNan::new(9.0).unwrap()), None);
-/// assert_eq!(
-/// 	map.get_at_point(&NotNan::new(7.0).unwrap()),
-/// 	Some(&32)
-/// );
+/// assert_eq!(map.get_at_point(NotNan::new(9.0).unwrap()), None);
+/// assert_eq!(map.get_at_point(NotNan::new(7.0).unwrap()), Some(32));
 ///
 /// assert_eq!(
-/// 	map.get_entry_at_point(&NotNan::new(2.0).unwrap()),
+/// 	map.get_entry_at_point(NotNan::new(2.0).unwrap()),
 /// 	Some((&ExEx::new(0.0, 5.0), &8))
 /// );
 /// ```
@@ -153,7 +151,7 @@ pub struct OverlapError;
 /// The first way you may recieve [`TryFromBoundsError`] is from
 /// [`RangeBoundsMap::cut()`].
 ///
-/// In this example we try to cut `4..=6` out of a `RangeBoundsMap`
+/// In this example we try to cut `ii(4, 6)` out of a `RangeBoundsMap`
 /// that contains `ie(2, 8)`. If this was successful then the
 /// `RangeBoundsMap` would hold `ie(2, 4)` and `(Bound::Exclusive(6),
 /// Bound::Exclusive(8))`. However, since the `RangeBounds` type of
@@ -163,13 +161,14 @@ pub struct OverlapError;
 /// return Err(TryFromBoundsError).
 ///
 /// ```
+/// use range_bounds_map::test_ranges::{ie, ii};
 /// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 ///
 /// let mut map =
 /// 	RangeBoundsMap::from_slice_strict([(ie(2, 8), true)])
 /// 		.unwrap();
 ///
-/// assert!(map.cut(&(4..=6)).is_err());
+/// assert!(map.cut(ii(4, 6)).is_err());
 /// ```
 ///
 /// # Example with `insert_merge_*` functions.
@@ -202,7 +201,7 @@ pub struct OverlapError;
 /// 	TryFromBoundsError,
 /// };
 ///
-/// #[derive(Debug, PartialEq)]
+/// #[derive(Debug, Copy, Clone, PartialEq)]
 /// enum MultiBounds {
 /// 	Inclusive(u8, u8),
 /// 	Exclusive(u8, u8),
@@ -235,15 +234,15 @@ pub struct OverlapError;
 /// 	fn try_from_bounds(
 /// 		start_bound: Bound<u8>,
 /// 		end_bound: Bound<u8>,
-/// 	) -> Option<Self> {
+/// 	) -> Result<Self, TryFromBoundsError> {
 /// 		match (start_bound, end_bound) {
 /// 			(Bound::Included(start), Bound::Included(end)) => {
-/// 				Some(MultiBounds::Inclusive(start, end))
+/// 				Ok(MultiBounds::Inclusive(start, end))
 /// 			}
 /// 			(Bound::Excluded(start), Bound::Excluded(end)) => {
-/// 				Some(MultiBounds::Exclusive(start, end))
+/// 				Ok(MultiBounds::Exclusive(start, end))
 /// 			}
-/// 			_ => None,
+/// 			_ => Err(TryFromBoundsError),
 /// 		}
 /// 	}
 /// }
@@ -278,7 +277,7 @@ pub enum OverlapOrTryFromBoundsError {
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
 	I: Ord + Copy,
-	K: NiceRange<I> + TryFromBounds<I>,
+	K: NiceRange<I>,
 {
 	/// Makes a new, empty `RangeBoundsMap`.
 	///
@@ -286,9 +285,10 @@ where
 	/// ```
 	/// use std::ops::Range;
 	///
+	/// use range_bounds_map::test_ranges::TestBounds;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
-	/// let map: RangeBoundsMap<u8, Range<u8>, bool> =
+	/// let map: RangeBoundsMap<u8, TestBounds, bool> =
 	/// 	RangeBoundsMap::new();
 	/// ```
 	pub fn new() -> Self {
@@ -302,6 +302,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map = RangeBoundsMap::new();
@@ -319,6 +320,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map = RangeBoundsMap::new();
@@ -343,16 +345,17 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::{ie, ii};
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map = RangeBoundsMap::new();
 	///
 	/// map.insert_strict(ie(5, 10), false);
 	///
-	/// assert_eq!(map.overlaps(&(1..=3)), false);
+	/// assert_eq!(map.overlaps(ii(1, 3)), false);
 	/// assert_eq!(map.overlaps(ie(4, 5)), false);
 	///
-	/// assert_eq!(map.overlaps(&(4..=5)), true);
+	/// assert_eq!(map.overlaps(ii(4, 5)), true);
 	/// assert_eq!(map.overlaps(ie(4, 6)), true);
 	/// ```
 	pub fn overlaps<Q>(&self, range: Q) -> bool
@@ -375,6 +378,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
@@ -388,7 +392,7 @@ where
 	///
 	/// assert_eq!(
 	/// 	overlapping.collect::<Vec<_>>(),
-	/// 	[(ie(1, 4), &false), (ie(4, 8), &true)]
+	/// 	[(&ie(1, 4), &false), (&ie(4, 8), &true)]
 	/// );
 	/// ```
 	pub fn overlapping<Q>(
@@ -414,6 +418,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
@@ -423,9 +428,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.get_at_point(&3), Some(&false));
-	/// assert_eq!(map.get_at_point(&4), Some(&true));
-	/// assert_eq!(map.get_at_point(&101), None);
+	/// assert_eq!(map.get_at_point(3), Some(&false));
+	/// assert_eq!(map.get_at_point(4), Some(&true));
+	/// assert_eq!(map.get_at_point(101), None);
 	/// ```
 	pub fn get_at_point(&self, point: I) -> Option<&V> {
 		self.get_entry_at_point(point).map(|(key, value)| value)
@@ -436,6 +441,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
@@ -445,9 +451,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.contains_point(&3), true);
-	/// assert_eq!(map.contains_point(&4), true);
-	/// assert_eq!(map.contains_point(&101), false);
+	/// assert_eq!(map.contains_point(3), true);
+	/// assert_eq!(map.contains_point(4), true);
+	/// assert_eq!(map.contains_point(101), false);
 	/// ```
 	pub fn contains_point(&self, point: I) -> bool {
 		self.get_entry_at_point(point).is_some()
@@ -458,17 +464,17 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
-	///
 	/// let mut map =
 	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
 	/// 		.unwrap();
 	///
-	/// if let Some(x) = map.get_at_point_mut(&2) {
+	/// if let Some(x) = map.get_at_point_mut(2) {
 	/// 	*x = true;
 	/// }
 	///
-	/// assert_eq!(map.get_at_point(&1), Some(&true));
+	/// assert_eq!(map.get_at_point(1), Some(&true));
 	/// ```
 	pub fn get_at_point_mut(&mut self, point: I) -> Option<&mut V> {
 		self.inner
@@ -480,6 +486,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
@@ -489,9 +496,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.get_entry_at_point(&3), Some((ie(1, 4), &false)));
-	/// assert_eq!(map.get_entry_at_point(&4), Some((ie(4, 8), &true)));
-	/// assert_eq!(map.get_entry_at_point(&101), None);
+	/// assert_eq!(map.get_entry_at_point(3), Some((&ie(1, 4), &false)));
+	/// assert_eq!(map.get_entry_at_point(4), Some((&ie(4, 8), &true)));
+	/// assert_eq!(map.get_entry_at_point(101), None);
 	/// ```
 	pub fn get_entry_at_point(&self, point: I) -> Option<(&K, &V)> {
 		self.inner
@@ -503,6 +510,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
@@ -514,9 +522,9 @@ where
 	///
 	/// let mut iter = map.iter();
 	///
-	/// assert_eq!(iter.next(), Some((ie(1, 4), &false)));
-	/// assert_eq!(iter.next(), Some((ie(4, 8), &true)));
-	/// assert_eq!(iter.next(), Some((ie(8, 0), &false)));
+	/// assert_eq!(iter.next(), Some((&ie(1, 4), &false)));
+	/// assert_eq!(iter.next(), Some((&ie(4, 8), &true)));
+	/// assert_eq!(iter.next(), Some((&ie(8, 0), &false)));
 	/// assert_eq!(iter.next(), None);
 	/// ```
 	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
@@ -536,6 +544,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -552,7 +561,10 @@ where
 	/// 	[(ie(1, 4), false), (ie(4, 8), true)]
 	/// );
 	///
-	/// assert_eq!(map.iter().collect::<Vec<_>>(), [(ie(8, 0), &false)]);
+	/// assert_eq!(
+	/// 	map.iter().collect::<Vec<_>>(),
+	/// 	[(&(ie(8, 100)), &false)]
+	/// );
 	/// ```
 	pub fn remove_overlapping<'a, Q>(
 		&'a mut self,
@@ -594,6 +606,7 @@ where
 	/// ```
 	/// use std::ops::Bound;
 	///
+	/// use range_bounds_map::test_ranges::{ie, ii};
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
 	/// let mut base = RangeBoundsMap::from_slice_strict([
@@ -618,7 +631,7 @@ where
 	/// 	]
 	/// );
 	/// assert_eq!(base, after_cut);
-	/// assert!(base.cut(&(60..=80)).is_err());
+	/// assert!(base.cut(ii(60, 80)).is_err());
 	/// ```
 	pub fn cut<'a, Q>(
 		&'a mut self,
@@ -629,6 +642,7 @@ where
 	>
 	where
 		Q: NiceRange<I> + 'a,
+		K: TryFromBounds<I>,
 		V: Clone,
 	{
 		let start_comp = overlapping_start_comp(range.start());
@@ -655,6 +669,7 @@ where
 	>
 	where
 		Q: NiceRange<I>,
+		K: TryFromBounds<I>,
 		V: Clone,
 	{
 		let cut_result = cut_range(single_overlapping_range, range);
@@ -692,6 +707,7 @@ where
 	>
 	where
 		Q: NiceRange<I> + 'a,
+		K: TryFromBounds<I>,
 		V: Clone,
 	{
 		let before_config = match left_overlapping {
@@ -781,6 +797,7 @@ where
 	/// ```
 	/// use std::ops::Bound;
 	///
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
@@ -790,14 +807,14 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut gaps = map.gaps(&(2..));
+	/// let mut gaps = map.gaps(2..);
 	///
 	/// assert_eq!(
 	/// 	gaps.collect::<Vec<_>>(),
 	/// 	[
-	/// 		(Bound::Included(&3), Bound::Excluded(&5)),
-	/// 		(Bound::Included(&7), Bound::Excluded(&9)),
-	/// 		(Bound::Included(&100), Bound::Unbounded)
+	/// 		(Bound::Included(3), Bound::Excluded(5)),
+	/// 		(Bound::Included(7), Bound::Excluded(9)),
+	/// 		(Bound::Included(100), Bound::Unbounded)
 	/// 	]
 	/// );
 	/// ```
@@ -865,6 +882,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
@@ -902,6 +920,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{OverlapError, RangeBoundsMap};
 	///
 	/// let mut map = RangeBoundsMap::new();
@@ -937,6 +956,7 @@ where
 		remove_end: R2,
 	) -> Result<K, TryFromBoundsError>
 	where
+		K: TryFromBounds<I>,
 		G1: FnOnce(&Self) -> Option<&K>,
 		G2: FnOnce(&Self) -> Option<&K>,
 		R1: FnOnce(&mut Self),
@@ -994,6 +1014,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
 	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
 	/// };
@@ -1022,14 +1043,17 @@ where
 	///
 	/// assert_eq!(
 	/// 	map.iter().collect::<Vec<_>>(),
-	/// 	[(ie(1, 6), &true), (ie(0, 6), &false)]
+	/// 	[(&ie(1, 6), &true), (&ie(10, 6), &false)]
 	/// );
 	/// ```
 	pub fn insert_merge_touching(
 		&mut self,
 		range: K,
 		value: V,
-	) -> Result<K, OverlapOrTryFromBoundsError> {
+	) -> Result<K, OverlapOrTryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+	{
 		if self.overlaps(range) {
 			return Err(OverlapOrTryFromBoundsError::Overlap(OverlapError));
 		}
@@ -1082,6 +1106,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map =
@@ -1108,14 +1133,18 @@ where
 	///
 	/// assert_eq!(
 	/// 	map.iter().collect::<Vec<_>>(),
-	/// 	[(ie(-4, 1), &true), (ie(1, 8), &true), (ie(0, 6), &false)]
+	/// 	[
+	/// 		(&ie(-4, 1), &true),
+	/// 		(&ie(1, 8), &true),
+	/// 		(&ie(0, 6), &false)
+	/// 	]
 	/// );
 	/// ```
 	pub fn insert_merge_overlapping(
 		&mut self,
 		range: K,
 		value: V,
-	) -> Result<K, TryFromBoundsError> {
+	) -> Result<K, TryFromBoundsError> where K: TryFromBounds<I>{
 		self.insert_merge_with_comps(
 			range,
 			value,
@@ -1159,6 +1188,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map =
@@ -1185,14 +1215,14 @@ where
 	///
 	/// assert_eq!(
 	/// 	map.iter().collect::<Vec<_>>(),
-	/// 	[(ie(-4, 8), &true), (ie(0, 6), &false)]
+	/// 	[(&ie(-4, 8), &true), (&ie(0, 6), &false)]
 	/// );
 	/// ```
 	pub fn insert_merge_touching_or_overlapping(
 		&mut self,
 		range: K,
 		value: V,
-	) -> Result<K, TryFromBoundsError> {
+	) -> Result<K, TryFromBoundsError> where K: TryFromBounds<I>{
 		self.insert_merge_with_comps(
 			range,
 			value,
@@ -1246,6 +1276,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let mut map =
@@ -1256,7 +1287,11 @@ where
 	///
 	/// assert_eq!(
 	/// 	map.iter().collect::<Vec<_>>(),
-	/// 	[(ie(2, 4), &false), (ie(4, 6), &true), (ie(6, 8), &false)]
+	/// 	[
+	/// 		(&ie(2, 4), &false),
+	/// 		(&ie(4, 6), &true),
+	/// 		(&ie(6, 8), &false)
+	/// 	]
 	/// );
 	/// ```
 	pub fn insert_overwrite(
@@ -1265,6 +1300,7 @@ where
 		value: V,
 	) -> Result<(), TryFromBoundsError>
 	where
+        K: TryFromBounds<I>,
 		V: Clone,
 	{
 		let _ = self.cut(range)?;
@@ -1278,6 +1314,7 @@ where
 	///
 	/// # Examples
 	/// ```
+	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
@@ -1287,7 +1324,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.first_entry(), Some((ie(1, 4), &false)));
+	/// assert_eq!(map.first_entry(), Some((&ie(1, 4), &false)));
 	/// ```
 	pub fn first_entry(&self) -> Option<(&K, &V)> {
 		self.inner.first_key_value()
@@ -1299,6 +1336,7 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::test_ranges::ie;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -1309,7 +1347,7 @@ where
 	///
 	/// assert_eq!(
 	/// 	map.last_entry(),
-	/// 	Some((ie(8, 0), &false))
+	/// 	Some((&ie(8, 0), &false))
 	/// );
 	pub fn last_entry(&self) -> Option<(&K, &V)> {
 		self.inner.last_key_value()
@@ -1437,8 +1475,7 @@ mod tests {
 	use super::*;
 	use crate::bound_ord::BoundOrd;
 	use crate::helpers::{config, Config, CutResult};
-
-	type TestBounds = (Bound<u8>, Bound<u8>);
+	use crate::test_ranges::{ee, ei, ie, ii, iu, u, ue, ui, uu, TestBounds};
 
 	//only every other number to allow mathematical_overlapping_definition
 	//to test between bounds in finite using smaller intervalled finite
@@ -2400,36 +2437,5 @@ mod tests {
 			false => Bound::Included(x),
 			true => Bound::Excluded(x),
 		}
-	}
-
-	fn uu() -> TestBounds {
-		(Bound::Unbounded, Bound::Unbounded)
-	}
-	fn ui(x: u8) -> TestBounds {
-		(Bound::Unbounded, Bound::Included(x))
-	}
-	fn ue(x: u8) -> TestBounds {
-		(Bound::Unbounded, Bound::Excluded(x))
-	}
-	fn iu(x: u8) -> TestBounds {
-		(Bound::Included(x), Bound::Unbounded)
-	}
-	//fn eu(x: u8) -> TestBounds {
-	//(Bound::Excluded(x), Bound::Unbounded)
-	//}
-	fn ii(x1: u8, x2: u8) -> TestBounds {
-		(Bound::Included(x1), Bound::Included(x2))
-	}
-	fn ie(x1: u8, x2: u8) -> TestBounds {
-		(Bound::Included(x1), Bound::Excluded(x2))
-	}
-	fn ei(x1: u8, x2: u8) -> TestBounds {
-		(Bound::Excluded(x1), Bound::Included(x2))
-	}
-	fn ee(x1: u8, x2: u8) -> TestBounds {
-		(Bound::Excluded(x1), Bound::Excluded(x2))
-	}
-	fn u() -> Bound<u8> {
-		Bound::Unbounded
 	}
 }
