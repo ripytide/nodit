@@ -164,7 +164,7 @@ pub struct OverlapError;
 /// return Err(TryFromBoundsError).
 ///
 /// ```
-/// use range_bounds_map::test_ranges::{ii, ie_strict};
+/// use range_bounds_map::test_ranges::{ie_strict, ii};
 /// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 ///
 /// let mut map =
@@ -177,16 +177,16 @@ pub struct OverlapError;
 /// # Example with `insert_merge_*` functions.
 ///
 /// The second and final way you may recieve a [`TryFromBoundsError`]
-/// is via coalescing methods such as
+/// is via merging methods such as
 /// [`RangeBoundsMap::insert_merge_touching`].
 ///
 /// In the first example it was fairly easy to create an invalid
 /// `RangeBounds` by cutting with a different `RangeBounds` than the
 /// underlying `RangeBoundsMap`'s `RangeBounds` type. However, the
-/// `insert_merge_*` functions all take `range_bounds: K` as an
+/// `insert_merge_*` functions all take `range: K` as an
 /// argument so it is not possible to create an invalid `K` type
-/// directly. However upon "coalescing" of two `RangeBounds` (even if
-/// both of them are type `K`), you can create a `RangeBounds` that *cannot* be
+/// directly. However upon "merging" of two ranges (even if
+/// both of them are type `K`), you can create a range that *cannot* be
 /// of type `K`.
 ///
 /// In this example we use a `RangeBounds` type that can be either
@@ -341,7 +341,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -374,7 +374,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -544,7 +544,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -604,7 +604,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -613,7 +613,7 @@ where
 	/// ```
 	/// use std::ops::Bound;
 	///
-	/// use range_bounds_map::test_ranges::{ie, ii, ie_strict};
+	/// use range_bounds_map::test_ranges::{ie, ie_strict, ii};
 	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
 	///
 	/// let mut base = RangeBoundsMap::from_slice_strict([
@@ -787,7 +787,7 @@ where
 
 	/// Returns an iterator of `(Bound<&I>, Bound<&I>)` over all the
 	/// maximally-sized gaps in the map that are also within the given
-	/// `outer_range_bounds`.
+	/// `outer_range`.
 	///
 	/// To get all possible gaps call `gaps()` with an unbounded
 	/// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
@@ -795,7 +795,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `outer_range_bounds` is an invalid
+	/// Panics if the given `outer_range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -837,12 +837,12 @@ where
 			.overlapping(outer_range)
 			.map(|(key, _)| (key.start(), key.end()));
 
-		// If the start or end point of outer_range_bounds is not
+		// If the start or end point of outer_range is not
 		// contained within a RangeBounds in the map then we need to
 		// generate a artificial RangeBounds to use instead.
 		//
 		// We also have to flip the artificial ones ahead of time as
-		// we actually want the range_bounds endpoints included
+		// we actually want the range endpoints included
 		// not excluded unlike with other bounds in artificials
 
 		let artificial_start = (
@@ -882,7 +882,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -899,16 +899,16 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.contains_range_bounds(ie(1, 3)), true);
-	/// assert_eq!(map.contains_range_bounds(ie(2, 6)), false);
-	/// assert_eq!(map.contains_range_bounds(ie(6, 100)), true);
+	/// assert_eq!(map.contains_range(ie(1, 3)), true);
+	/// assert_eq!(map.contains_range(ie(2, 6)), false);
+	/// assert_eq!(map.contains_range(ie(6, 100)), true);
 	/// ```
-	pub fn contains_range_bounds<Q>(&self, range_bounds: Q) -> bool
+	pub fn contains_range<Q>(&self, range: Q) -> bool
 	where
 		Q: NiceRange<I>,
 	{
 		// Soooo clean and mathematical 🥰!
-		self.gaps(range_bounds).next().is_none()
+		self.gaps(range).next().is_none()
 	}
 
 	/// Adds a new (`RangeBounds`, `Value`) entry to the map without
@@ -920,7 +920,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -1014,7 +1014,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -1106,7 +1106,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -1191,7 +1191,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -1282,7 +1282,7 @@ where
 	///
 	/// # Panics
 	///
-	/// Panics if the given `range_bounds` is an invalid
+	/// Panics if the given `range` is an invalid
 	/// `RangeBounds`. See [`Invalid
 	/// RangeBounds`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
 	/// for more details.
@@ -1872,11 +1872,11 @@ mod tests {
 	}
 	fn assert_gaps<const N: usize>(
 		map: RangeBoundsMap<i8, TestBounds, bool>,
-		outer_range_bounds: TestBounds,
+		outer_range: TestBounds,
 		result: [TestBounds; N],
 	) {
 		assert_eq!(
-			map.gaps(outer_range_bounds)
+			map.gaps(outer_range)
 				.map(|(start, end)| (start, end))
 				.collect::<Vec<_>>(),
 			result
@@ -2257,17 +2257,16 @@ mod tests {
 
 	#[test]
 	fn overlaps_tests() {
-		for range_bounds1 in all_valid_test_bounds() {
-			for range_bounds2 in all_valid_test_bounds() {
-				let our_answer = overlaps(range_bounds1, range_bounds2);
+		for range1 in all_valid_test_bounds() {
+			for range2 in all_valid_test_bounds() {
+				let our_answer = overlaps(range1, range2);
 
-				let mathematical_definition_of_overlap =
-					NUMBERS_DOMAIN.iter().any(|x| {
-						range_bounds1.contains(x) && range_bounds2.contains(x)
-					});
+				let mathematical_definition_of_overlap = NUMBERS_DOMAIN
+					.iter()
+					.any(|x| range1.contains(x) && range2.contains(x));
 
 				if our_answer != mathematical_definition_of_overlap {
-					dbg!(range_bounds1, range_bounds2);
+					dbg!(range1, range2);
 					dbg!(mathematical_definition_of_overlap, our_answer);
 					panic!("Discrepency in overlaps() detected!");
 				}
@@ -2356,30 +2355,6 @@ mod tests {
 			assert!(is_valid_range(x));
 		}
 	}
-
-	//todo delete me
-	//#[test]
-	//fn touches_tests() {
-	//for range_bounds1 in all_valid_test_bounds() {
-	//for range_bounds2 in all_valid_test_bounds() {
-	//let our_answer = touches(range_bounds1, range_bounds2);
-
-	//let mathematical_definition_of_touches =
-	//NUMBERS_DOMAIN.iter().tuple_windows().any(|(x1, x2)| {
-	//(range_bounds1.contains(x1)
-	//&& !range_bounds1.contains(x2)
-	//&& range_bounds2.contains(x2)
-	//&& !range_bounds2.contains(x1))
-	//|| (range_bounds1.contains(x2)
-	//&& !range_bounds1.contains(x1) && range_bounds2
-	//.contains(x1) && !range_bounds2.contains(x2))
-	//});
-
-	//if our_answer != mathematical_definition_of_touches {
-	//dbg!(range_bounds1, range_bounds2);
-	//dbg!(mathematical_definition_of_touches, our_answer);
-	//panic!("Discrepency in touches() detected!");
-	//}
 
 	// Test Helper Functions
 	//======================

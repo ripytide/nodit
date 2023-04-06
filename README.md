@@ -185,8 +185,8 @@ topic area:
   Allows overlapping intervals but is immutable unfortunately
 - <https://docs.rs/nonoverlapping_interval_tree>
   Very similar to rangemap except without a `gaps()` function and only
-  for [`Range`]s and not [`RangeInclusive`]s. And also no fancy coalescing
-  functions.
+  for [`Range`]s and not [`RangeInclusive`]s. And also no fancy
+  merging functions.
 - <https://docs.rs/unbounded-interval-tree>
   A data structure based off of a 2007 published paper! It supports any
   RangeBounds as keys too, except it is implemented with a non-balancing

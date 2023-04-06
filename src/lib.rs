@@ -28,8 +28,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! ## Example using [`Range`]s
 //!
 //! ```rust
-//! use range_bounds_map::RangeBoundsMap;
 //! use range_bounds_map::test_ranges::ie;
+//! use range_bounds_map::RangeBoundsMap;
 //!
 //! let mut map = RangeBoundsMap::new();
 //!
@@ -46,8 +46,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! ```rust
 //! use std::ops::{Bound, RangeBounds};
 //!
-//! use range_bounds_map::RangeBoundsMap;
 //! use range_bounds_map::test_ranges::ie;
+//! use range_bounds_map::RangeBoundsMap;
 //!
 //! #[derive(Debug, Copy, Clone)]
 //! enum Reservation {
@@ -195,8 +195,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!   Allows overlapping intervals but is immutable unfortunately
 //! - <https://docs.rs/nonoverlapping_interval_tree>
 //!   Very similar to rangemap except without a `gaps()` function and only
-//!   for [`Range`]s and not [`RangeInclusive`]s. And also no fancy coalescing
-//!   functions.
+//!   for [`Range`]s and not [`RangeInclusive`]s. And also no fancy
+//!   merging functions.
 //! - <https://docs.rs/unbounded-interval-tree>
 //!   A data structure based off of a 2007 published paper! It supports any
 //!   RangeBounds as keys too, except it is implemented with a non-balancing
