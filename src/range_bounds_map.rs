@@ -543,9 +543,9 @@ where
 	///
 	/// # Panics
 	///
-    /// Panics if the given range is an invalid range. See [`Invalid
-    /// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
-    /// for more details.
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#Invalid-RangeBounds)
+	/// for more details.
 	///
 	/// # Examples
 	/// ```
@@ -791,9 +791,8 @@ where
 	/// Returns an iterator of ranges over all the maximally-sized
 	/// gaps in the map that are also within the given `outer_range`.
 	///
-	/// To get all possible gaps call `gaps()` with an unbounded
-	/// `RangeBounds` such as `&(..)` or `&(Bound::Unbounded,
-	/// Bound::Unbounded)`.
+	/// To get all possible gaps call `gaps()` with an unbounded range
+	/// such as `(Bound::Unbounded, Bound::Unbounded)`.
 	///
 	/// # Panics
 	///
