@@ -25,7 +25,7 @@ use crate::{
 /// See [`RangeBoundsMap`] for more details.
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RangeBoundsSet<I, K> {
 	inner: RangeBoundsMap<I, K, ()>,
 }
@@ -65,6 +65,10 @@ where
 		Q: NiceRange<I>,
 	{
 		self.inner.overlapping(range).map(first)
+	}
+	/// See [`RangeBoundsMap::get_at_point()`] for more details.
+	pub fn get_at_point(&self, point: I) -> Option<K> {
+		self.inner.get_entry_at_point(point).map(first).copied()
 	}
 	/// See [`RangeBoundsMap::contains_point()`] for more details.
 	pub fn contains_point(&self, point: I) -> bool {
