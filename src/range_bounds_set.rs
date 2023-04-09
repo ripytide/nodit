@@ -25,6 +25,7 @@ use crate::{
 /// See [`RangeBoundsMap`] for more details.
 ///
 /// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
+#[derive(Debug, Clone, PartialEq)]
 pub struct RangeBoundsSet<I, K> {
 	inner: RangeBoundsMap<I, K, ()>,
 }
