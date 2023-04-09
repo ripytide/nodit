@@ -217,7 +217,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`rangeboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.RangeBoundsSet.html
 //! [`copse`]: https://github.com/eggyal/copse
 
-#![feature(is_some_and)]
 #![feature(let_chains)]
 #![feature(btree_cursors)]
 #![allow(clippy::tabs_in_doc_comments)]
