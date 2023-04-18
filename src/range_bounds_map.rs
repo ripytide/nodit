@@ -731,10 +731,16 @@ where
 		let start_comp = overlapping_start_comp(range.start());
 		let end_comp = overlapping_end_comp(range.end());
 
-		let left_overlapping =
-			self.inner.get_key_value(start_comp).map(|(key, _)| *key);
-		let right_overlapping =
-			self.inner.get_key_value(end_comp).map(|(key, _)| *key);
+		let left_overlapping = self
+			.inner
+			.get_key_value(start_comp)
+			.map(|(key, _)| key)
+			.copied();
+		let right_overlapping = self
+			.inner
+			.get_key_value(end_comp)
+			.map(|(key, _)| key)
+			.copied();
 
 		if let Some(left) = left_overlapping && let Some(right) = right_overlapping && left.start() == right.start() {
             Ok(Either::Left(self.cut_single_overlapping(range, left)?))
@@ -1044,15 +1050,15 @@ where
 	) -> Result<K, TryFromBoundsError>
 	where
 		K: TryFromBounds<I>,
-		G1: FnOnce(&Self) -> Option<&K>,
-		G2: FnOnce(&Self) -> Option<&K>,
-		R1: FnOnce(&mut Self),
-		R2: FnOnce(&mut Self),
+		G1: FnOnce(&Self, &V) -> Option<K>,
+		G2: FnOnce(&Self, &V) -> Option<K>,
+		R1: FnOnce(&mut Self, &V),
+		R2: FnOnce(&mut Self, &V),
 	{
 		invalid_range_panic(range);
 
-		let matching_start = get_start(self);
-		let matching_end = get_end(self);
+		let matching_start = get_start(self, &value);
+		let matching_end = get_end(self, &value);
 
 		let returning = match (matching_start, matching_end) {
 			(Some(matching_start), Some(matching_end)) => {
@@ -1069,8 +1075,8 @@ where
 
 		let _ = self.remove_overlapping(range);
 
-		remove_start(self);
-		remove_end(self);
+		remove_start(self, &value);
+		remove_end(self, &value);
 
 		self.insert_unchecked(returning, value);
 
@@ -1152,23 +1158,146 @@ where
 		self.insert_merge_with_comps(
 			range,
 			value,
-			|selfy| {
+			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(touching_start_comp(range.start()))
 					.map(|(key, _)| key)
+					.copied()
 			},
-			|selfy| {
+			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(touching_end_comp(range.end()))
 					.map(|(key, _)| key)
+					.copied()
 			},
-			|selfy| {
+			|selfy, _| {
 				selfy.inner.remove(touching_start_comp(range.start()));
 			},
-			|selfy| {
+			|selfy, _| {
 				selfy.inner.remove(touching_end_comp(range.end()));
+			},
+		)
+		.map_err(OverlapOrTryFromBoundsError::TryFromBounds)
+	}
+
+	/// Adds a new entry to the map and merges into other ranges in
+	/// the map which touch it.
+	///
+	/// The value of the merged-together range is set to the value given for
+	/// this insertion.
+	///
+	/// If successful then the newly inserted (possibly merged) range is
+	/// returned.
+	///
+	/// If the given range overlaps one or more ranges already in the
+	/// map, then an [`OverlapError`] is returned and the map is not
+	/// updated.
+	///
+	/// If the range merges with one or two touching ranges and the
+	/// merged-together range cannot be created with the
+	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// returned.
+	///
+	/// # Panics
+	///
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use range_bounds_map::test_ranges::ie;
+	/// use range_bounds_map::{
+	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
+	/// };
+	///
+	/// let mut map =
+	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
+	/// 		.unwrap();
+	///
+	/// // Touching
+	/// assert_eq!(
+	/// 	map.insert_merge_touching(ie(4, 6), true),
+	/// 	Ok(ie(1, 6))
+	/// );
+	///
+	/// // Overlapping
+	/// assert_eq!(
+	/// 	map.insert_merge_touching(ie(4, 8), false),
+	/// 	Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+	/// );
+	///
+	/// // Neither Touching or Overlapping
+	/// assert_eq!(
+	/// 	map.insert_merge_touching(ie(10, 16), false),
+	/// 	Ok(ie(10, 16))
+	/// );
+	///
+	/// assert_eq!(
+	/// 	map.into_iter().collect::<Vec<_>>(),
+	/// 	[(ie(1, 6), true), (ie(10, 16), false)]
+	/// );
+	/// ```
+	pub fn insert_merge_touching_if_value_equal(
+		&mut self,
+		range: K,
+		value: V,
+	) -> Result<K, OverlapOrTryFromBoundsError>
+	where
+		K: TryFromBounds<I>,
+		V: Eq,
+	{
+		invalid_range_panic(range);
+
+		if self.overlaps(range) {
+			return Err(OverlapOrTryFromBoundsError::Overlap(OverlapError));
+		}
+
+		let get_start = |selfy: &Self, value: &V| {
+			selfy
+				.inner
+				.get_key_value(touching_start_comp(range.start()))
+				.filter(|(_, start_touching_value)| {
+					if *start_touching_value == value {
+						true
+					} else {
+						false
+					}
+				})
+				.map(|(key, _)| key)
+				.copied()
+		};
+		let get_end = |selfy: &Self, value: &V| {
+			selfy
+				.inner
+				.get_key_value(touching_end_comp(range.end()))
+				.filter(|(_, start_touching_value)| {
+					if *start_touching_value == value {
+						true
+					} else {
+						false
+					}
+				})
+				.map(|(key, _)| key)
+				.copied()
+		};
+
+		self.insert_merge_with_comps(
+			range,
+			value,
+			get_start,
+			get_end,
+			|selfy, value| {
+				if get_start(selfy, value).is_some() {
+					selfy.inner.remove(touching_start_comp(range.start()));
+				}
+			},
+			|selfy, value| {
+				if get_end(selfy, value).is_some() {
+					selfy.inner.remove(touching_end_comp(range.end()));
+				}
 			},
 		)
 		.map_err(OverlapOrTryFromBoundsError::TryFromBounds)
@@ -1238,20 +1367,22 @@ where
 		self.insert_merge_with_comps(
 			range,
 			value,
-			|selfy| {
+			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(overlapping_start_comp(range.start()))
 					.map(|(key, _)| key)
+					.copied()
 			},
-			|selfy| {
+			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(overlapping_end_comp(range.end()))
 					.map(|(key, _)| key)
+					.copied()
 			},
-			|_selfy| {},
-			|_selfy| {},
+			|_, _| {},
+			|_, _| {},
 		)
 	}
 
@@ -1319,7 +1450,7 @@ where
 		self.insert_merge_with_comps(
 			range,
 			value,
-			|selfy| {
+			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(touching_start_comp(range.start()))
@@ -1328,8 +1459,9 @@ where
 						.inner
 						.get_key_value(overlapping_start_comp(range.start()))
 						.map(|(key, _)| key))
+					.copied()
 			},
-			|selfy| {
+			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(touching_end_comp(range.end()))
@@ -1338,11 +1470,12 @@ where
 						.inner
 						.get_key_value(overlapping_end_comp(range.end()))
 						.map(|(key, _)| key))
+					.copied()
 			},
-			|selfy| {
+			|selfy, _| {
 				selfy.inner.remove(touching_start_comp(range.start()));
 			},
-			|selfy| {
+			|selfy, _| {
 				selfy.inner.remove(touching_end_comp(range.end()));
 			},
 		)
