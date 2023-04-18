@@ -2362,6 +2362,132 @@ mod tests {
 			None => assert_eq!(before, clone),
 		}
 	}
+	#[test]
+	fn insert_merge_touching_if_values_equal_tests() {
+		assert_insert_merge_touching_if_values_equal(
+			basic(),
+			(ii(0, 4), false),
+			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			None::<[_; 0]>,
+		);
+		assert_insert_merge_touching_if_values_equal(
+			basic(),
+			(ee(7, 10), false),
+			Ok(ie(7, 10)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ie(7, 10), false),
+				(ie(14, 16), true),
+			]),
+		);
+		assert_insert_merge_touching_if_values_equal(
+			basic(),
+			(ee(7, 11), true),
+			Ok(ee(7, 11)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ee(7, 11), true),
+				(ie(14, 16), true),
+			]),
+		);
+		assert_insert_merge_touching_if_values_equal(
+			basic(),
+			(ee(12, 13), true),
+			Ok(ee(12, 13)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ee(12, 13), true),
+				(ie(14, 16), true),
+			]),
+		);
+		assert_insert_merge_touching_if_values_equal(
+			basic(),
+			(ee(13, 14), true),
+			Ok(ee(13, 16)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ee(13, 16), true),
+			]),
+		);
+		assert_insert_merge_touching_if_values_equal(
+			basic(),
+			(ee(7, 14), false),
+			Ok(ie(7, 14)),
+			Some([
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ie(7, 14), false),
+				(ie(14, 16), true),
+			]),
+		);
+
+		assert_insert_merge_touching_if_values_equal(
+			special(),
+			(mee(6, 7), true),
+			Ok(mee(6, 7)),
+			Some([
+				(mii(4, 6), false),
+				(mee(6, 7), true),
+				(mee(7, 8), true),
+				(mii(8, 12), false),
+			]),
+		);
+		assert_insert_merge_touching_if_values_equal(
+			special(),
+			(mii(6, 7), true),
+			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			None::<[_; 0]>,
+		);
+		assert_insert_merge_touching_if_values_equal(
+			special(),
+			(mee(12, 15), false),
+			Err(OverlapOrTryFromBoundsError::TryFromBounds(
+				TryFromBoundsError,
+			)),
+			None::<[_; 0]>,
+		);
+		assert_insert_merge_touching_if_values_equal(
+			special(),
+			(mii(12, 15), true),
+			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			None::<[_; 0]>,
+		);
+	}
+	fn assert_insert_merge_touching_if_values_equal<const N: usize, I, K, V>(
+		mut before: RangeBoundsMap<I, K, V>,
+		to_insert: (K, V),
+		result: Result<K, OverlapOrTryFromBoundsError>,
+		after: Option<[(K, V); N]>,
+	) where
+		I: Ord + Debug + Copy,
+		K: NiceRange<I> + TryFromBounds<I> + PartialEq + Debug,
+		V: Eq + Debug + Clone,
+	{
+		let clone = before.clone();
+		assert_eq!(
+			before.insert_merge_touching_if_values_equal(
+				to_insert.0,
+				to_insert.1
+			),
+			result
+		);
+		match after {
+			Some(after) => {
+				assert_eq!(
+					before,
+					RangeBoundsMap::from_slice_strict(after).unwrap()
+				)
+			}
+			None => assert_eq!(before, clone),
+		}
+	}
 
 	#[test]
 	fn insert_merge_overlapping_tests() {
