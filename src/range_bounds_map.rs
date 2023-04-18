@@ -1262,11 +1262,7 @@ where
 				.inner
 				.get_key_value(touching_start_comp(range.start()))
 				.filter(|(_, start_touching_value)| {
-					if *start_touching_value == value {
-						true
-					} else {
-						false
-					}
+					*start_touching_value == value
 				})
 				.map(|(key, _)| key)
 				.copied()
@@ -1276,11 +1272,7 @@ where
 				.inner
 				.get_key_value(touching_end_comp(range.end()))
 				.filter(|(_, start_touching_value)| {
-					if *start_touching_value == value {
-						true
-					} else {
-						false
-					}
+					*start_touching_value == value
 				})
 				.map(|(key, _)| key)
 				.copied()
