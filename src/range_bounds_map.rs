@@ -1114,14 +1114,16 @@ where
 	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
 	/// };
 	///
-	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
-	/// 		.unwrap();
+	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// 	(ie(1, 4), false),
+	/// 	(ie(6, 8), true),
+	/// ])
+	/// .unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
 	/// 	map.insert_merge_touching(ie(4, 6), true),
-	/// 	Ok(ie(1, 6))
+	/// 	Ok(ie(1, 8))
 	/// );
 	///
 	/// // Overlapping
@@ -1138,7 +1140,7 @@ where
 	///
 	/// assert_eq!(
 	/// 	map.into_iter().collect::<Vec<_>>(),
-	/// 	[(ie(1, 6), true), (ie(10, 16), false)]
+	/// 	[(ie(1, 8), true), (ie(10, 16), false)]
 	/// );
 	/// ```
 	pub fn insert_merge_touching(
@@ -1183,10 +1185,8 @@ where
 	}
 
 	/// Adds a new entry to the map and merges into other ranges in
-	/// the map which touch it.
-	///
-	/// The value of the merged-together range is set to the value given for
-	/// this insertion.
+	/// the map which touch it if the touching ranges' values are
+	/// equal to the value being inserted.
 	///
 	/// If successful then the newly inserted (possibly merged) range is
 	/// returned.
@@ -1213,34 +1213,36 @@ where
 	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
 	/// };
 	///
-	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
-	/// 		.unwrap();
+	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// 	(ie(1, 4), false),
+	/// 	(ie(6, 8), true),
+	/// ])
+	/// .unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	map.insert_merge_touching(ie(4, 6), true),
-	/// 	Ok(ie(1, 6))
+	/// 	map.insert_merge_touching_if_values_equal(ie(4, 6), true),
+	/// 	Ok(ie(4, 8))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	map.insert_merge_touching(ie(4, 8), false),
+	/// 	map.insert_merge_touching_if_values_equal(ie(4, 8), false),
 	/// 	Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
-	/// 	map.insert_merge_touching(ie(10, 16), false),
+	/// 	map.insert_merge_touching_if_values_equal(ie(10, 16), false),
 	/// 	Ok(ie(10, 16))
 	/// );
 	///
 	/// assert_eq!(
 	/// 	map.into_iter().collect::<Vec<_>>(),
-	/// 	[(ie(1, 6), true), (ie(10, 16), false)]
+	/// 	[(ie(1, 4), false), (ie(4, 8), true), (ie(10, 16), false)]
 	/// );
 	/// ```
-	pub fn insert_merge_touching_if_value_equal(
+	pub fn insert_merge_touching_if_values_equal(
 		&mut self,
 		range: K,
 		value: V,
@@ -1325,22 +1327,26 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::{
+	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
+	/// };
 	///
-	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
-	/// 		.unwrap();
+	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// 	(ie(1, 4), false),
+	/// 	(ie(6, 8), true),
+	/// ])
+	/// .unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	map.insert_merge_overlapping(ie(-4, 1), true),
-	/// 	Ok(ie(-4, 1))
+	/// 	map.insert_merge_overlapping(ie(4, 6), true),
+	/// 	Ok(ie(4, 6))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	map.insert_merge_overlapping(ie(2, 8), true),
-	/// 	Ok(ie(1, 8))
+	/// 	map.insert_merge_overlapping(ie(4, 8), false),
+	/// 	Ok(ie(4, 8))
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -1351,7 +1357,7 @@ where
 	///
 	/// assert_eq!(
 	/// 	map.into_iter().collect::<Vec<_>>(),
-	/// 	[(ie(-4, 1), true), (ie(1, 8), true), (ie(10, 16), false)]
+	/// 	[(ie(1, 4), false), (ie(4, 8), false), (ie(10, 16), false)]
 	/// );
 	/// ```
 	pub fn insert_merge_overlapping(
@@ -1408,22 +1414,26 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::{
+	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
+	/// };
 	///
-	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
-	/// 		.unwrap();
+	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// 	(ie(1, 4), false),
+	/// 	(ie(6, 8), true),
+	/// ])
+	/// .unwrap();
 	///
 	/// // Touching
 	/// assert_eq!(
-	/// 	map.insert_merge_touching_or_overlapping(ie(-4, 1), true),
-	/// 	Ok(ie(-4, 4))
+	/// 	map.insert_merge_touching_or_overlapping(ie(4, 6), true),
+	/// 	Ok(ie(1, 8))
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
-	/// 	map.insert_merge_touching_or_overlapping(ie(2, 8), true),
-	/// 	Ok(ie(-4, 8))
+	/// 	map.insert_merge_touching_or_overlapping(ie(4, 8), false),
+	/// 	Ok(ie(1, 8))
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -1434,7 +1444,7 @@ where
 	///
 	/// assert_eq!(
 	/// 	map.into_iter().collect::<Vec<_>>(),
-	/// 	[(ie(-4, 8), true), (ie(10, 16), false)]
+	/// 	[(ie(1, 8), false), (ie(10, 16), false)]
 	/// );
 	/// ```
 	pub fn insert_merge_touching_or_overlapping(
