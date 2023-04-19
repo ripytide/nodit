@@ -66,7 +66,7 @@ where
 	{
 		self.inner.overlapping(range).map(first)
 	}
-	/// See [`RangeBoundsMap::get_at_point()`] for more details.
+	/// See [`RangeBoundsMap::get_entry_at_point()`] for more details.
 	pub fn get_at_point(&self, point: I) -> Result<K, (Bound<I>, Bound<I>)> {
 		self.inner.get_entry_at_point(point).map(first).copied()
 	}
