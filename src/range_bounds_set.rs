@@ -106,7 +106,7 @@ where
 	pub fn gaps<'a, Q>(
 		&'a self,
 		range: Q,
-	) -> impl Iterator<Item = (Bound<I>, Bound<I>)> + '_
+	) -> impl DoubleEndedIterator<Item = (Bound<I>, Bound<I>)> + '_
 	where
 		Q: NiceRange<I> + 'a,
 	{

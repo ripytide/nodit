@@ -1,6 +1,6 @@
 [package]
 name = "range_bounds_map"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
