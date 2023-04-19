@@ -28,7 +28,6 @@ use btree_monstrousity::btree_map::{
 };
 use btree_monstrousity::BTreeMap;
 use either::Either;
-use itertools::Itertools;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -942,12 +941,12 @@ where
 	/// 	]
 	/// );
 	/// ```
-	pub fn gaps<'a, Q>(
-		&'a self,
+	pub fn gaps<Q>(
+		&self,
 		outer_range: Q,
-	) -> impl Iterator<Item = (Bound<I>, Bound<I>)> + '_
+	) -> impl DoubleEndedIterator<Item = (Bound<I>, Bound<I>)>
 	where
-		Q: NiceRange<I> + 'a,
+		Q: NiceRange<I>,
 	{
 		invalid_range_panic(outer_range);
 
@@ -989,11 +988,16 @@ where
 		}
 
 		return artificials
-			.tuple_windows()
-			.map(|((_, first_end), (second_start, _))| {
-				(flip_bound(first_end), flip_bound(second_start))
-			})
-			.filter(|range| is_valid_range(*range));
+			//optimisation find an implementation of windows()
+			//somewhere that supports DoubleEndedIterator, I couldn't
+			//find one at the time of writing
+			.collect::<Vec<_>>()
+			.windows(2)
+			.map(|windows| (flip_bound(windows[0].1), flip_bound(windows[1].0)))
+			.filter(|range| is_valid_range(*range))
+			//optimisation this would also then be unneccessary
+			.collect::<Vec<_>>()
+			.into_iter();
 	}
 
 	/// Returns `true` if the map covers every point in the given
