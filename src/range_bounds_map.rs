@@ -129,7 +129,7 @@ use crate::TryFromBounds;
 ///
 /// assert_eq!(
 /// 	map.get_entry_at_point(NotNan::new(2.0).unwrap()),
-/// 	Some((&ExEx::new(0.0, 5.0), &8))
+/// 	Ok((&ExEx::new(0.0, 5.0), &8))
 /// );
 /// ```
 ///
@@ -488,7 +488,7 @@ where
 	/// assert_eq!(map.get_at_point(101), None);
 	/// ```
 	pub fn get_at_point(&self, point: I) -> Option<&V> {
-		self.get_entry_at_point(point).map(|(_, value)| value)
+		self.get_entry_at_point(point).map(|(_, value)| value).ok()
 	}
 
 	/// Returns a mutable reference to the value corresponding to the
@@ -533,31 +533,65 @@ where
 	/// assert_eq!(map.contains_point(101), false);
 	/// ```
 	pub fn contains_point(&self, point: I) -> bool {
-		self.get_entry_at_point(point).is_some()
+		self.get_entry_at_point(point).is_ok()
 	}
 
 	/// Returns the entry corresponding to the range that
 	/// overlaps the given point, if any.
 	///
+	/// If there is no range that overlaps the given point the
+	/// maximally-sized gap at the given point is returned.
+	///
 	/// # Examples
 	/// ```
+	/// use std::ops::Bound;
+	///
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
-	/// 	(ie(4, 8), true),
+	/// 	(ie(4, 6), true),
 	/// 	(ie(8, 100), false),
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.get_entry_at_point(3), Some((&ie(1, 4), &false)));
-	/// assert_eq!(map.get_entry_at_point(4), Some((&ie(4, 8), &true)));
-	/// assert_eq!(map.get_entry_at_point(101), None);
+	/// assert_eq!(map.get_entry_at_point(3), Ok((&ie(1, 4), &false)));
+	/// assert_eq!(map.get_entry_at_point(5), Ok((&ie(4, 6), &true)));
+	/// assert_eq!(
+	/// 	map.get_entry_at_point(7),
+	/// 	Err((Bound::Included(6), Bound::Excluded(8)))
+	/// );
+	/// assert_eq!(
+	/// 	map.get_entry_at_point(101),
+	/// 	Err((Bound::Included(100), Bound::Unbounded))
+	/// );
 	/// ```
-	pub fn get_entry_at_point(&self, point: I) -> Option<(&K, &V)> {
+	pub fn get_entry_at_point(
+		&self,
+		point: I,
+	) -> Result<(&K, &V), (Bound<I>, Bound<I>)> {
 		self.inner
 			.get_key_value(overlapping_start_comp(Bound::Included(point)))
+			.ok_or_else(|| {
+				let lower = self.inner.upper_bound(
+					overlapping_start_comp(Bound::Included(point)),
+					SearchBoundCustom::Included,
+				);
+				let upper = self.inner.lower_bound(
+					overlapping_end_comp(Bound::Included(point)),
+					SearchBoundCustom::Included,
+				);
+
+				(
+					lower.key().map_or(Bound::Unbounded, |lower| {
+						flip_bound(lower.end())
+					}),
+					upper.key().map_or(Bound::Unbounded, |upper| {
+						flip_bound(upper.start())
+					}),
+				)
+			})
 	}
 
 	/// Returns an iterator over every entry in the map in ascending
