@@ -9,8 +9,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::discrete_bounds::DiscreteBounds;
 use crate::range_bounds_map::{IntoIter as RangeBoundsMapIntoIter, DiscreteRange};
 use crate::{
-	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
-	TryFromBoundsError,
+	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
+	TryFromDiscreteBoundsError,
 };
 
 /// An ordered set of non-overlapping ranges based on [`RangeBoundsMap`].
@@ -95,7 +95,7 @@ where
 		range: Q,
 	) -> Result<
 		impl Iterator<Item = (Bound<I>, Bound<I>)> + '_,
-		TryFromBoundsError,
+		TryFromDiscreteBoundsError,
 	>
 	where
 		Q: DiscreteRange<I> + 'a,
@@ -128,7 +128,7 @@ where
 	pub fn insert_merge_touching(
 		&mut self,
 		range: K,
-	) -> Result<K, OverlapOrTryFromBoundsError>
+	) -> Result<K, OverlapOrTryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
 	{
@@ -138,7 +138,7 @@ where
 	pub fn insert_merge_overlapping(
 		&mut self,
 		range: K,
-	) -> Result<K, TryFromBoundsError>
+	) -> Result<K, TryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
 	{
@@ -148,7 +148,7 @@ where
 	pub fn insert_merge_touching_or_overlapping(
 		&mut self,
 		range: K,
-	) -> Result<K, TryFromBoundsError>
+	) -> Result<K, TryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
 	{
@@ -158,7 +158,7 @@ where
 	pub fn insert_overwrite(
 		&mut self,
 		range: K,
-	) -> Result<(), TryFromBoundsError>
+	) -> Result<(), TryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
 	{

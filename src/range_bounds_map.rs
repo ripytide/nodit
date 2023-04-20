@@ -151,7 +151,7 @@ pub struct OverlapError;
 ///
 /// # Example with [`RangeBoundsMap::cut()`]
 ///
-/// The first way you may recieve [`TryFromBoundsError`] is from
+/// The first way you may recieve [`TryFromDiscreteBoundsError`] is from
 /// [`RangeBoundsMap::cut()`].
 ///
 /// In this example we try to cut `ii(4, 6)` out of a `RangeBoundsMap`
@@ -161,11 +161,11 @@ pub struct OverlapError;
 /// this `RangeBoundsMap` is `Range<{integer}>` the latter of the two
 /// new `RangeBounds` is "unrepresentable", and hence will fail to be
 /// created via [`TryFromBounds`] and [`RangeBoundsMap::cut()`] will
-/// return Err(TryFromBoundsError).
+/// return Err(TryFromDiscreteBoundsError).
 ///
 /// ```
 /// use range_bounds_map::test_ranges::{ie_strict, ii};
-/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteBoundsError};
 ///
 /// let mut map =
 /// 	RangeBoundsMap::from_slice_strict([(ie_strict(2, 8), true)])
@@ -176,7 +176,7 @@ pub struct OverlapError;
 ///
 /// # Example with `insert_merge_*` functions.
 ///
-/// The second and final way you may recieve a [`TryFromBoundsError`]
+/// The second and final way you may recieve a [`TryFromDiscreteBoundsError`]
 /// is via merging methods such as
 /// [`RangeBoundsMap::insert_merge_touching`].
 ///
@@ -200,8 +200,8 @@ pub struct OverlapError;
 /// use std::ops::{Bound, RangeBounds};
 ///
 /// use range_bounds_map::{
-/// 	OverlapOrTryFromBoundsError, RangeBoundsMap, TryFromBounds,
-/// 	TryFromBoundsError,
+/// 	OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap, TryFromBounds,
+/// 	TryFromDiscreteBoundsError,
 /// };
 ///
 /// #[derive(Debug, Copy, Clone, PartialEq)]
@@ -237,7 +237,7 @@ pub struct OverlapError;
 /// 	fn try_from_bounds(
 /// 		start_bound: Bound<i8>,
 /// 		end_bound: Bound<i8>,
-/// 	) -> Result<Self, TryFromBoundsError> {
+/// 	) -> Result<Self, TryFromDiscreteBoundsError> {
 /// 		match (start_bound, end_bound) {
 /// 			(Bound::Included(start), Bound::Included(end)) => {
 /// 				Ok(MultiBounds::Inclusive(start, end))
@@ -245,7 +245,7 @@ pub struct OverlapError;
 /// 			(Bound::Excluded(start), Bound::Excluded(end)) => {
 /// 				Ok(MultiBounds::Exclusive(start, end))
 /// 			}
-/// 			_ => Err(TryFromBoundsError),
+/// 			_ => Err(TryFromDiscreteBoundsError),
 /// 		}
 /// 	}
 /// }
@@ -261,20 +261,20 @@ pub struct OverlapError;
 /// 		MultiBounds::Exclusive(4, 6),
 /// 		false
 /// 	),
-/// 	Err(OverlapOrTryFromBoundsError::TryFromBounds(
-/// 		TryFromBoundsError
+/// 	Err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds(
+/// 		TryFromDiscreteBoundsError
 /// 	))
 /// );
 /// ```
 #[derive(PartialEq, Debug)]
-pub struct TryFromBoundsError;
+pub struct TryFromDiscreteBoundsError;
 
 /// An error type to represent either an [`OverlapError`] or a
-/// [`TryFromBoundsError`].
+/// [`TryFromDiscreteBoundsError`].
 #[derive(PartialEq, Debug)]
-pub enum OverlapOrTryFromBoundsError {
+pub enum OverlapOrTryFromDiscreteBoundsError {
 	Overlap(OverlapError),
-	TryFromBounds(TryFromBoundsError),
+	TryFromBounds(TryFromDiscreteBoundsError),
 }
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
@@ -685,7 +685,7 @@ where
 	///
 	/// If the remaining ranges left in the map after the cut would
 	/// not be able be created with the [`TryFromBounds`] trait then a
-	/// [`TryFromBoundsError`] will be returned and the map will not
+	/// [`TryFromDiscreteBoundsError`] will be returned and the map will not
 	/// be cut at all.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
@@ -704,7 +704,7 @@ where
 	/// use std::ops::Bound;
 	///
 	/// use range_bounds_map::test_ranges::{ie, ie_strict, ii};
-	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteBoundsError};
 	///
 	/// let mut base = RangeBoundsMap::from_slice_strict([
 	/// 	(ie_strict(1, 4), false),
@@ -733,11 +733,11 @@ where
 	pub fn cut<'a, Q>(
 		&'a mut self,
 		range: Q,
-	) -> Result<impl Iterator<Item = (DiscreteBounds<I>, V)> + '_, TryFromBoundsError>
+	) -> Result<impl Iterator<Item = (DiscreteBounds<I>, V)> + '_, TryFromDiscreteBoundsError>
 	where
 		Q: DiscreteRange<I> + Copy + 'a,
 		K: TryFrom<DiscreteBounds<I>>,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -766,11 +766,11 @@ where
 		&mut self,
 		range: Q,
 		single_overlapping_range: K,
-	) -> Result<impl Iterator<Item = (DiscreteBounds<I>, V)>, TryFromBoundsError>
+	) -> Result<impl Iterator<Item = (DiscreteBounds<I>, V)>, TryFromDiscreteBoundsError>
 	where
 		Q: DiscreteRange<I> + Copy,
 		K: TryFrom<DiscreteBounds<I>>,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -801,11 +801,11 @@ where
 		range: Q,
 		left_overlapping: Option<K>,
 		right_overlapping: Option<K>,
-	) -> Result<impl Iterator<Item = (DiscreteBounds<I>, V)> + '_, TryFromBoundsError>
+	) -> Result<impl Iterator<Item = (DiscreteBounds<I>, V)> + '_, TryFromDiscreteBoundsError>
 	where
 		Q: DiscreteRange<I> + Copy + 'a,
 		K: TryFrom<DiscreteBounds<I>>,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -1043,10 +1043,10 @@ where
 		get_end: G2,
 		remove_start: R1,
 		remove_end: R2,
-	) -> Result<K, TryFromBoundsError>
+	) -> Result<K, TryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		G1: FnOnce(&Self, &V) -> Option<K>,
 		G2: FnOnce(&Self, &V) -> Option<K>,
 		R1: FnOnce(&mut Self, &V),
@@ -1098,7 +1098,7 @@ where
 	///
 	/// If the range merges with one or two touching ranges and the
 	/// merged-together range cannot be created with the
-	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// [`TryFromBounds`] trait then a [`TryFromDiscreteBoundsError`] will be
 	/// returned.
 	///
 	/// # Panics
@@ -1111,7 +1111,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
+	/// 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1129,7 +1129,7 @@ where
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching(ie(4, 8), false),
-	/// 	Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+	/// 	Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -1147,15 +1147,15 @@ where
 		&mut self,
 		range: K,
 		value: V,
-	) -> Result<K, OverlapOrTryFromBoundsError>
+	) -> Result<K, OverlapOrTryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 	{
 		invalid_range_panic(range);
 
 		if self.overlaps(range) {
-			return Err(OverlapOrTryFromBoundsError::Overlap(OverlapError));
+			return Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError));
 		}
 
 		self.insert_merge_with_comps(
@@ -1182,7 +1182,7 @@ where
 				selfy.inner.remove(touching_end_comp(range.end()));
 			},
 		)
-		.map_err(OverlapOrTryFromBoundsError::TryFromBounds)
+		.map_err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds)
 	}
 
 	/// Adds a new entry to the map and merges into other ranges in
@@ -1198,7 +1198,7 @@ where
 	///
 	/// If the range merges with one or two touching ranges and the
 	/// merged-together range cannot be created with the
-	/// [`TryFromBounds`] trait then a [`TryFromBoundsError`] will be
+	/// [`TryFromBounds`] trait then a [`TryFromDiscreteBoundsError`] will be
 	/// returned.
 	///
 	/// # Panics
@@ -1211,7 +1211,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
+	/// 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1229,7 +1229,7 @@ where
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching_if_values_equal(ie(4, 8), false),
-	/// 	Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+	/// 	Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -1247,16 +1247,16 @@ where
 		&mut self,
 		range: K,
 		value: V,
-	) -> Result<K, OverlapOrTryFromBoundsError>
+	) -> Result<K, OverlapOrTryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		V: Eq,
 	{
 		invalid_range_panic(range);
 
 		if self.overlaps(range) {
-			return Err(OverlapOrTryFromBoundsError::Overlap(OverlapError));
+			return Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError));
 		}
 
 		let get_start = |selfy: &Self, value: &V| {
@@ -1292,7 +1292,7 @@ where
 				}
 			},
 		)
-		.map_err(OverlapOrTryFromBoundsError::TryFromBounds)
+		.map_err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds)
 	}
 
 	/// Adds a new entry to the map and merges into other ranges in
@@ -1306,7 +1306,7 @@ where
 	///
 	/// If the range merges other ranges and the merged-together range
 	/// cannot be created with the [`TryFromBounds`] trait then a
-	/// [`TryFromBoundsError`] will be returned.
+	/// [`TryFromDiscreteBoundsError`] will be returned.
 	///
 	/// # Panics
 	///
@@ -1318,7 +1318,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
+	/// 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1350,10 +1350,10 @@ where
 	/// 	[(ie(1, 4), false), (ie(4, 8), false), (ie(10, 16), false)]
 	/// );
 	/// ```
-	pub fn insert_merge_overlapping(&mut self, range: K, value: V) -> Result<K, TryFromBoundsError>
+	pub fn insert_merge_overlapping(&mut self, range: K, value: V) -> Result<K, TryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 	{
 		invalid_range_panic(range);
 
@@ -1390,7 +1390,7 @@ where
 	///
 	/// If the range merges other ranges and the merged-together range
 	/// cannot be created with the [`TryFromBounds`] trait then a
-	/// [`TryFromBoundsError`] will be returned.
+	/// [`TryFromDiscreteBoundsError`] will be returned.
 	///
 	/// # Panics
 	///
@@ -1402,7 +1402,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
+	/// 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1438,10 +1438,10 @@ where
 		&mut self,
 		range: K,
 		value: V,
-	) -> Result<K, TryFromBoundsError>
+	) -> Result<K, TryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 	{
 		invalid_range_panic(range);
 
@@ -1488,7 +1488,7 @@ where
 	///
 	/// If the remaining ranges left after the cut are not able to be
 	/// created with the [`TryFromBounds`] trait then a
-	/// [`TryFromBoundsError`] will be returned.
+	/// [`TryFromDiscreteBoundsError`] will be returned.
 	///
 	/// # Panics
 	///
@@ -1512,10 +1512,10 @@ where
 	/// 	[(ie(2, 4), false), (ie(4, 6), true), (ie(6, 8), false)]
 	/// );
 	/// ```
-	pub fn insert_overwrite(&mut self, range: K, value: V) -> Result<(), TryFromBoundsError>
+	pub fn insert_overwrite(&mut self, range: K, value: V) -> Result<(), TryFromDiscreteBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -1584,7 +1584,7 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{RangeBoundsMap, TryFromBoundsError};
+	/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteBoundsError};
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -2086,13 +2086,13 @@ mod tests {
 		assert_cut(
 			special(),
 			mii(5, 6),
-			Err::<[_; 0], _>(TryFromBoundsError),
+			Err::<[_; 0], _>(TryFromDiscreteBoundsError),
 			None::<[_; 0]>,
 		);
 		assert_cut(
 			special(),
 			mii(6, 7),
-			Err::<[_; 0], _>(TryFromBoundsError),
+			Err::<[_; 0], _>(TryFromDiscreteBoundsError),
 			None::<[_; 0]>,
 		);
 		assert_cut(
@@ -2104,7 +2104,7 @@ mod tests {
 		assert_cut(
 			special(),
 			mii(7, 10),
-			Err::<[_; 0], _>(TryFromBoundsError),
+			Err::<[_; 0], _>(TryFromDiscreteBoundsError),
 			None::<[_; 0]>,
 		);
 		assert_cut(
@@ -2123,12 +2123,12 @@ mod tests {
 	fn assert_cut<const N: usize, const Y: usize, Q, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
 		to_cut: Q,
-		result: Result<[(DiscreteBounds<I>, V); Y], TryFromBoundsError>,
+		result: Result<[(DiscreteBounds<I>, V); Y], TryFromDiscreteBoundsError>,
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy + Stepable,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug + Copy,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		Q: DiscreteRange<I> + Copy,
 		V: PartialEq + Debug + Clone,
 	{
@@ -2180,7 +2180,7 @@ mod tests {
 		assert_insert_merge_touching(
 			basic(),
 			(ii(0, 4), false),
-			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching(
@@ -2238,41 +2238,41 @@ mod tests {
 		assert_insert_merge_touching(
 			special(),
 			(mee(6, 7), true),
-			Err(OverlapOrTryFromBoundsError::TryFromBounds(
-				TryFromBoundsError,
+			Err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds(
+				TryFromDiscreteBoundsError,
 			)),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching(
 			special(),
 			(mii(6, 7), true),
-			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching(
 			special(),
 			(mee(12, 15), true),
-			Err(OverlapOrTryFromBoundsError::TryFromBounds(
-				TryFromBoundsError,
+			Err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds(
+				TryFromDiscreteBoundsError,
 			)),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching(
 			special(),
 			(mii(12, 15), true),
-			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
 	}
 	fn assert_insert_merge_touching<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
 		to_insert: (K, V),
-		result: Result<K, OverlapOrTryFromBoundsError>,
+		result: Result<K, OverlapOrTryFromDiscreteBoundsError>,
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy + Stepable,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug + Copy,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2292,7 +2292,7 @@ mod tests {
 		assert_insert_merge_touching_if_values_equal(
 			basic(),
 			(ii(0, 4), false),
-			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching_if_values_equal(
@@ -2367,33 +2367,33 @@ mod tests {
 		assert_insert_merge_touching_if_values_equal(
 			special(),
 			(mii(6, 7), true),
-			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching_if_values_equal(
 			special(),
 			(mee(12, 15), false),
-			Err(OverlapOrTryFromBoundsError::TryFromBounds(
-				TryFromBoundsError,
+			Err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds(
+				TryFromDiscreteBoundsError,
 			)),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching_if_values_equal(
 			special(),
 			(mii(12, 15), true),
-			Err(OverlapOrTryFromBoundsError::Overlap(OverlapError)),
+			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
 			None::<[_; 0]>,
 		);
 	}
 	fn assert_insert_merge_touching_if_values_equal<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
 		to_insert: (K, V),
-		result: Result<K, OverlapOrTryFromBoundsError>,
+		result: Result<K, OverlapOrTryFromDiscreteBoundsError>,
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy + Stepable,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug + Copy,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		V: Eq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2461,7 +2461,7 @@ mod tests {
 		assert_insert_merge_overlapping(
 			special(),
 			(mee(10, 18), true),
-			Err(TryFromBoundsError),
+			Err(TryFromDiscreteBoundsError),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_overlapping(
@@ -2486,12 +2486,12 @@ mod tests {
 	fn assert_insert_merge_overlapping<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
 		to_insert: (K, V),
-		result: Result<K, TryFromBoundsError>,
+		result: Result<K, TryFromDiscreteBoundsError>,
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy + Stepable,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug + Copy,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2580,7 +2580,7 @@ mod tests {
 		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mee(10, 18), true),
-			Err(TryFromBoundsError),
+			Err(TryFromDiscreteBoundsError),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching_or_overlapping(
@@ -2592,7 +2592,7 @@ mod tests {
 		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mee(7, 8), false),
-			Err(TryFromBoundsError),
+			Err(TryFromDiscreteBoundsError),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching_or_overlapping(
@@ -2605,25 +2605,25 @@ mod tests {
 		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mee(6, 7), true),
-			Err(TryFromBoundsError),
+			Err(TryFromDiscreteBoundsError),
 			None::<[_; 0]>,
 		);
 		assert_insert_merge_touching_or_overlapping(
 			special(),
 			(mee(12, 15), true),
-			Err(TryFromBoundsError),
+			Err(TryFromDiscreteBoundsError),
 			None::<[_; 0]>,
 		);
 	}
 	fn assert_insert_merge_touching_or_overlapping<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
 		to_insert: (K, V),
-		result: Result<K, TryFromBoundsError>,
+		result: Result<K, TryFromDiscreteBoundsError>,
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy + Stepable,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
-		TryFromBoundsError: From<K::Error>,
+		TryFromDiscreteBoundsError: From<K::Error>,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
