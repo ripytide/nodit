@@ -59,8 +59,8 @@ where
 	match a.start() < b.start() {
 		true => {
 			match (
-				contains_bound_ord(a, DiscreteBoundOrd::start(b.start())),
-				contains_bound_ord(a, DiscreteBoundOrd::end(b.end())),
+				contains_bound_ord(a, b.start()),
+				contains_bound_ord(a, b.end()),
 			) {
 				(false, false) => Config::LeftFirstNonOverlapping,
 				(true, false) => Config::LeftFirstPartialOverlap,
@@ -70,8 +70,8 @@ where
 		}
 		false => {
 			match (
-				contains_bound_ord(b, DiscreteBoundOrd::start(a.start())),
-				contains_bound_ord(b, DiscreteBoundOrd::end(a.end())),
+				contains_bound_ord(b, a.start()),
+				contains_bound_ord(b, a.end()),
 			) {
 				(false, false) => Config::RightFirstNonOverlapping,
 				(true, false) => Config::RightFirstPartialOverlap,
@@ -83,9 +83,9 @@ where
 }
 
 enum SortedConfig<I> {
-	NonOverlapping((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
-	PartialOverlap((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
-	Swallowed((Bound<I>, Bound<I>), (Bound<I>, Bound<I>)),
+	NonOverlapping((DiscreteBoundOrd<I>, DiscreteBoundOrd<I>), (DiscreteBoundOrd<I>, DiscreteBoundOrd<I>)),
+	PartialOverlap((DiscreteBoundOrd<I>, DiscreteBoundOrd<I>), (DiscreteBoundOrd<I>, DiscreteBoundOrd<I>)),
+	Swallowed((DiscreteBoundOrd<I>, DiscreteBoundOrd<I>), (DiscreteBoundOrd<I>, DiscreteBoundOrd<I>)),
 }
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where

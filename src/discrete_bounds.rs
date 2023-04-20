@@ -17,6 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::ops::Bound;
+
+use crate::stepable::Stepable;
+
 pub struct DiscreteBounds<I> {
 	start: DiscreteBound<I>,
 	end: DiscreteBound<I>,
@@ -25,4 +29,24 @@ pub struct DiscreteBounds<I> {
 pub enum DiscreteBound<I> {
 	Included(I),
 	Unbounded,
+}
+
+impl<I> DiscreteBound<I>
+where
+	I: Stepable,
+{
+	pub fn start(bound: Bound<I>) -> Self {
+		match bound {
+			Bound::Included(x) => DiscreteBound::Included(x),
+			Bound::Excluded(x) => DiscreteBound::Included(x.up().unwrap()),
+			Bound::Unbounded => DiscreteBound::Unbounded,
+		}
+	}
+	pub fn end(bound: Bound<I>) -> Self {
+		match bound {
+			Bound::Included(x) => DiscreteBound::Included(x),
+			Bound::Excluded(x) => DiscreteBound::Included(x.down().unwrap()),
+			Bound::Unbounded => DiscreteBound::Unbounded,
+		}
+	}
 }

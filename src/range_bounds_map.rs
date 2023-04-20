@@ -33,7 +33,7 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::DiscreteBoundOrd;
-use crate::discrete_bounds::DiscreteBounds;
+use crate::discrete_bounds::{DiscreteBound, DiscreteBounds};
 use crate::stepable::Stepable;
 use crate::utils::{
 	cmp_range_with_discrete_bound_ord, cut_range, flip_bound, is_valid_range,
@@ -1759,7 +1759,7 @@ where
 /// A simple helper trait to make my implemtation nicer, if you
 /// already implement RangeBounds and Copy on your type then this will
 /// also be implemted.
-pub trait DiscreteRange<I>: Copy {
+pub trait DiscreteRange<I> {
 	fn start(&self) -> DiscreteBoundOrd<I>;
 	fn end(&self) -> DiscreteBoundOrd<I>;
 }
@@ -1768,11 +1768,13 @@ where
 	I: Copy + Stepable,
 	K: RangeBounds<I> + Copy,
 {
-	fn start(&self) -> Bound<I> {
-		self.start_bound().cloned()
+	fn start(&self) -> DiscreteBoundOrd<I> {
+		DiscreteBoundOrd::start(DiscreteBound::start(
+			self.start_bound().cloned(),
+		))
 	}
-	fn end(&self) -> Bound<I> {
-		self.end_bound().cloned()
+	fn end(&self) -> DiscreteBoundOrd<I> {
+		DiscreteBoundOrd::end(DiscreteBound::end(self.end_bound().cloned()))
 	}
 }
 
