@@ -17,15 +17,18 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::ops::Bound;
+use std::ops::{Bound, RangeBounds};
 
+use crate::bound_ord::DiscreteBoundOrd;
 use crate::stepable::Stepable;
 
+#[derive(Debug, Clone, Copy)]
 pub struct DiscreteBounds<I> {
 	start: DiscreteBound<I>,
 	end: DiscreteBound<I>,
 }
 
+#[derive(Debug, Copy, Clone)]
 pub enum DiscreteBound<I> {
 	Included(I),
 	Unbounded,
@@ -47,6 +50,44 @@ where
 			Bound::Included(x) => DiscreteBound::Included(x),
 			Bound::Excluded(x) => DiscreteBound::Included(x.down().unwrap()),
 			Bound::Unbounded => DiscreteBound::Unbounded,
+		}
+	}
+
+	pub fn up_if_finite(&self) -> DiscreteBound<I> {
+		match self {
+			DiscreteBound::Included(x) => DiscreteBound::Included(x.up().unwrap()),
+			DiscreteBound::Unbounded => DiscreteBound::Unbounded,
+		}
+	}
+	pub fn down_if_finite(&self) -> DiscreteBound<I> {
+		match self {
+			DiscreteBound::Included(x) => DiscreteBound::Included(x.down().unwrap()),
+			DiscreteBound::Unbounded => DiscreteBound::Unbounded,
+		}
+	}
+}
+
+impl<I> From<DiscreteBoundOrd<I>> for DiscreteBound<I> {
+	fn from(discrete_bound_ord: DiscreteBoundOrd<I>) -> Self {
+		match discrete_bound_ord {
+			DiscreteBoundOrd::Included(x) => DiscreteBound::Included(x),
+			DiscreteBoundOrd::StartUnbounded => DiscreteBound::Unbounded,
+			DiscreteBoundOrd::EndUnbounded => DiscreteBound::Unbounded,
+		}
+	}
+}
+
+impl<I> RangeBounds<I> for DiscreteBounds<I> {
+	fn start_bound(&self) -> Bound<&I> {
+		match self.start {
+			DiscreteBound::Included(ref x) => Bound::Included(x),
+			DiscreteBound::Unbounded => Bound::Unbounded,
+		}
+	}
+	fn end_bound(&self) -> Bound<&I> {
+		match self.start {
+			DiscreteBound::Included(ref x) => Bound::Included(x),
+			DiscreteBound::Unbounded => Bound::Unbounded,
 		}
 	}
 }

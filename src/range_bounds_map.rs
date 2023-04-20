@@ -23,9 +23,7 @@ use std::iter::once;
 use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 
-use btree_monstrousity::btree_map::{
-	IntoIter as BTreeMapIntoIter, SearchBoundCustom,
-};
+use btree_monstrousity::btree_map::{IntoIter as BTreeMapIntoIter, SearchBoundCustom};
 use btree_monstrousity::BTreeMap;
 use either::Either;
 use serde::de::{MapAccess, Visitor};
@@ -36,8 +34,7 @@ use crate::bound_ord::DiscreteBoundOrd;
 use crate::discrete_bounds::{DiscreteBound, DiscreteBounds};
 use crate::stepable::Stepable;
 use crate::utils::{
-	cmp_range_with_discrete_bound_ord, cut_range, flip_bound, is_valid_range,
-	overlaps,
+	cmp_range_with_discrete_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
 };
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
@@ -284,8 +281,8 @@ pub enum OverlapOrTryFromBoundsError {
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
-	I: Ord + Copy,
-	K: DiscreteRange<I>,
+	I: Ord + Copy + Stepable,
+	K: DiscreteRange<I> + Copy,
 {
 	/// Makes a new, empty `RangeBoundsMap`.
 	///
@@ -402,17 +399,14 @@ where
 	/// 	[(&ie(1, 4), &false), (&ie(4, 8), &true)]
 	/// );
 	/// ```
-	pub fn overlapping<Q>(
-		&self,
-		range: Q,
-	) -> impl DoubleEndedIterator<Item = (&K, &V)>
+	pub fn overlapping<Q>(&self, range: Q) -> impl DoubleEndedIterator<Item = (&K, &V)>
 	where
-		Q: DiscreteRange<I>,
+		Q: DiscreteRange<I> + Copy,
 	{
 		invalid_range_panic(range);
 
-		let start_comp = overlapping_start_comp(range.start());
-		let end_comp = overlapping_end_comp(range.end());
+		let start_comp = overlapping_comp(range.start());
+		let end_comp = overlapping_comp(range.end());
 
 		let start_bound = SearchBoundCustom::Included;
 		let end_bound = SearchBoundCustom::Included;
@@ -450,17 +444,14 @@ where
 	/// 	}
 	/// }
 	/// ```
-	pub fn overlapping_mut<Q>(
-		&mut self,
-		range: Q,
-	) -> impl DoubleEndedIterator<Item = (&K, &mut V)>
+	pub fn overlapping_mut<Q>(&mut self, range: Q) -> impl DoubleEndedIterator<Item = (&K, &mut V)>
 	where
-		Q: DiscreteRange<I>,
+		Q: DiscreteRange<I> + Copy,
 	{
 		invalid_range_panic(range);
 
-		let start_comp = overlapping_start_comp(range.start());
-		let end_comp = overlapping_end_comp(range.end());
+		let start_comp = overlapping_comp(range.start());
+		let end_comp = overlapping_comp(range.end());
 
 		let start_bound = SearchBoundCustom::Included;
 		let end_bound = SearchBoundCustom::Included;
@@ -511,7 +502,7 @@ where
 	/// ```
 	pub fn get_at_point_mut(&mut self, point: I) -> Option<&mut V> {
 		self.inner
-			.get_mut(overlapping_start_comp(Bound::Included(point)))
+			.get_mut(overlapping_comp(DiscreteBoundOrd::Included(point)))
 	}
 
 	/// Returns `true` if the map contains a range that overlaps the
@@ -568,30 +559,27 @@ where
 	/// 	Err((Bound::Included(100), Bound::Unbounded))
 	/// );
 	/// ```
-	pub fn get_entry_at_point(
-		&self,
-		point: I,
-	) -> Result<(&K, &V), (Bound<I>, Bound<I>)> {
+	pub fn get_entry_at_point(&self, point: I) -> Result<(&K, &V), DiscreteBounds<I>> {
 		self.inner
-			.get_key_value(overlapping_start_comp(Bound::Included(point)))
+			.get_key_value(overlapping_comp(DiscreteBoundOrd::Included(point)))
 			.ok_or_else(|| {
 				let lower = self.inner.upper_bound(
-					overlapping_start_comp(Bound::Included(point)),
+					overlapping_comp(DiscreteBoundOrd::Included(point)),
 					SearchBoundCustom::Included,
 				);
 				let upper = self.inner.lower_bound(
-					overlapping_end_comp(Bound::Included(point)),
+					overlapping_comp(DiscreteBoundOrd::Included(point)),
 					SearchBoundCustom::Included,
 				);
 
-				(
-					lower.key().map_or(Bound::Unbounded, |lower| {
-						flip_bound(lower.end())
+				DiscreteBounds {
+					start: lower.key().map_or(DiscreteBound::Unbounded, |lower| {
+						DiscreteBound::from(lower.end()).up_if_finite()
 					}),
-					upper.key().map_or(Bound::Unbounded, |upper| {
-						flip_bound(upper.start())
+					end: upper.key().map_or(DiscreteBound::Unbounded, |upper| {
+						DiscreteBound::from(upper.start()).down_if_finite()
 					}),
-				)
+				}
 			})
 	}
 
@@ -644,9 +632,7 @@ where
 	/// 	}
 	/// }
 	/// ```
-	pub fn iter_mut(
-		&mut self,
-	) -> impl DoubleEndedIterator<Item = (&K, &mut V)> {
+	pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = (&K, &mut V)> {
 		self.inner.iter_mut()
 	}
 
@@ -683,12 +669,9 @@ where
 	/// 	[(ie(8, 100), false)]
 	/// );
 	/// ```
-	pub fn remove_overlapping<'a, Q>(
-		&'a mut self,
-		range: Q,
-	) -> impl Iterator<Item = (K, V)> + '_
+	pub fn remove_overlapping<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = (K, V)> + '_
 	where
-		Q: DiscreteRange<I> + 'a,
+		Q: DiscreteRange<I> + Copy + 'a,
 	{
 		invalid_range_panic(range);
 
@@ -752,19 +735,16 @@ where
 	pub fn cut<'a, Q>(
 		&'a mut self,
 		range: Q,
-	) -> Result<
-		impl Iterator<Item = ((Bound<I>, Bound<I>), V)> + '_,
-		TryFromBoundsError,
-	>
+	) -> Result<impl Iterator<Item = ((Bound<I>, Bound<I>), V)> + '_, TryFromBoundsError>
 	where
-		Q: DiscreteRange<I> + 'a,
+		Q: DiscreteRange<I> + Copy + 'a,
 		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
 
-		let start_comp = overlapping_start_comp(range.start());
-		let end_comp = overlapping_end_comp(range.end());
+		let start_comp = overlapping_comp(range.start());
+		let end_comp = overlapping_comp(range.end());
 
 		let left_overlapping = self
 			.inner
@@ -787,12 +767,9 @@ where
 		&mut self,
 		range: Q,
 		single_overlapping_range: K,
-	) -> Result<
-		impl Iterator<Item = ((Bound<I>, Bound<I>), V)>,
-		TryFromBoundsError,
-	>
+	) -> Result<impl Iterator<Item = ((Bound<I>, Bound<I>), V)>, TryFromBoundsError>
 	where
-		Q: DiscreteRange<I>,
+		Q: DiscreteRange<I>  + Copy,
 		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
 	{
@@ -800,7 +777,7 @@ where
 
 		let cut_result = cut_range(single_overlapping_range, range);
 		let returning_before_cut = match cut_result.before_cut {
-			Some((start, end)) => Some(K::try_from_bounds(start, end)?),
+			Some((start, end)) => Some(K::try_from(start, end)?),
 			None => None,
 		};
 		let returning_after_cut = match cut_result.after_cut {
@@ -827,10 +804,7 @@ where
 		range: Q,
 		left_overlapping: Option<K>,
 		right_overlapping: Option<K>,
-	) -> Result<
-		impl Iterator<Item = ((Bound<I>, Bound<I>), V)> + '_,
-		TryFromBoundsError,
-	>
+	) -> Result<impl Iterator<Item = ((Bound<I>, Bound<I>), V)> + '_, TryFromBoundsError>
 	where
 		Q: DiscreteRange<I> + 'a,
 		K: TryFrom<DiscreteBounds<I>>,
@@ -844,9 +818,7 @@ where
 
 				Some((
 					match cut_result.before_cut {
-						Some((start, end)) => {
-							Some(K::try_from_bounds(start, end)?)
-						}
+						Some((start, end)) => Some(K::try_from_bounds(start, end)?),
 						None => None,
 					},
 					cut_result.inside_cut.unwrap(),
@@ -860,9 +832,7 @@ where
 
 				Some((
 					match cut_result.after_cut {
-						Some((start, end)) => {
-							Some(K::try_from_bounds(start, end)?)
-						}
+						Some((start, end)) => Some(K::try_from_bounds(start, end)?),
 						None => None,
 					},
 					cut_result.inside_cut.unwrap(),
@@ -871,8 +841,7 @@ where
 			None => None,
 		};
 
-		let before_value =
-			self.inner.remove(overlapping_start_comp(range.start()));
+		let before_value = self.inner.remove(overlapping_start_comp(range.start()));
 		let after_value = self.inner.remove(overlapping_end_comp(range.end()));
 
 		if let Some((Some(returning_before_cut), _)) = before_config {
@@ -882,20 +851,13 @@ where
 			);
 		}
 		if let Some((Some(returning_after_cut), _)) = after_config {
-			self.insert_unchecked(
-				returning_after_cut,
-				after_value.as_ref().cloned().unwrap(),
-			);
+			self.insert_unchecked(returning_after_cut, after_value.as_ref().cloned().unwrap());
 		}
 
-		let keeping_before_entry =
-			before_config.map(|(_, keeping_before_entry)| {
-				(keeping_before_entry, before_value.unwrap())
-			});
-		let keeping_after_entry =
-			after_config.map(|(_, keeping_after_entry)| {
-				(keeping_after_entry, after_value.unwrap())
-			});
+		let keeping_before_entry = before_config
+			.map(|(_, keeping_before_entry)| (keeping_before_entry, before_value.unwrap()));
+		let keeping_after_entry = after_config
+			.map(|(_, keeping_after_entry)| (keeping_after_entry, after_value.unwrap()));
 
 		return Ok(keeping_before_entry
 			.into_iter()
@@ -943,10 +905,7 @@ where
 	/// 	]
 	/// );
 	/// ```
-	pub fn gaps<Q>(
-		&self,
-		outer_range: Q,
-	) -> impl DoubleEndedIterator<Item = (Bound<I>, Bound<I>)>
+	pub fn gaps<Q>(&self, outer_range: Q) -> impl DoubleEndedIterator<Item = (Bound<I>, Bound<I>)>
 	where
 		Q: DiscreteRange<I>,
 	{
@@ -969,8 +928,7 @@ where
 			flip_bound(outer_range.start()),
 			flip_bound(outer_range.start()),
 		);
-		let artificial_end =
-			(flip_bound(outer_range.end()), flip_bound(outer_range.end()));
+		let artificial_end = (flip_bound(outer_range.end()), flip_bound(outer_range.end()));
 		let mut artificials = once(artificial_start)
 			.chain(overlapping)
 			.chain(once(artificial_end));
@@ -1060,11 +1018,7 @@ where
 	/// assert_eq!(map.insert_strict(ie(5, 10), 2), Err(OverlapError));
 	/// assert_eq!(map.len(), 1);
 	/// ```
-	pub fn insert_strict(
-		&mut self,
-		range: K,
-		value: V,
-	) -> Result<(), OverlapError> {
+	pub fn insert_strict(&mut self, range: K, value: V) -> Result<(), OverlapError> {
 		invalid_range_panic(range);
 
 		if self.overlaps(range) {
@@ -1107,9 +1061,7 @@ where
 			(Some(matching_start), None) => {
 				K::try_from_bounds(matching_start.start(), range.end())?
 			}
-			(None, Some(matching_end)) => {
-				K::try_from_bounds(range.start(), matching_end.end())?
-			}
+			(None, Some(matching_end)) => K::try_from_bounds(range.start(), matching_end.end())?,
 			(None, None) => range,
 		};
 
@@ -1301,9 +1253,7 @@ where
 			selfy
 				.inner
 				.get_key_value(touching_start_comp(range.start()))
-				.filter(|(_, start_touching_value)| {
-					*start_touching_value == value
-				})
+				.filter(|(_, start_touching_value)| *start_touching_value == value)
 				.map(|(key, _)| key)
 				.copied()
 		};
@@ -1311,9 +1261,7 @@ where
 			selfy
 				.inner
 				.get_key_value(touching_end_comp(range.end()))
-				.filter(|(_, start_touching_value)| {
-					*start_touching_value == value
-				})
+				.filter(|(_, start_touching_value)| *start_touching_value == value)
 				.map(|(key, _)| key)
 				.copied()
 		};
@@ -1392,11 +1340,7 @@ where
 	/// 	[(ie(1, 4), false), (ie(4, 8), false), (ie(10, 16), false)]
 	/// );
 	/// ```
-	pub fn insert_merge_overlapping(
-		&mut self,
-		range: K,
-		value: V,
-	) -> Result<K, TryFromBoundsError>
+	pub fn insert_merge_overlapping(&mut self, range: K, value: V) -> Result<K, TryFromBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
 	{
@@ -1556,11 +1500,7 @@ where
 	/// 	[(ie(2, 4), false), (ie(4, 6), true), (ie(6, 8), false)]
 	/// );
 	/// ```
-	pub fn insert_overwrite(
-		&mut self,
-		range: K,
-		value: V,
-	) -> Result<(), TryFromBoundsError>
+	pub fn insert_overwrite(&mut self, range: K, value: V) -> Result<(), TryFromBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
@@ -1668,57 +1608,35 @@ where
 fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
 where
 	K: DiscreteRange<I>,
-	I: Ord,
+	I: Ord + Stepable,
 {
-	|inner_range: &K, new_range: &K| {
-		DiscreteBoundOrd::start(new_range.start())
-			.cmp(&DiscreteBoundOrd::start(inner_range.start()))
-	}
+	|inner_range: &K, new_range: &K| new_range.start().cmp(&inner_range.start())
 }
-fn overlapping_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
+fn overlapping_comp<I, K>(bound: DiscreteBoundOrd<I>) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy,
-	K: DiscreteRange<I>,
+	K: DiscreteRange<I> + Copy,
 {
-	move |inner_range: &K| {
-		cmp_range_with_discrete_bound_ord(
-			*inner_range,
-			DiscreteBoundOrd::start(start),
-		)
-	}
+	move |inner_range: &K| cmp_range_with_discrete_bound_ord(*inner_range, bound)
 }
-fn overlapping_end_comp<I, K>(end: Bound<I>) -> impl FnMut(&K) -> Ordering
+fn touching_start_comp<I, K>(start: DiscreteBoundOrd<I>) -> impl FnMut(&K) -> Ordering
 where
-	I: Ord + Copy,
-	K: DiscreteRange<I>,
-{
-	move |inner_range: &K| {
-		cmp_range_with_discrete_bound_ord(
-			*inner_range,
-			DiscreteBoundOrd::end(end),
-		)
-	}
-}
-fn touching_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
-where
-	I: Ord + Copy,
+	I: Ord + Copy + Stepable,
 	K: DiscreteRange<I>,
 {
 	move |inner_range: &K| match (inner_range.end(), start) {
 		//we only allow Ordering::Equal here since if they are equal
 		//then the ranges would be touching
-		(Bound::Included(end), Bound::Excluded(start)) if end == start => {
-			Ordering::Equal
-		}
-		(Bound::Excluded(end), Bound::Included(start)) if end == start => {
+		(DiscreteBoundOrd::Included(end), DiscreteBoundOrd::Included(start))
+			if end.up().unwrap() == start =>
+		{
 			Ordering::Equal
 		}
 
 		(end, start) => {
-			let normal_result =
-				DiscreteBoundOrd::start(start).cmp(&DiscreteBoundOrd::end(end));
+			let normal_result = start.cmp(&end);
 
-			//we overide any Equals to a random non-Equal since we
+			//we overide any Equals to a non-Equal since we
 			//don't want non-touching matches
 			match normal_result {
 				Ordering::Equal => Ordering::Greater,
@@ -1727,26 +1645,24 @@ where
 		}
 	}
 }
-fn touching_end_comp<I, K>(end: Bound<I>) -> impl FnMut(&K) -> Ordering
+fn touching_end_comp<I, K>(end: DiscreteBoundOrd<I>) -> impl FnMut(&K) -> Ordering
 where
-	I: Ord + Copy,
+	I: Ord + Copy + Stepable,
 	K: DiscreteRange<I>,
 {
 	move |inner_range: &K| match (end, inner_range.start()) {
 		//we only allow Ordering::Equal here since if they are equal
 		//then the ranges would be touching
-		(Bound::Included(end), Bound::Excluded(start)) if end == start => {
-			Ordering::Equal
-		}
-		(Bound::Excluded(end), Bound::Included(start)) if end == start => {
+		(DiscreteBoundOrd::Included(end), DiscreteBoundOrd::Included(start))
+			if end.up().unwrap() == start =>
+		{
 			Ordering::Equal
 		}
 
 		(end, _start) => {
-			let normal_result = DiscreteBoundOrd::end(end)
-				.cmp(&DiscreteBoundOrd::start(inner_range.start()));
+			let normal_result = end.cmp(&inner_range.start());
 
-			//we overide any Equals to a random non-Equal since we
+			//we overide any Equals to a non-Equal since we
 			//don't want non-touching matches
 			match normal_result {
 				Ordering::Equal => Ordering::Less,
@@ -1769,9 +1685,7 @@ where
 	K: RangeBounds<I> + Copy,
 {
 	fn start(&self) -> DiscreteBoundOrd<I> {
-		DiscreteBoundOrd::start(DiscreteBound::start(
-			self.start_bound().cloned(),
-		))
+		DiscreteBoundOrd::start(DiscreteBound::start(self.start_bound().cloned()))
 	}
 	fn end(&self) -> DiscreteBoundOrd<I> {
 		DiscreteBoundOrd::end(DiscreteBound::end(self.end_bound().cloned()))
@@ -1900,8 +1814,7 @@ mod tests {
 	//to test between bounds in finite using smaller intervalled finite
 	pub(crate) const NUMBERS: &'static [i8] = &[2, 4, 6, 8, 10];
 	//go a bit around on either side to compensate for Unbounded
-	pub(crate) const NUMBERS_DOMAIN: &'static [i8] =
-		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+	pub(crate) const NUMBERS_DOMAIN: &'static [i8] = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 	fn basic() -> RangeBoundsMap<i8, AnyRange, bool> {
 		RangeBoundsMap::from_slice_strict([
@@ -1976,12 +1889,7 @@ mod tests {
 				(ie(14, 16), true),
 			]),
 		);
-		assert_insert_strict(
-			basic(),
-			(ii(4, 5), true),
-			Err(OverlapError),
-			None::<[_; 0]>,
-		);
+		assert_insert_strict(basic(), (ii(4, 5), true), Err(OverlapError), None::<[_; 0]>);
 		assert_insert_strict(
 			basic(),
 			(ei(4, 5), true),
@@ -2005,10 +1913,7 @@ mod tests {
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
 		match after {
 			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
+				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2019,12 +1924,10 @@ mod tests {
 		//case zero
 		for overlap_range in all_valid_test_bounds() {
 			//you can't overlap nothing
-			assert!(
-				RangeBoundsMap::<i8, AnyRange, ()>::new()
-					.overlapping(overlap_range)
-					.next()
-					.is_none()
-			);
+			assert!(RangeBoundsMap::<i8, AnyRange, ()>::new()
+				.overlapping(overlap_range)
+				.next()
+				.is_none());
 		}
 
 		//case one
@@ -2047,18 +1950,14 @@ mod tests {
 				if overlapping != expected_overlapping {
 					dbg!(overlap_range, inside_range);
 					dbg!(overlapping, expected_overlapping);
-					panic!(
-						"Discrepency in .overlapping() with single inside range detected!"
-					);
+					panic!("Discrepency in .overlapping() with single inside range detected!");
 				}
 			}
 		}
 
 		//case two
 		for overlap_range in all_valid_test_bounds() {
-			for (inside_range1, inside_range2) in
-				all_non_overlapping_test_bound_entries()
-			{
+			for (inside_range1, inside_range2) in all_non_overlapping_test_bound_entries() {
 				let mut map = RangeBoundsMap::new();
 				map.insert_strict(inside_range1, ()).unwrap();
 				map.insert_strict(inside_range2, ()).unwrap();
@@ -2073,9 +1972,8 @@ mod tests {
 				//make our expected_overlapping the correct order
 				if expected_overlapping.len() > 1 {
 					if DiscreteBoundOrd::start(expected_overlapping[0].start())
-						> DiscreteBoundOrd::start(
-							expected_overlapping[1].start(),
-						) {
+						> DiscreteBoundOrd::start(expected_overlapping[1].start())
+					{
 						expected_overlapping.swap(0, 1);
 					}
 				}
@@ -2089,9 +1987,7 @@ mod tests {
 				if overlapping != expected_overlapping {
 					dbg!(overlap_range, inside_range1, inside_range2);
 					dbg!(overlapping, expected_overlapping);
-					panic!(
-						"Discrepency in .overlapping() with two inside ranges detected!"
-					);
+					panic!("Discrepency in .overlapping() with two inside ranges detected!");
 				}
 			}
 		}
@@ -2137,10 +2033,7 @@ mod tests {
 		);
 		match after {
 			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
+				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2239,10 +2132,7 @@ mod tests {
 		}
 		match after {
 			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
+				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2380,10 +2270,7 @@ mod tests {
 		);
 		match after {
 			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
+				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2498,18 +2385,12 @@ mod tests {
 	{
 		let clone = before.clone();
 		assert_eq!(
-			before.insert_merge_touching_if_values_equal(
-				to_insert.0,
-				to_insert.1
-			),
+			before.insert_merge_touching_if_values_equal(to_insert.0, to_insert.1),
 			result
 		);
 		match after {
 			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
+				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2556,12 +2437,7 @@ mod tests {
 				(ii(14, 18), true),
 			]),
 		);
-		assert_insert_merge_overlapping(
-			basic(),
-			(uu(), false),
-			Ok(uu()),
-			Some([(uu(), false)]),
-		);
+		assert_insert_merge_overlapping(basic(), (uu(), false), Ok(uu()), Some([(uu(), false)]));
 
 		assert_insert_merge_overlapping(
 			special(),
@@ -2611,10 +2487,7 @@ mod tests {
 		);
 		match after {
 			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
+				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2740,16 +2613,12 @@ mod tests {
 	{
 		let clone = before.clone();
 		assert_eq!(
-			before
-				.insert_merge_touching_or_overlapping(to_insert.0, to_insert.1),
+			before.insert_merge_touching_or_overlapping(to_insert.0, to_insert.1),
 			result
 		);
 		match after {
 			Some(after) => {
-				assert_eq!(
-					before,
-					RangeBoundsMap::from_slice_strict(after).unwrap()
-				)
+				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 			}
 			None => assert_eq!(before, clone),
 		}
@@ -2761,14 +2630,8 @@ mod tests {
 		assert_eq!(config(ie(1, 4), ie(2, 8)), Config::LeftFirstPartialOverlap);
 		assert_eq!(config(ie(1, 4), ie(2, 3)), Config::LeftContainsRight);
 
-		assert_eq!(
-			config(ie(6, 8), ie(1, 4)),
-			Config::RightFirstNonOverlapping
-		);
-		assert_eq!(
-			config(ie(2, 8), ie(1, 4)),
-			Config::RightFirstPartialOverlap
-		);
+		assert_eq!(config(ie(6, 8), ie(1, 4)), Config::RightFirstNonOverlapping);
+		assert_eq!(config(ie(2, 8), ie(1, 4)), Config::RightFirstPartialOverlap);
 		assert_eq!(config(ie(2, 3), ie(1, 4)), Config::RightContainsLeft);
 	}
 
@@ -2914,10 +2777,7 @@ mod tests {
 				for i_ex in [false, true] {
 					for j_ex in [false, true] {
 						if j > i || (j == i && !i_ex && !j_ex) {
-							output.push((
-								finite_bound(*i, i_ex),
-								finite_bound(*j, j_ex),
-							));
+							output.push((finite_bound(*i, i_ex), finite_bound(*j, j_ex)));
 						}
 					}
 				}

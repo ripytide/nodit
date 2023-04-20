@@ -18,10 +18,11 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::cmp::Ordering;
-use std::ops::Bound;
 
 use crate::bound_ord::DiscreteBoundOrd;
+use crate::discrete_bounds::DiscreteBounds;
 use crate::range_bounds_map::DiscreteRange;
+use crate::stepable::Stepable;
 
 pub(crate) fn cmp_range_with_discrete_bound_ord<A, B>(
 	range: A,
@@ -83,9 +84,18 @@ where
 }
 
 enum SortedConfig<I> {
-	NonOverlapping((DiscreteBoundOrd<I>, DiscreteBoundOrd<I>), (DiscreteBoundOrd<I>, DiscreteBoundOrd<I>)),
-	PartialOverlap((DiscreteBoundOrd<I>, DiscreteBoundOrd<I>), (DiscreteBoundOrd<I>, DiscreteBoundOrd<I>)),
-	Swallowed((DiscreteBoundOrd<I>, DiscreteBoundOrd<I>), (DiscreteBoundOrd<I>, DiscreteBoundOrd<I>)),
+	NonOverlapping(
+		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
+		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
+	),
+	PartialOverlap(
+		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
+		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
+	),
+	Swallowed(
+		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
+		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
+	),
 }
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
@@ -100,41 +110,31 @@ where
 		Config::LeftFirstPartialOverlap => SortedConfig::Swallowed(ae, be),
 		Config::LeftContainsRight => SortedConfig::Swallowed(ae, be),
 
-		Config::RightFirstNonOverlapping => {
-			SortedConfig::NonOverlapping(be, ae)
-		}
-		Config::RightFirstPartialOverlap => {
-			SortedConfig::PartialOverlap(be, ae)
-		}
+		Config::RightFirstNonOverlapping => SortedConfig::NonOverlapping(be, ae),
+		Config::RightFirstPartialOverlap => SortedConfig::PartialOverlap(be, ae),
 		Config::RightContainsLeft => SortedConfig::Swallowed(be, ae),
 	}
 }
 
-pub(crate) fn contains_bound_ord<I, A>(
-	range: A,
-	bound_ord: DiscreteBoundOrd<I>,
-) -> bool
+pub(crate) fn contains_bound_ord<I, A>(range: A, discrete_bound_ord: DiscreteBoundOrd<I>) -> bool
 where
 	A: DiscreteRange<I>,
 	I: Ord,
 {
-	let start_bound_ord = DiscreteBoundOrd::start(range.start());
-	let end_bound_ord = DiscreteBoundOrd::end(range.end());
-
-	return bound_ord >= start_bound_ord && bound_ord <= end_bound_ord;
+	cmp_range_with_discrete_bound_ord(range, discrete_bound_ord).is_eq()
 }
 
 #[derive(Debug)]
 pub(crate) struct CutResult<I> {
-	pub(crate) before_cut: Option<(Bound<I>, Bound<I>)>,
-	pub(crate) inside_cut: Option<(Bound<I>, Bound<I>)>,
-	pub(crate) after_cut: Option<(Bound<I>, Bound<I>)>,
+	pub(crate) before_cut: Option<DiscreteBounds<I>>,
+	pub(crate) inside_cut: Option<DiscreteBounds<I>>,
+	pub(crate) after_cut: Option<DiscreteBounds<I>>,
 }
 pub(crate) fn cut_range<I, B, C>(base: B, cut: C) -> CutResult<I>
 where
 	B: DiscreteRange<I>,
 	C: DiscreteRange<I>,
-	I: Ord + Copy,
+	I: Ord + Copy + Stepable,
 {
 	let mut result = CutResult {
 		before_cut: None,
@@ -144,34 +144,63 @@ where
 
 	match config(base, cut) {
 		Config::LeftFirstNonOverlapping => {
-			result.before_cut = Some((base.start(), base.end()));
+			result.before_cut = Some(DiscreteBounds {
+				start: base.start().into(),
+				end: base.end().into(),
+			});
 		}
 		Config::LeftFirstPartialOverlap => {
-			result.before_cut = Some((base.start(), flip_bound(cut.start())));
-			result.inside_cut = Some((cut.start(), base.end()));
+			result.before_cut = Some(DiscreteBounds {
+				start: base.start().into(),
+				end: cut.start().down_if_finite().into(),
+			});
+			result.inside_cut = Some(DiscreteBounds {
+				start: cut.start().into(),
+				end: base.end().into(),
+			});
 		}
 		Config::LeftContainsRight => {
-			result.before_cut = Some((base.start(), flip_bound(cut.start())));
-			result.inside_cut = Some((cut.start(), cut.end()));
+			result.before_cut = Some(DiscreteBounds {
+				start: base.start().into(),
+				end: cut.start().down_if_finite().into(),
+			});
+			result.inside_cut = Some(DiscreteBounds {
+				start: cut.start().into(),
+				end: cut.end().into(),
+			});
 			// exception for Unbounded-ending things
 			match cut.end() {
-				Bound::Unbounded => {}
+				DiscreteBoundOrd::EndUnbounded => {}
 				_ => {
-					result.after_cut =
-						Some((flip_bound(cut.end()), base.end()));
+					result.after_cut = Some(DiscreteBounds {
+						start: cut.end().up_if_finite().into(),
+						end: base.end().into(),
+					});
 				}
 			}
 		}
 
 		Config::RightFirstNonOverlapping => {
-			result.after_cut = Some((base.start(), base.end()));
+			result.after_cut = Some(DiscreteBounds {
+				start: base.start().into(),
+				end: base.end().into(),
+			});
 		}
 		Config::RightFirstPartialOverlap => {
-			result.after_cut = Some((flip_bound(cut.end()), base.end()));
-			result.inside_cut = Some((base.start(), cut.end()));
+			result.after_cut = Some(DiscreteBounds {
+				start: cut.end().up_if_finite().into(),
+				end: base.end().into(),
+			});
+			result.inside_cut = Some(DiscreteBounds {
+				start: base.start().into(),
+				end: cut.end().into(),
+			});
 		}
 		Config::RightContainsLeft => {
-			result.inside_cut = Some((base.start(), base.end()));
+			result.inside_cut = Some(DiscreteBounds {
+				start: base.start().into(),
+				end: base.end().into(),
+			});
 		}
 	}
 
@@ -188,13 +217,7 @@ where
 	I: Ord,
 	K: DiscreteRange<I>,
 {
-	match (range.start(), range.end()) {
-		(Bound::Included(start), Bound::Included(end)) => start <= end,
-		(Bound::Included(start), Bound::Excluded(end)) => start < end,
-		(Bound::Excluded(start), Bound::Included(end)) => start < end,
-		(Bound::Excluded(start), Bound::Excluded(end)) => start < end,
-		_ => true,
-	}
+	range.start() <= range.end()
 }
 
 pub(crate) fn overlaps<I, A, B>(a: A, b: B) -> bool
@@ -204,12 +227,4 @@ where
 	I: Ord,
 {
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
-}
-
-pub(crate) fn flip_bound<I>(bound: Bound<I>) -> Bound<I> {
-	match bound {
-		Bound::Included(point) => Bound::Excluded(point),
-		Bound::Excluded(point) => Bound::Included(point),
-		Bound::Unbounded => Bound::Unbounded,
-	}
 }

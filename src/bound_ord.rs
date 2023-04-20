@@ -28,7 +28,7 @@ use crate::stepable::Stepable;
 /// implement [`Step`].
 ///
 /// [`Step`]: std::iter::Step
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub(crate) enum DiscreteBoundOrd<T> {
 	Included(T),
 	StartUnbounded,
@@ -48,11 +48,30 @@ impl<I> DiscreteBoundOrd<I> {
 			DiscreteBound::Unbounded => DiscreteBoundOrd::EndUnbounded,
 		}
 	}
+
+	pub fn up_if_finite(&self) -> DiscreteBoundOrd<I>
+	where
+		I: Stepable,
+	{
+		match self {
+			DiscreteBoundOrd::Included(x) => DiscreteBoundOrd::Included(x.up().unwrap()),
+			x => *x,
+		}
+	}
+	pub fn down_if_finite(&self) -> DiscreteBoundOrd<I>
+	where
+		I: Stepable,
+	{
+		match self {
+			DiscreteBoundOrd::Included(x) => DiscreteBoundOrd::Included(x.down().unwrap()),
+			x => *x,
+		}
+	}
 }
 
 impl<T> Ord for DiscreteBoundOrd<T>
 where
-	T: Ord + Stepable,
+	T: Ord,
 {
 	#[rustfmt::skip]
 	fn cmp(&self, other: &Self) -> Ordering {
@@ -74,7 +93,7 @@ where
 
 impl<T> PartialOrd for DiscreteBoundOrd<T>
 where
-	T: Ord + Stepable,
+	T: Ord,
 {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Some(self.cmp(other))
@@ -83,14 +102,14 @@ where
 
 impl<T> PartialEq for DiscreteBoundOrd<T>
 where
-	T: Ord + Stepable,
+	T: Ord,
 {
 	fn eq(&self, other: &Self) -> bool {
 		self.cmp(other).is_eq()
 	}
 }
 
-impl<T> Eq for DiscreteBoundOrd<T> where T: Ord + Stepable {}
+impl<T> Eq for DiscreteBoundOrd<T> where T: Ord {}
 
 #[cfg(test)]
 mod tests {
@@ -105,43 +124,20 @@ mod tests {
 		assert!(DiscreteBoundOrd::Included(0) < DiscreteBoundOrd::Included(2));
 		assert!(DiscreteBoundOrd::Included(2) > DiscreteBoundOrd::Included(0));
 
-		assert!(
-			DiscreteBoundOrd::Included(2) > DiscreteBoundOrd::StartUnbounded
-		);
+		assert!(DiscreteBoundOrd::Included(2) > DiscreteBoundOrd::StartUnbounded);
 
 		assert!(DiscreteBoundOrd::Included(2) < DiscreteBoundOrd::EndUnbounded);
 
 		//StartUnbounded
-		assert!(
-			DiscreteBoundOrd::StartUnbounded::<i8>
-				== DiscreteBoundOrd::StartUnbounded
-		);
-		assert!(
-			DiscreteBoundOrd::StartUnbounded::<i8>
-				<= DiscreteBoundOrd::StartUnbounded
-		);
-		assert!(
-			DiscreteBoundOrd::StartUnbounded::<i8>
-				>= DiscreteBoundOrd::StartUnbounded
-		);
+		assert!(DiscreteBoundOrd::StartUnbounded::<i8> == DiscreteBoundOrd::StartUnbounded);
+		assert!(DiscreteBoundOrd::StartUnbounded::<i8> <= DiscreteBoundOrd::StartUnbounded);
+		assert!(DiscreteBoundOrd::StartUnbounded::<i8> >= DiscreteBoundOrd::StartUnbounded);
 
-		assert!(
-			DiscreteBoundOrd::StartUnbounded::<i8>
-				< DiscreteBoundOrd::EndUnbounded
-		);
+		assert!(DiscreteBoundOrd::StartUnbounded::<i8> < DiscreteBoundOrd::EndUnbounded);
 
 		//EndUnbounded
-		assert!(
-			DiscreteBoundOrd::EndUnbounded::<i8>
-				== DiscreteBoundOrd::EndUnbounded
-		);
-		assert!(
-			DiscreteBoundOrd::EndUnbounded::<i8>
-				<= DiscreteBoundOrd::EndUnbounded
-		);
-		assert!(
-			DiscreteBoundOrd::EndUnbounded::<i8>
-				>= DiscreteBoundOrd::EndUnbounded
-		);
+		assert!(DiscreteBoundOrd::EndUnbounded::<i8> == DiscreteBoundOrd::EndUnbounded);
+		assert!(DiscreteBoundOrd::EndUnbounded::<i8> <= DiscreteBoundOrd::EndUnbounded);
+		assert!(DiscreteBoundOrd::EndUnbounded::<i8> >= DiscreteBoundOrd::EndUnbounded);
 	}
 }
