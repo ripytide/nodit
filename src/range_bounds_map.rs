@@ -32,7 +32,7 @@ use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::bound_ord::BoundOrd;
+use crate::bound_ord::DiscreteBoundOrd;
 use crate::utils::{
 	cmp_range_with_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
 };
@@ -1669,8 +1669,8 @@ where
 	I: Ord,
 {
 	|inner_range: &K, new_range: &K| {
-		BoundOrd::start(new_range.start())
-			.cmp(&BoundOrd::start(inner_range.start()))
+		DiscreteBoundOrd::start(new_range.start())
+			.cmp(&DiscreteBoundOrd::start(inner_range.start()))
 	}
 }
 fn overlapping_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
@@ -1679,7 +1679,7 @@ where
 	K: NiceRange<I>,
 {
 	move |inner_range: &K| {
-		cmp_range_with_bound_ord(*inner_range, BoundOrd::start(start))
+		cmp_range_with_bound_ord(*inner_range, DiscreteBoundOrd::start(start))
 	}
 }
 fn overlapping_end_comp<I, K>(end: Bound<I>) -> impl FnMut(&K) -> Ordering
@@ -1688,7 +1688,7 @@ where
 	K: NiceRange<I>,
 {
 	move |inner_range: &K| {
-		cmp_range_with_bound_ord(*inner_range, BoundOrd::end(end))
+		cmp_range_with_bound_ord(*inner_range, DiscreteBoundOrd::end(end))
 	}
 }
 fn touching_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
@@ -1707,7 +1707,7 @@ where
 		}
 
 		(end, start) => {
-			let normal_result = BoundOrd::start(start).cmp(&BoundOrd::end(end));
+			let normal_result = DiscreteBoundOrd::start(start).cmp(&DiscreteBoundOrd::end(end));
 
 			//we overide any Equals to a random non-Equal since we
 			//don't want non-touching matches
@@ -1735,7 +1735,7 @@ where
 
 		(end, _start) => {
 			let normal_result =
-				BoundOrd::end(end).cmp(&BoundOrd::start(inner_range.start()));
+				DiscreteBoundOrd::end(end).cmp(&DiscreteBoundOrd::start(inner_range.start()));
 
 			//we overide any Equals to a random non-Equal since we
 			//don't want non-touching matches
@@ -1881,7 +1881,7 @@ mod tests {
 	use pretty_assertions::assert_eq;
 
 	use super::*;
-	use crate::bound_ord::BoundOrd;
+	use crate::bound_ord::DiscreteBoundOrd;
 	use crate::test_ranges::{ee, ei, ie, ii, iu, u, ue, ui, uu, AnyRange};
 	use crate::utils::{config, Config, CutResult};
 
@@ -2077,8 +2077,8 @@ mod tests {
 				}
 				//make our expected_overlapping the correct order
 				if expected_overlapping.len() > 1 {
-					if BoundOrd::start(expected_overlapping[0].start())
-						> BoundOrd::start(expected_overlapping[1].start())
+					if DiscreteBoundOrd::start(expected_overlapping[0].start())
+						> DiscreteBoundOrd::start(expected_overlapping[1].start())
 					{
 						expected_overlapping.swap(0, 1);
 					}

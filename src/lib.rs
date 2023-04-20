@@ -219,12 +219,16 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 #![feature(let_chains)]
 #![feature(btree_cursors)]
+#![feature(step_trait)]
 #![allow(clippy::tabs_in_doc_comments)]
 #![allow(clippy::needless_return)]
 
 pub(crate) mod bound_ord;
 pub mod test_ranges;
 pub(crate) mod utils;
+
+pub mod stepable;
+pub mod discrete_bounds;
 
 pub mod range_bounds_map;
 pub mod range_bounds_set;

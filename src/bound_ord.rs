@@ -22,19 +22,14 @@ use std::ops::Bound;
 
 use serde::{Deserialize, Serialize};
 
-/// An newtype of [`Bound`] to implement [`Ord`].
+use crate::stepable::Stepable;
+
+/// An newtype of [`Bound`] to implement [`Ord`] on types that
+/// implement [`Step`].
 ///
-/// This type is used to circumvent [`BTreeMap`]s (and rust collections
-/// in general) lack of methods for searching with custom
-/// [`comparator`] functions and/or it's lack of a [`Cursor`]-like
-/// API.
-///
-/// [`start_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.start_bound
-/// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
-/// [`comparator`]: https://stackoverflow.com/q/34028324
-/// [`Cursor`]: https://github.com/rust-lang/rfcs/issues/1778
+/// [`Step`]: std::iter::Step
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) enum BoundOrd<T> {
+pub(crate) enum DiscreteBoundOrd<T> {
 	/// Mirror of [`Bound::Included`]
 	/// There is no need for different Start and End variations as the
 	/// Ord implementations are equivalent.
@@ -49,108 +44,91 @@ pub(crate) enum BoundOrd<T> {
 	EndUnbounded,
 }
 
-impl<T> BoundOrd<T> {
+impl<T> DiscreteBoundOrd<T> {
 	pub(crate) fn start(bound: Bound<T>) -> Self {
 		match bound {
-			Bound::Included(point) => BoundOrd::Included(point),
-			Bound::Excluded(point) => BoundOrd::StartExcluded(point),
-			Bound::Unbounded => BoundOrd::StartUnbounded,
+			Bound::Included(point) => DiscreteBoundOrd::Included(point),
+			Bound::Excluded(point) => DiscreteBoundOrd::StartExcluded(point),
+			Bound::Unbounded => DiscreteBoundOrd::StartUnbounded,
 		}
 	}
 	pub(crate) fn end(bound: Bound<T>) -> Self {
 		match bound {
-			Bound::Included(point) => BoundOrd::Included(point),
-			Bound::Excluded(point) => BoundOrd::EndExcluded(point),
-			Bound::Unbounded => BoundOrd::EndUnbounded,
+			Bound::Included(point) => DiscreteBoundOrd::Included(point),
+			Bound::Excluded(point) => DiscreteBoundOrd::EndExcluded(point),
+			Bound::Unbounded => DiscreteBoundOrd::EndUnbounded,
 		}
 	}
 }
 
-impl<T> Ord for BoundOrd<T>
+impl<T> Ord for DiscreteBoundOrd<T>
 where
-	T: Ord,
+	T: Ord + Stepable,
 {
 	#[rustfmt::skip]
 	fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
-            (BoundOrd::Included(start1), BoundOrd::Included(start2)) => start1.cmp(start2),
-            (BoundOrd::Included(start1), BoundOrd::StartExcluded(start2)) => cmp_with_priority(start1, start2, true),
-            (BoundOrd::Included(start1), BoundOrd::EndExcluded(start2)) => cmp_with_priority(start1, start2, false),
-            (BoundOrd::Included(_), BoundOrd::EndUnbounded) => Ordering::Less,
-            (BoundOrd::Included(_), BoundOrd::StartUnbounded) => Ordering::Greater,
+            (DiscreteBoundOrd::Included(start1), DiscreteBoundOrd::Included(start2)) => start1.cmp(start2),
+            (DiscreteBoundOrd::Included(start1), DiscreteBoundOrd::StartExcluded(start2)) => start1.cmp(&start2.up().unwrap()),
+            (DiscreteBoundOrd::Included(start1), DiscreteBoundOrd::EndExcluded(start2)) => start1.cmp(&start2.down().unwrap()),
+            (DiscreteBoundOrd::Included(_), DiscreteBoundOrd::EndUnbounded) => Ordering::Less,
+            (DiscreteBoundOrd::Included(_), DiscreteBoundOrd::StartUnbounded) => Ordering::Greater,
 
-            (BoundOrd::StartExcluded(start1), BoundOrd::StartExcluded(start2)) => start1.cmp(start2),
-            (BoundOrd::StartExcluded(start1), BoundOrd::Included(start2)) => cmp_with_priority(start1, start2, false),
-            (BoundOrd::StartExcluded(start1), BoundOrd::EndExcluded(start2)) => cmp_with_priority(start1, start2, false),
-            (BoundOrd::StartExcluded(_), BoundOrd::StartUnbounded) => Ordering::Greater,
-            (BoundOrd::StartExcluded(_), BoundOrd::EndUnbounded) => Ordering::Less,
+            (DiscreteBoundOrd::StartExcluded(start1), DiscreteBoundOrd::StartExcluded(start2)) => start1.cmp(start2),
+            (DiscreteBoundOrd::StartExcluded(start1), DiscreteBoundOrd::Included(start2)) => start1.up().unwrap().cmp(start2),
+            (DiscreteBoundOrd::StartExcluded(start1), DiscreteBoundOrd::EndExcluded(start2)) => start1.up().unwrap().cmp(&start2.down().unwrap()),
+            (DiscreteBoundOrd::StartExcluded(_), DiscreteBoundOrd::StartUnbounded) => Ordering::Greater,
+            (DiscreteBoundOrd::StartExcluded(_), DiscreteBoundOrd::EndUnbounded) => Ordering::Less,
 
-            (BoundOrd::StartUnbounded, BoundOrd::Included(_)) => Ordering::Less,
-            (BoundOrd::StartUnbounded, BoundOrd::StartExcluded(_)) => Ordering::Less,
-            (BoundOrd::StartUnbounded, BoundOrd::EndExcluded(_)) => Ordering::Less,
-            (BoundOrd::StartUnbounded, BoundOrd::StartUnbounded) => Ordering::Equal,
-            (BoundOrd::StartUnbounded, BoundOrd::EndUnbounded) => Ordering::Less,
+            (DiscreteBoundOrd::StartUnbounded, DiscreteBoundOrd::Included(_)) => Ordering::Less,
+            (DiscreteBoundOrd::StartUnbounded, DiscreteBoundOrd::StartExcluded(_)) => Ordering::Less,
+            (DiscreteBoundOrd::StartUnbounded, DiscreteBoundOrd::EndExcluded(_)) => Ordering::Less,
+            (DiscreteBoundOrd::StartUnbounded, DiscreteBoundOrd::StartUnbounded) => Ordering::Equal,
+            (DiscreteBoundOrd::StartUnbounded, DiscreteBoundOrd::EndUnbounded) => Ordering::Less,
 
-            (BoundOrd::EndExcluded(start1), BoundOrd::EndExcluded(start2)) => start1.cmp(start2),
-            (BoundOrd::EndExcluded(start1), BoundOrd::Included(start2)) => cmp_with_priority(start1, start2, true),
-            (BoundOrd::EndExcluded(start1), BoundOrd::StartExcluded(start2)) => cmp_with_priority(start1, start2, true),
-            (BoundOrd::EndExcluded(_), BoundOrd::StartUnbounded) => Ordering::Greater,
-            (BoundOrd::EndExcluded(_), BoundOrd::EndUnbounded) => Ordering::Less,
+            (DiscreteBoundOrd::EndExcluded(start1), DiscreteBoundOrd::EndExcluded(start2)) => start1.cmp(start2),
+            (DiscreteBoundOrd::EndExcluded(start1), DiscreteBoundOrd::Included(start2)) => start1.down().unwrap().cmp(&start2),
+            (DiscreteBoundOrd::EndExcluded(start1), DiscreteBoundOrd::StartExcluded(start2)) => start1.down().unwrap().cmp(&start2.up().unwrap()),
+            (DiscreteBoundOrd::EndExcluded(_), DiscreteBoundOrd::StartUnbounded) => Ordering::Greater,
+            (DiscreteBoundOrd::EndExcluded(_), DiscreteBoundOrd::EndUnbounded) => Ordering::Less,
 
-            (BoundOrd::EndUnbounded, BoundOrd::Included(_)) => Ordering::Greater,
-            (BoundOrd::EndUnbounded, BoundOrd::StartExcluded(_)) => Ordering::Greater,
-            (BoundOrd::EndUnbounded, BoundOrd::EndExcluded(_)) => Ordering::Greater,
-            (BoundOrd::EndUnbounded, BoundOrd::EndUnbounded) => Ordering::Equal,
-            (BoundOrd::EndUnbounded, BoundOrd::StartUnbounded) => Ordering::Greater,
+            (DiscreteBoundOrd::EndUnbounded, DiscreteBoundOrd::Included(_)) => Ordering::Greater,
+            (DiscreteBoundOrd::EndUnbounded, DiscreteBoundOrd::StartExcluded(_)) => Ordering::Greater,
+            (DiscreteBoundOrd::EndUnbounded, DiscreteBoundOrd::EndExcluded(_)) => Ordering::Greater,
+            (DiscreteBoundOrd::EndUnbounded, DiscreteBoundOrd::EndUnbounded) => Ordering::Equal,
+            (DiscreteBoundOrd::EndUnbounded, DiscreteBoundOrd::StartUnbounded) => Ordering::Greater,
         }
 }
 }
 
-impl<T> PartialOrd for BoundOrd<T>
+impl<T> PartialOrd for DiscreteBoundOrd<T>
 where
-	T: Ord,
+	T: Ord + Stepable,
 {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Some(self.cmp(other))
 	}
 }
 
-impl<T> PartialEq for BoundOrd<T>
+impl<T> PartialEq for DiscreteBoundOrd<T>
 where
-	T: Ord,
+	T: Ord + Stepable,
 {
 	fn eq(&self, other: &Self) -> bool {
 		self.cmp(other).is_eq()
 	}
 }
 
-impl<T> Eq for BoundOrd<T> where T: Ord {}
+impl<T> Eq for DiscreteBoundOrd<T> where T: Ord + Stepable {}
 
-/// If they are equal say the item with priority is larger
-/// where false means left has priority and true means right.
-fn cmp_with_priority<T>(left: &T, right: &T, priority: bool) -> Ordering
-where
-	T: Ord,
-{
-	let result = left.cmp(right);
-
-	match result {
-		Ordering::Equal => match priority {
-			false => Ordering::Greater,
-			true => Ordering::Less,
-		},
-		x => x,
-	}
-}
-
-impl<T> From<BoundOrd<T>> for Bound<T> {
-	fn from(start_bound: BoundOrd<T>) -> Bound<T> {
+impl<T> From<DiscreteBoundOrd<T>> for Bound<T> {
+	fn from(start_bound: DiscreteBoundOrd<T>) -> Bound<T> {
 		match start_bound {
-			BoundOrd::Included(point) => Bound::Included(point),
-			BoundOrd::StartExcluded(point) => Bound::Excluded(point),
-			BoundOrd::StartUnbounded => Bound::Unbounded,
-			BoundOrd::EndExcluded(point) => Bound::Excluded(point),
-			BoundOrd::EndUnbounded => Bound::Unbounded,
+			DiscreteBoundOrd::Included(point) => Bound::Included(point),
+			DiscreteBoundOrd::StartExcluded(point) => Bound::Excluded(point),
+			DiscreteBoundOrd::StartUnbounded => Bound::Unbounded,
+			DiscreteBoundOrd::EndExcluded(point) => Bound::Excluded(point),
+			DiscreteBoundOrd::EndUnbounded => Bound::Unbounded,
 		}
 	}
 }
@@ -162,58 +140,137 @@ mod tests {
 	#[test]
 	fn mass_start_bound_partial_ord_test() {
 		//Included
-		assert!(BoundOrd::Included(2) == BoundOrd::Included(2));
-		assert!(BoundOrd::Included(2) <= BoundOrd::Included(2));
-		assert!(BoundOrd::Included(2) >= BoundOrd::Included(2));
-		assert!(BoundOrd::Included(0) < BoundOrd::Included(2));
-		assert!(BoundOrd::Included(2) > BoundOrd::Included(0));
+		assert!(DiscreteBoundOrd::Included(2) == DiscreteBoundOrd::Included(2));
+		assert!(DiscreteBoundOrd::Included(2) <= DiscreteBoundOrd::Included(2));
+		assert!(DiscreteBoundOrd::Included(2) >= DiscreteBoundOrd::Included(2));
+		assert!(DiscreteBoundOrd::Included(0) < DiscreteBoundOrd::Included(2));
+		assert!(DiscreteBoundOrd::Included(2) > DiscreteBoundOrd::Included(0));
 
-		assert!(BoundOrd::Included(2) < BoundOrd::StartExcluded(2));
-		assert!(BoundOrd::Included(0) < BoundOrd::StartExcluded(2));
-		assert!(BoundOrd::Included(2) > BoundOrd::StartExcluded(0));
+		assert!(
+			DiscreteBoundOrd::Included(2) < DiscreteBoundOrd::StartExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::Included(0) < DiscreteBoundOrd::StartExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::Included(2) > DiscreteBoundOrd::StartExcluded(0)
+		);
 
-		assert!(BoundOrd::Included(2) > BoundOrd::StartUnbounded);
+		assert!(
+			DiscreteBoundOrd::Included(2) > DiscreteBoundOrd::StartUnbounded
+		);
 
-		assert!(BoundOrd::Included(2) > BoundOrd::EndExcluded(2));
-		assert!(BoundOrd::Included(0) < BoundOrd::EndExcluded(2));
-		assert!(BoundOrd::Included(2) > BoundOrd::EndExcluded(0));
+		assert!(
+			DiscreteBoundOrd::Included(2) > DiscreteBoundOrd::EndExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::Included(0) < DiscreteBoundOrd::EndExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::Included(2) > DiscreteBoundOrd::EndExcluded(0)
+		);
 
-		assert!(BoundOrd::Included(2) < BoundOrd::EndUnbounded);
+		assert!(DiscreteBoundOrd::Included(2) < DiscreteBoundOrd::EndUnbounded);
 
 		//StartExcluded
-		assert!(BoundOrd::StartExcluded(2) == BoundOrd::StartExcluded(2));
-		assert!(BoundOrd::StartExcluded(2) <= BoundOrd::StartExcluded(2));
-		assert!(BoundOrd::StartExcluded(2) >= BoundOrd::StartExcluded(2));
-		assert!(BoundOrd::StartExcluded(0) < BoundOrd::StartExcluded(2));
-		assert!(BoundOrd::StartExcluded(2) > BoundOrd::StartExcluded(0));
+		assert!(
+			DiscreteBoundOrd::StartExcluded(2)
+				== DiscreteBoundOrd::StartExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::StartExcluded(2)
+				<= DiscreteBoundOrd::StartExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::StartExcluded(2)
+				>= DiscreteBoundOrd::StartExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::StartExcluded(0)
+				< DiscreteBoundOrd::StartExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::StartExcluded(2)
+				> DiscreteBoundOrd::StartExcluded(0)
+		);
 
-		assert!(BoundOrd::StartExcluded(2) > BoundOrd::StartUnbounded);
+		assert!(
+			DiscreteBoundOrd::StartExcluded(2)
+				> DiscreteBoundOrd::StartUnbounded
+		);
 
-		assert!(BoundOrd::StartExcluded(2) > BoundOrd::EndExcluded(2));
-		assert!(BoundOrd::StartExcluded(2) > BoundOrd::EndExcluded(0));
-		assert!(BoundOrd::StartExcluded(0) < BoundOrd::EndExcluded(2));
+		assert!(
+			DiscreteBoundOrd::StartExcluded(2)
+				> DiscreteBoundOrd::EndExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::StartExcluded(2)
+				> DiscreteBoundOrd::EndExcluded(0)
+		);
+		assert!(
+			DiscreteBoundOrd::StartExcluded(0)
+				< DiscreteBoundOrd::EndExcluded(2)
+		);
 
-		assert!(BoundOrd::StartExcluded(2) < BoundOrd::EndUnbounded);
+		assert!(
+			DiscreteBoundOrd::StartExcluded(2) < DiscreteBoundOrd::EndUnbounded
+		);
 
 		//StartUnbounded
-		assert!(BoundOrd::StartUnbounded::<i8> == BoundOrd::StartUnbounded);
-		assert!(BoundOrd::StartUnbounded::<i8> <= BoundOrd::StartUnbounded);
-		assert!(BoundOrd::StartUnbounded::<i8> >= BoundOrd::StartUnbounded);
+		assert!(
+			DiscreteBoundOrd::StartUnbounded::<i8>
+				== DiscreteBoundOrd::StartUnbounded
+		);
+		assert!(
+			DiscreteBoundOrd::StartUnbounded::<i8>
+				<= DiscreteBoundOrd::StartUnbounded
+		);
+		assert!(
+			DiscreteBoundOrd::StartUnbounded::<i8>
+				>= DiscreteBoundOrd::StartUnbounded
+		);
 
-		assert!(BoundOrd::StartUnbounded < BoundOrd::EndExcluded(2));
+		assert!(
+			DiscreteBoundOrd::StartUnbounded < DiscreteBoundOrd::EndExcluded(2)
+		);
 
-		assert!(BoundOrd::StartUnbounded::<i8> < BoundOrd::EndUnbounded);
+		assert!(
+			DiscreteBoundOrd::StartUnbounded::<i8>
+				< DiscreteBoundOrd::EndUnbounded
+		);
 
 		//EndExcluded
-		assert!(BoundOrd::EndExcluded(2) == BoundOrd::EndExcluded(2));
-		assert!(BoundOrd::EndExcluded(2) <= BoundOrd::EndExcluded(2));
-		assert!(BoundOrd::EndExcluded(2) >= BoundOrd::EndExcluded(2));
-		assert!(BoundOrd::EndExcluded(0) < BoundOrd::EndExcluded(2));
-		assert!(BoundOrd::EndExcluded(2) > BoundOrd::EndExcluded(0));
+		assert!(
+			DiscreteBoundOrd::EndExcluded(2)
+				== DiscreteBoundOrd::EndExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::EndExcluded(2)
+				<= DiscreteBoundOrd::EndExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::EndExcluded(2)
+				>= DiscreteBoundOrd::EndExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::EndExcluded(0) < DiscreteBoundOrd::EndExcluded(2)
+		);
+		assert!(
+			DiscreteBoundOrd::EndExcluded(2) > DiscreteBoundOrd::EndExcluded(0)
+		);
 
 		//EndUnbounded
-		assert!(BoundOrd::EndUnbounded::<i8> == BoundOrd::EndUnbounded);
-		assert!(BoundOrd::EndUnbounded::<i8> <= BoundOrd::EndUnbounded);
-		assert!(BoundOrd::EndUnbounded::<i8> >= BoundOrd::EndUnbounded);
+		assert!(
+			DiscreteBoundOrd::EndUnbounded::<i8>
+				== DiscreteBoundOrd::EndUnbounded
+		);
+		assert!(
+			DiscreteBoundOrd::EndUnbounded::<i8>
+				<= DiscreteBoundOrd::EndUnbounded
+		);
+		assert!(
+			DiscreteBoundOrd::EndUnbounded::<i8>
+				>= DiscreteBoundOrd::EndUnbounded
+		);
 	}
 }

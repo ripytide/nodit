@@ -20,20 +20,20 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 use std::cmp::Ordering;
 use std::ops::Bound;
 
-use crate::bound_ord::BoundOrd;
+use crate::bound_ord::DiscreteBoundOrd;
 use crate::range_bounds_map::NiceRange;
 
 pub(crate) fn cmp_range_with_bound_ord<A, B>(
 	range: A,
-	bound_ord: BoundOrd<B>,
+	bound_ord: DiscreteBoundOrd<B>,
 ) -> Ordering
 where
 	A: NiceRange<B>,
 	B: Ord,
 {
-	if bound_ord < BoundOrd::start(range.start()) {
+	if bound_ord < DiscreteBoundOrd::start(range.start()) {
 		Ordering::Less
-	} else if bound_ord > BoundOrd::end(range.end()) {
+	} else if bound_ord > DiscreteBoundOrd::end(range.end()) {
 		Ordering::Greater
 	} else {
 		Ordering::Equal
@@ -56,11 +56,11 @@ where
 	B: NiceRange<I>,
 	I: Ord,
 {
-	match BoundOrd::start(a.start()) < BoundOrd::start(b.start()) {
+	match DiscreteBoundOrd::start(a.start()) < DiscreteBoundOrd::start(b.start()) {
 		true => {
 			match (
-				contains_bound_ord(a, BoundOrd::start(b.start())),
-				contains_bound_ord(a, BoundOrd::end(b.end())),
+				contains_bound_ord(a, DiscreteBoundOrd::start(b.start())),
+				contains_bound_ord(a, DiscreteBoundOrd::end(b.end())),
 			) {
 				(false, false) => Config::LeftFirstNonOverlapping,
 				(true, false) => Config::LeftFirstPartialOverlap,
@@ -70,8 +70,8 @@ where
 		}
 		false => {
 			match (
-				contains_bound_ord(b, BoundOrd::start(a.start())),
-				contains_bound_ord(b, BoundOrd::end(a.end())),
+				contains_bound_ord(b, DiscreteBoundOrd::start(a.start())),
+				contains_bound_ord(b, DiscreteBoundOrd::end(a.end())),
 			) {
 				(false, false) => Config::RightFirstNonOverlapping,
 				(true, false) => Config::RightFirstPartialOverlap,
@@ -110,13 +110,13 @@ where
 	}
 }
 
-pub(crate) fn contains_bound_ord<I, A>(range: A, bound_ord: BoundOrd<I>) -> bool
+pub(crate) fn contains_bound_ord<I, A>(range: A, bound_ord: DiscreteBoundOrd<I>) -> bool
 where
 	A: NiceRange<I>,
 	I: Ord,
 {
-	let start_bound_ord = BoundOrd::start(range.start());
-	let end_bound_ord = BoundOrd::end(range.end());
+	let start_bound_ord = DiscreteBoundOrd::start(range.start());
+	let end_bound_ord = DiscreteBoundOrd::end(range.end());
 
 	return bound_ord >= start_bound_ord && bound_ord <= end_bound_ord;
 }
