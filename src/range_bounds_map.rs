@@ -797,7 +797,7 @@ where
 
 		let (trimmed_start_gap, trimmed_end_gap) = match (start_gap, end_gap) {
 			(Some(mut start_gap), Some(mut end_gap)) => {
-				if start_gap.start() == end_gap.end() {
+				if start_gap.start() == end_gap.start() {
 					//it's the same gap
 					if let DiscreteBoundOrd::Included(outer_range_start) = outer_range.start() {
 						start_gap.start = DiscreteBound::Included(outer_range_start);
@@ -1956,7 +1956,6 @@ mod tests {
 
 	#[test]
 	fn gaps_tests() {
-        eprintln!("hererererererer");
 		assert_gaps(basic(), ii(50, 60), [ii(50, 60)]);
 		assert_gaps(basic(), iu(50), [iu(50)]);
 		assert_gaps(basic(), ee(3, 16), [ei(4, 5), ee(7, 14)]);
@@ -1972,6 +1971,13 @@ mod tests {
 			basic(),
 			ii(i8::MIN, i8::MAX),
 			[ei(4, 5), ee(7, 14), ii(16, i8::MAX)],
+		);
+		assert_eq!(
+			RangeBoundsMap::from_slice_strict([(ii(i8::MIN, i8::MAX), false)])
+				.unwrap()
+				.gaps(uu())
+				.collect::<Vec<_>>(),
+			[ui(i8::MIN), iu(i8::MAX)]
 		);
 	}
 	fn assert_gaps<const N: usize>(
