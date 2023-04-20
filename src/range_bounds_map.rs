@@ -35,7 +35,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::bound_ord::DiscreteBoundOrd;
 use crate::discrete_bounds::DiscreteBounds;
 use crate::utils::{
-	cmp_range_with_discrete_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
+	cmp_range_with_discrete_bound_ord, cut_range, flip_bound, is_valid_range,
+	overlaps,
 };
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
@@ -791,7 +792,7 @@ where
 	>
 	where
 		Q: NiceRange<I>,
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -831,7 +832,7 @@ where
 	>
 	where
 		Q: NiceRange<I> + 'a,
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -1087,7 +1088,7 @@ where
 		remove_end: R2,
 	) -> Result<K, TryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 		G1: FnOnce(&Self, &V) -> Option<K>,
 		G2: FnOnce(&Self, &V) -> Option<K>,
 		R1: FnOnce(&mut Self, &V),
@@ -1187,7 +1188,7 @@ where
 		value: V,
 	) -> Result<K, OverlapOrTryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 	{
 		invalid_range_panic(range);
 
@@ -1286,7 +1287,7 @@ where
 		value: V,
 	) -> Result<K, OverlapOrTryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 		V: Eq,
 	{
 		invalid_range_panic(range);
@@ -1396,7 +1397,7 @@ where
 		value: V,
 	) -> Result<K, TryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 	{
 		invalid_range_panic(range);
 
@@ -1483,7 +1484,7 @@ where
 		value: V,
 	) -> Result<K, TryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 	{
 		invalid_range_panic(range);
 
@@ -1560,7 +1561,7 @@ where
 		value: V,
 	) -> Result<(), TryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -1679,7 +1680,10 @@ where
 	K: NiceRange<I>,
 {
 	move |inner_range: &K| {
-		cmp_range_with_discrete_bound_ord(*inner_range, DiscreteBoundOrd::start(start))
+		cmp_range_with_discrete_bound_ord(
+			*inner_range,
+			DiscreteBoundOrd::start(start),
+		)
 	}
 }
 fn overlapping_end_comp<I, K>(end: Bound<I>) -> impl FnMut(&K) -> Ordering
@@ -1688,7 +1692,10 @@ where
 	K: NiceRange<I>,
 {
 	move |inner_range: &K| {
-		cmp_range_with_discrete_bound_ord(*inner_range, DiscreteBoundOrd::end(end))
+		cmp_range_with_discrete_bound_ord(
+			*inner_range,
+			DiscreteBoundOrd::end(end),
+		)
 	}
 }
 fn touching_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
@@ -1707,7 +1714,8 @@ where
 		}
 
 		(end, start) => {
-			let normal_result = DiscreteBoundOrd::start(start).cmp(&DiscreteBoundOrd::end(end));
+			let normal_result =
+				DiscreteBoundOrd::start(start).cmp(&DiscreteBoundOrd::end(end));
 
 			//we overide any Equals to a random non-Equal since we
 			//don't want non-touching matches
@@ -1734,8 +1742,8 @@ where
 		}
 
 		(end, _start) => {
-			let normal_result =
-				DiscreteBoundOrd::end(end).cmp(&DiscreteBoundOrd::start(inner_range.start()));
+			let normal_result = DiscreteBoundOrd::end(end)
+				.cmp(&DiscreteBoundOrd::start(inner_range.start()));
 
 			//we overide any Equals to a random non-Equal since we
 			//don't want non-touching matches
@@ -1938,22 +1946,6 @@ mod tests {
 			}
 		}
 	}
-	impl TryFromBounds<i8> for MultiBounds {
-		fn try_from_bounds(
-			start_bound: Bound<i8>,
-			end_bound: Bound<i8>,
-		) -> Result<Self, TryFromBoundsError> {
-			match (start_bound, end_bound) {
-				(Bound::Included(start), Bound::Included(end)) => {
-					Ok(mii(start, end))
-				}
-				(Bound::Excluded(start), Bound::Excluded(end)) => {
-					Ok(mee(start, end))
-				}
-				_ => Err(TryFromBoundsError),
-			}
-		}
-	}
 
 	#[test]
 	fn insert_strict_tests() {
@@ -2078,8 +2070,9 @@ mod tests {
 				//make our expected_overlapping the correct order
 				if expected_overlapping.len() > 1 {
 					if DiscreteBoundOrd::start(expected_overlapping[0].start())
-						> DiscreteBoundOrd::start(expected_overlapping[1].start())
-					{
+						> DiscreteBoundOrd::start(
+							expected_overlapping[1].start(),
+						) {
 						expected_overlapping.swap(0, 1);
 					}
 				}
@@ -2228,7 +2221,7 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFromBounds<I> + PartialEq + Debug,
+		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
 		Q: NiceRange<I>,
 		V: PartialEq + Debug + Clone,
 	{
@@ -2374,7 +2367,7 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFromBounds<I> + PartialEq + Debug,
+		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2497,7 +2490,7 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFromBounds<I> + PartialEq + Debug,
+		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
 		V: Eq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2605,7 +2598,7 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFromBounds<I> + PartialEq + Debug,
+		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2739,7 +2732,7 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFromBounds<I> + PartialEq + Debug,
+		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();

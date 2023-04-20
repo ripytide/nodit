@@ -6,6 +6,7 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::discrete_bounds::DiscreteBounds;
 use crate::range_bounds_map::{IntoIter as RangeBoundsMapIntoIter, NiceRange};
 use crate::{
 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
@@ -98,7 +99,7 @@ where
 	>
 	where
 		Q: NiceRange<I> + 'a,
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 	{
 		self.inner.cut(range).map(|x| x.map(first))
 	}
@@ -129,7 +130,7 @@ where
 		range: K,
 	) -> Result<K, OverlapOrTryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 	{
 		self.inner.insert_merge_touching(range, ())
 	}
@@ -139,7 +140,7 @@ where
 		range: K,
 	) -> Result<K, TryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 	{
 		self.inner.insert_merge_overlapping(range, ())
 	}
@@ -149,7 +150,7 @@ where
 		range: K,
 	) -> Result<K, TryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 	{
 		self.inner.insert_merge_touching_or_overlapping(range, ())
 	}
@@ -159,7 +160,7 @@ where
 		range: K,
 	) -> Result<(), TryFromBoundsError>
 	where
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 	{
 		self.inner.insert_overwrite(range, ())
 	}
