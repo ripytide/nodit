@@ -34,6 +34,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::DiscreteBoundOrd;
 use crate::discrete_bounds::DiscreteBounds;
+use crate::stepable::Stepable;
 use crate::utils::{
 	cmp_range_with_discrete_bound_ord, cut_range, flip_bound, is_valid_range,
 	overlaps,
@@ -284,7 +285,7 @@ pub enum OverlapOrTryFromBoundsError {
 impl<I, K, V> RangeBoundsMap<I, K, V>
 where
 	I: Ord + Copy,
-	K: NiceRange<I>,
+	K: DiscreteRange<I>,
 {
 	/// Makes a new, empty `RangeBoundsMap`.
 	///
@@ -366,7 +367,7 @@ where
 	/// ```
 	pub fn overlaps<Q>(&self, range: Q) -> bool
 	where
-		Q: NiceRange<I>,
+		Q: DiscreteRange<I>,
 	{
 		invalid_range_panic(range);
 
@@ -406,7 +407,7 @@ where
 		range: Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &V)>
 	where
-		Q: NiceRange<I>,
+		Q: DiscreteRange<I>,
 	{
 		invalid_range_panic(range);
 
@@ -454,7 +455,7 @@ where
 		range: Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &mut V)>
 	where
-		Q: NiceRange<I>,
+		Q: DiscreteRange<I>,
 	{
 		invalid_range_panic(range);
 
@@ -687,7 +688,7 @@ where
 		range: Q,
 	) -> impl Iterator<Item = (K, V)> + '_
 	where
-		Q: NiceRange<I> + 'a,
+		Q: DiscreteRange<I> + 'a,
 	{
 		invalid_range_panic(range);
 
@@ -756,7 +757,7 @@ where
 		TryFromBoundsError,
 	>
 	where
-		Q: NiceRange<I> + 'a,
+		Q: DiscreteRange<I> + 'a,
 		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
 	{
@@ -791,7 +792,7 @@ where
 		TryFromBoundsError,
 	>
 	where
-		Q: NiceRange<I>,
+		Q: DiscreteRange<I>,
 		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
 	{
@@ -831,7 +832,7 @@ where
 		TryFromBoundsError,
 	>
 	where
-		Q: NiceRange<I> + 'a,
+		Q: DiscreteRange<I> + 'a,
 		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
 	{
@@ -947,7 +948,7 @@ where
 		outer_range: Q,
 	) -> impl DoubleEndedIterator<Item = (Bound<I>, Bound<I>)>
 	where
-		Q: NiceRange<I>,
+		Q: DiscreteRange<I>,
 	{
 		invalid_range_panic(outer_range);
 
@@ -1028,7 +1029,7 @@ where
 	/// ```
 	pub fn contains_range<Q>(&self, range: Q) -> bool
 	where
-		Q: NiceRange<I>,
+		Q: DiscreteRange<I>,
 	{
 		invalid_range_panic(range);
 
@@ -1654,7 +1655,7 @@ where
 
 fn invalid_range_panic<Q, I>(range: Q)
 where
-	Q: NiceRange<I>,
+	Q: DiscreteRange<I>,
 	I: Ord,
 {
 	if !is_valid_range(range) {
@@ -1666,7 +1667,7 @@ where
 
 fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
 where
-	K: NiceRange<I>,
+	K: DiscreteRange<I>,
 	I: Ord,
 {
 	|inner_range: &K, new_range: &K| {
@@ -1677,7 +1678,7 @@ where
 fn overlapping_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy,
-	K: NiceRange<I>,
+	K: DiscreteRange<I>,
 {
 	move |inner_range: &K| {
 		cmp_range_with_discrete_bound_ord(
@@ -1689,7 +1690,7 @@ where
 fn overlapping_end_comp<I, K>(end: Bound<I>) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy,
-	K: NiceRange<I>,
+	K: DiscreteRange<I>,
 {
 	move |inner_range: &K| {
 		cmp_range_with_discrete_bound_ord(
@@ -1701,7 +1702,7 @@ where
 fn touching_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy,
-	K: NiceRange<I>,
+	K: DiscreteRange<I>,
 {
 	move |inner_range: &K| match (inner_range.end(), start) {
 		//we only allow Ordering::Equal here since if they are equal
@@ -1729,7 +1730,7 @@ where
 fn touching_end_comp<I, K>(end: Bound<I>) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy,
-	K: NiceRange<I>,
+	K: DiscreteRange<I>,
 {
 	move |inner_range: &K| match (end, inner_range.start()) {
 		//we only allow Ordering::Equal here since if they are equal
@@ -1758,13 +1759,13 @@ where
 /// A simple helper trait to make my implemtation nicer, if you
 /// already implement RangeBounds and Copy on your type then this will
 /// also be implemted.
-pub trait NiceRange<I>: Copy {
+pub trait DiscreteRange<I>: Copy {
 	fn start(&self) -> DiscreteBoundOrd<I>;
 	fn end(&self) -> DiscreteBoundOrd<I>;
 }
-impl<K, I> NiceRange<I> for K
+impl<K, I> DiscreteRange<I> for K
 where
-	I: Copy,
+	I: Copy + Stepable,
 	K: RangeBounds<I> + Copy,
 {
 	fn start(&self) -> Bound<I> {
@@ -1818,7 +1819,7 @@ impl<I, K, V> Default for RangeBoundsMap<I, K, V> {
 impl<I, K, V> Serialize for RangeBoundsMap<I, K, V>
 where
 	I: Ord + Copy,
-	K: NiceRange<I> + Serialize,
+	K: DiscreteRange<I> + Serialize,
 	V: Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -1836,7 +1837,7 @@ where
 impl<'de, I, K, V> Deserialize<'de> for RangeBoundsMap<I, K, V>
 where
 	I: Ord + Copy,
-	K: NiceRange<I> + Deserialize<'de>,
+	K: DiscreteRange<I> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -1860,7 +1861,7 @@ struct RangeBoundsMapVisitor<I, K, V> {
 impl<'de, I, K, V> Visitor<'de> for RangeBoundsMapVisitor<I, K, V>
 where
 	I: Ord + Copy,
-	K: NiceRange<I> + Deserialize<'de>,
+	K: DiscreteRange<I> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
 	type Value = RangeBoundsMap<I, K, V>;
@@ -2221,8 +2222,8 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
-		Q: NiceRange<I>,
+		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+		Q: DiscreteRange<I>,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2367,7 +2368,7 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2490,7 +2491,7 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
 		V: Eq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2598,7 +2599,7 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2732,7 +2733,7 @@ mod tests {
 		after: Option<[(K, V); N]>,
 	) where
 		I: Ord + Debug + Copy,
-		K: NiceRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();

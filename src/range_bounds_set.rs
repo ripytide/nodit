@@ -7,7 +7,7 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::discrete_bounds::DiscreteBounds;
-use crate::range_bounds_map::{IntoIter as RangeBoundsMapIntoIter, NiceRange};
+use crate::range_bounds_map::{IntoIter as RangeBoundsMapIntoIter, DiscreteRange};
 use crate::{
 	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
 	TryFromBoundsError,
@@ -34,7 +34,7 @@ pub struct RangeBoundsSet<I, K> {
 impl<I, K> RangeBoundsSet<I, K>
 where
 	I: Ord + Copy,
-	K: NiceRange<I>,
+	K: DiscreteRange<I>,
 {
 	/// See [`RangeBoundsMap::new()`] for more details.
 	pub fn new() -> Self {
@@ -53,7 +53,7 @@ where
 	/// See [`RangeBoundsMap::overlaps()`] for more details.
 	pub fn overlaps<Q>(&self, range: Q) -> bool
 	where
-		Q: NiceRange<I>,
+		Q: DiscreteRange<I>,
 	{
 		self.inner.overlaps(range)
 	}
@@ -63,7 +63,7 @@ where
 		range: Q,
 	) -> impl DoubleEndedIterator<Item = &K>
 	where
-		Q: NiceRange<I>,
+		Q: DiscreteRange<I>,
 	{
 		self.inner.overlapping(range).map(first)
 	}
@@ -85,7 +85,7 @@ where
 		range: Q,
 	) -> impl Iterator<Item = K> + '_
 	where
-		Q: NiceRange<I> + 'a,
+		Q: DiscreteRange<I> + 'a,
 	{
 		self.inner.remove_overlapping(range).map(first)
 	}
@@ -98,7 +98,7 @@ where
 		TryFromBoundsError,
 	>
 	where
-		Q: NiceRange<I> + 'a,
+		Q: DiscreteRange<I> + 'a,
 		K: TryFrom<DiscreteBounds<I>>,
 	{
 		self.inner.cut(range).map(|x| x.map(first))
@@ -109,14 +109,14 @@ where
 		range: Q,
 	) -> impl DoubleEndedIterator<Item = (Bound<I>, Bound<I>)> + '_
 	where
-		Q: NiceRange<I> + 'a,
+		Q: DiscreteRange<I> + 'a,
 	{
 		self.inner.gaps(range)
 	}
 	/// See [`RangeBoundsMap::contains_range()`] for more details.
 	pub fn contains_range<Q>(&self, range: Q) -> bool
 	where
-		Q: NiceRange<I>,
+		Q: DiscreteRange<I>,
 	{
 		self.inner.contains_range(range)
 	}
@@ -233,7 +233,7 @@ where
 impl<I, K> Serialize for RangeBoundsSet<I, K>
 where
 	I: Ord + Copy,
-	K: NiceRange<I> + Serialize,
+	K: DiscreteRange<I> + Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -250,7 +250,7 @@ where
 impl<'de, I, K> Deserialize<'de> for RangeBoundsSet<I, K>
 where
 	I: Ord + Copy,
-	K: NiceRange<I> + Deserialize<'de>,
+	K: DiscreteRange<I> + Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
@@ -271,7 +271,7 @@ struct RangeBoundsSetVisitor<I, K> {
 impl<'de, I, K> Visitor<'de> for RangeBoundsSetVisitor<I, K>
 where
 	I: Ord + Copy,
-	K: NiceRange<I> + Deserialize<'de>,
+	K: DiscreteRange<I> + Deserialize<'de>,
 {
 	type Value = RangeBoundsSet<I, K>;
 

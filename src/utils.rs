@@ -21,14 +21,14 @@ use std::cmp::Ordering;
 use std::ops::Bound;
 
 use crate::bound_ord::DiscreteBoundOrd;
-use crate::range_bounds_map::NiceRange;
+use crate::range_bounds_map::DiscreteRange;
 
 pub(crate) fn cmp_range_with_discrete_bound_ord<A, B>(
 	range: A,
 	discrete_bound_ord: DiscreteBoundOrd<B>,
 ) -> Ordering
 where
-	A: NiceRange<B>,
+	A: DiscreteRange<B>,
 	B: Ord,
 {
 	if discrete_bound_ord < range.start() {
@@ -52,13 +52,11 @@ pub(crate) enum Config {
 }
 pub(crate) fn config<I, A, B>(a: A, b: B) -> Config
 where
-	A: NiceRange<I>,
-	B: NiceRange<I>,
+	A: DiscreteRange<I>,
+	B: DiscreteRange<I>,
 	I: Ord,
 {
-	match DiscreteBoundOrd::start(a.start())
-		< DiscreteBoundOrd::start(b.start())
-	{
+	match a.start() < b.start() {
 		true => {
 			match (
 				contains_bound_ord(a, DiscreteBoundOrd::start(b.start())),
@@ -91,8 +89,8 @@ enum SortedConfig<I> {
 }
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
-	A: NiceRange<I>,
-	B: NiceRange<I>,
+	A: DiscreteRange<I>,
+	B: DiscreteRange<I>,
 	I: Ord,
 {
 	let ae = (a.start(), a.end());
@@ -117,7 +115,7 @@ pub(crate) fn contains_bound_ord<I, A>(
 	bound_ord: DiscreteBoundOrd<I>,
 ) -> bool
 where
-	A: NiceRange<I>,
+	A: DiscreteRange<I>,
 	I: Ord,
 {
 	let start_bound_ord = DiscreteBoundOrd::start(range.start());
@@ -134,8 +132,8 @@ pub(crate) struct CutResult<I> {
 }
 pub(crate) fn cut_range<I, B, C>(base: B, cut: C) -> CutResult<I>
 where
-	B: NiceRange<I>,
-	C: NiceRange<I>,
+	B: DiscreteRange<I>,
+	C: DiscreteRange<I>,
 	I: Ord + Copy,
 {
 	let mut result = CutResult {
@@ -188,7 +186,7 @@ where
 pub(crate) fn is_valid_range<I, K>(range: K) -> bool
 where
 	I: Ord,
-	K: NiceRange<I>,
+	K: DiscreteRange<I>,
 {
 	match (range.start(), range.end()) {
 		(Bound::Included(start), Bound::Included(end)) => start <= end,
@@ -201,8 +199,8 @@ where
 
 pub(crate) fn overlaps<I, A, B>(a: A, b: B) -> bool
 where
-	A: NiceRange<I>,
-	B: NiceRange<I>,
+	A: DiscreteRange<I>,
+	B: DiscreteRange<I>,
 	I: Ord,
 {
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
