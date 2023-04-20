@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::range_bounds_map::{IntoIter as RangeBoundsMapIntoIter, NiceRange};
 use crate::{
-	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap, TryFromBounds,
+	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
 	TryFromBoundsError,
 };
 

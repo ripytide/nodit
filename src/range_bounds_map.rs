@@ -33,10 +33,10 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bound_ord::DiscreteBoundOrd;
+use crate::discrete_bounds::DiscreteBounds;
 use crate::utils::{
-	cmp_range_with_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
+	cmp_range_with_discrete_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
 };
-use crate::TryFromBounds;
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
 ///
@@ -756,7 +756,7 @@ where
 	>
 	where
 		Q: NiceRange<I> + 'a,
-		K: TryFromBounds<I>,
+		K: TryFrom<DiscreteBounds<I>>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -1679,7 +1679,7 @@ where
 	K: NiceRange<I>,
 {
 	move |inner_range: &K| {
-		cmp_range_with_bound_ord(*inner_range, DiscreteBoundOrd::start(start))
+		cmp_range_with_discrete_bound_ord(*inner_range, DiscreteBoundOrd::start(start))
 	}
 }
 fn overlapping_end_comp<I, K>(end: Bound<I>) -> impl FnMut(&K) -> Ordering
@@ -1688,7 +1688,7 @@ where
 	K: NiceRange<I>,
 {
 	move |inner_range: &K| {
-		cmp_range_with_bound_ord(*inner_range, DiscreteBoundOrd::end(end))
+		cmp_range_with_discrete_bound_ord(*inner_range, DiscreteBoundOrd::end(end))
 	}
 }
 fn touching_start_comp<I, K>(start: Bound<I>) -> impl FnMut(&K) -> Ordering
@@ -1751,8 +1751,8 @@ where
 /// already implement RangeBounds and Copy on your type then this will
 /// also be implemted.
 pub trait NiceRange<I>: Copy {
-	fn start(&self) -> Bound<I>;
-	fn end(&self) -> Bound<I>;
+	fn start(&self) -> DiscreteBoundOrd<I>;
+	fn end(&self) -> DiscreteBoundOrd<I>;
 }
 impl<K, I> NiceRange<I> for K
 where

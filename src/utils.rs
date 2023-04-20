@@ -23,17 +23,17 @@ use std::ops::Bound;
 use crate::bound_ord::DiscreteBoundOrd;
 use crate::range_bounds_map::NiceRange;
 
-pub(crate) fn cmp_range_with_bound_ord<A, B>(
+pub(crate) fn cmp_range_with_discrete_bound_ord<A, B>(
 	range: A,
-	bound_ord: DiscreteBoundOrd<B>,
+	discrete_bound_ord: DiscreteBoundOrd<B>,
 ) -> Ordering
 where
 	A: NiceRange<B>,
 	B: Ord,
 {
-	if bound_ord < DiscreteBoundOrd::start(range.start()) {
+	if discrete_bound_ord < range.start() {
 		Ordering::Less
-	} else if bound_ord > DiscreteBoundOrd::end(range.end()) {
+	} else if discrete_bound_ord > range.end() {
 		Ordering::Greater
 	} else {
 		Ordering::Equal
@@ -56,7 +56,9 @@ where
 	B: NiceRange<I>,
 	I: Ord,
 {
-	match DiscreteBoundOrd::start(a.start()) < DiscreteBoundOrd::start(b.start()) {
+	match DiscreteBoundOrd::start(a.start())
+		< DiscreteBoundOrd::start(b.start())
+	{
 		true => {
 			match (
 				contains_bound_ord(a, DiscreteBoundOrd::start(b.start())),
@@ -110,7 +112,10 @@ where
 	}
 }
 
-pub(crate) fn contains_bound_ord<I, A>(range: A, bound_ord: DiscreteBoundOrd<I>) -> bool
+pub(crate) fn contains_bound_ord<I, A>(
+	range: A,
+	bound_ord: DiscreteBoundOrd<I>,
+) -> bool
 where
 	A: NiceRange<I>,
 	I: Ord,

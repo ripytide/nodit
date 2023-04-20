@@ -1,6 +1,6 @@
 use std::ops::{Bound, RangeBounds};
 
-use crate::{TryFromBounds, TryFromBoundsError};
+use crate::{TryFromBoundsError};
 
 pub type AnyRange = (Bound<i8>, Bound<i8>);
 
@@ -55,22 +55,5 @@ impl RangeBounds<i8> for InExRange {
 	}
 	fn end_bound(&self) -> Bound<&i8> {
 		Bound::Excluded(&self.end)
-	}
-}
-
-impl TryFromBounds<i8> for InExRange {
-	fn try_from_bounds(
-		start_bound: Bound<i8>,
-		end_bound: Bound<i8>,
-	) -> Result<Self, crate::TryFromBoundsError>
-	where
-		Self: Sized,
-	{
-		match (start_bound, end_bound) {
-			(Bound::Included(start), Bound::Excluded(end)) => {
-				Ok(InExRange { start, end })
-			}
-			_ => Err(TryFromBoundsError),
-		}
 	}
 }
