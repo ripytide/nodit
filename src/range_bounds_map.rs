@@ -34,7 +34,7 @@ use crate::discrete_bound_ord::DiscreteBoundOrd;
 use crate::discrete_bounds::{DiscreteBound, DiscreteBounds};
 use crate::stepable::Stepable;
 use crate::try_from_discrete_bounds::TryFromDiscreteBounds;
-use crate::utils::{cmp_range_with_discrete_bound_ord, cut_range, is_valid_range, overlaps};
+use crate::utils::{cmp_discrete_bound_ord_with_range, cut_range, is_valid_range, overlaps};
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
 ///
@@ -1628,7 +1628,7 @@ where
 	I: Ord + Copy,
 	K: DiscreteRange<I> + Copy,
 {
-	move |inner_range: &K| cmp_range_with_discrete_bound_ord(*inner_range, bound)
+	move |inner_range: &K| cmp_discrete_bound_ord_with_range(bound, *inner_range)
 }
 fn touching_start_comp<I, K>(start: DiscreteBoundOrd<I>) -> impl FnMut(&K) -> Ordering
 where
@@ -1812,8 +1812,6 @@ where
 
 #[cfg(test)]
 mod tests {
-	use std::ops::Bound;
-
 	use pretty_assertions::assert_eq;
 
 	use super::*;
@@ -1837,59 +1835,6 @@ mod tests {
 		.unwrap()
 	}
 
-	fn special() -> RangeBoundsMap<i8, MultiBounds, bool> {
-		RangeBoundsMap::from_slice_strict([
-			(mii(4, 6), false),
-			(mee(7, 8), true),
-			(mii(8, 12), false),
-		])
-		.unwrap()
-	}
-
-	#[derive(Debug, PartialEq, Copy, Clone)]
-	enum MultiBounds {
-		Inclusive(i8, i8),
-		Exclusive(i8, i8),
-	}
-
-	fn mii(start: i8, end: i8) -> MultiBounds {
-		MultiBounds::Inclusive(start, end)
-	}
-	fn mee(start: i8, end: i8) -> MultiBounds {
-		MultiBounds::Exclusive(start, end)
-	}
-
-	impl RangeBounds<i8> for MultiBounds {
-		fn start_bound(&self) -> Bound<&i8> {
-			match self {
-				MultiBounds::Inclusive(start, _) => Bound::Included(start),
-				MultiBounds::Exclusive(start, _) => Bound::Excluded(start),
-			}
-		}
-		fn end_bound(&self) -> Bound<&i8> {
-			match self {
-				MultiBounds::Inclusive(_, end) => Bound::Included(end),
-				MultiBounds::Exclusive(_, end) => Bound::Excluded(end),
-			}
-		}
-	}
-
-	impl TryFromDiscreteBounds<i8> for MultiBounds {
-		fn try_from_discrete_bounds(
-			discrete_bounds: DiscreteBounds<i8>,
-		) -> Result<Self, TryFromDiscreteBoundsError>
-		where
-			Self: Sized,
-		{
-			match (discrete_bounds.start, discrete_bounds.end) {
-				(DiscreteBound::Included(start), DiscreteBound::Included(end)) => {
-					Ok(MultiBounds::Inclusive(start, end))
-				}
-				_ => Err(TryFromDiscreteBoundsError),
-			}
-		}
-	}
-
 	#[test]
 	fn insert_strict_tests() {
 		assert_insert_strict(
@@ -1903,18 +1848,6 @@ mod tests {
 			(ii(5, 6), false),
 			Err(OverlapError),
 			None::<[_; 0]>,
-		);
-		assert_insert_strict(
-			basic(),
-			(ee(7, 8), false),
-			Ok(()),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ee(7, 8), false),
-				(ie(14, 16), true),
-			]),
 		);
 		assert_insert_strict(basic(), (ii(4, 5), true), Err(OverlapError), None::<[_; 0]>);
 		assert_insert_strict(
@@ -2082,56 +2015,13 @@ mod tests {
 			basic(),
 			ui(6),
 			Ok([(ui(4), false), (ei(5, 6), true)]),
-			Some([(ee(6, 7), true), (ii(7, 7), false), (ie(14, 16), true)]),
+			Some([(ii(7, 7), false), (ie(14, 16), true)]),
 		);
 		assert_cut(
 			basic(),
 			iu(6),
 			Ok([(ie(6, 7), true), (ii(7, 7), false), (ie(14, 16), true)]),
-			Some([(ui(4), false), (ee(5, 6), true)]),
-		);
-
-		assert_cut(
-			special(),
-			mee(5, 7),
-			Ok([(ei(5, 6), false)]),
-			Some([(mii(4, 5), false), (mee(7, 8), true), (mii(8, 12), false)]),
-		);
-		assert_cut(special(), mee(6, 7), Ok([]), None::<[_; 0]>);
-		assert_cut(
-			special(),
-			mii(5, 6),
-			Err::<[_; 0], _>(TryFromDiscreteBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_cut(
-			special(),
-			mii(6, 7),
-			Err::<[_; 0], _>(TryFromDiscreteBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_cut(
-			special(),
-			ie(7, 8),
-			Ok([((ee(7, 8)), true)]),
-			Some([(mii(4, 6), false), (mii(8, 12), false)]),
-		);
-		assert_cut(
-			special(),
-			mii(7, 10),
-			Err::<[_; 0], _>(TryFromDiscreteBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_cut(
-			special(),
-			mee(4, 6),
-			Ok([(ee(4, 6), false)]),
-			Some([
-				(mii(4, 4), false),
-				(mii(6, 6), false),
-				(mee(7, 8), true),
-				(mii(8, 12), false),
-			]),
+			Some([(ui(4), false)]),
 		);
 	}
 
@@ -2169,7 +2059,7 @@ mod tests {
 		assert_gaps(basic(), iu(50), [iu(50)]);
 		assert_gaps(basic(), ee(3, 16), [ei(4, 5), ee(7, 14)]);
 		assert_gaps(basic(), ei(3, 16), [ei(4, 5), ee(7, 14), ii(16, 16)]);
-		assert_gaps(basic(), ue(5), [ee(4, 5)]);
+		assert_gaps(basic(), ue(5), []);
 		assert_gaps(basic(), ui(3), []);
 		assert_gaps(basic(), ii(5, 5), [ii(5, 5)]);
 		assert_gaps(basic(), ii(6, 6), []);
@@ -2216,61 +2106,9 @@ mod tests {
 		);
 		assert_insert_merge_touching(
 			basic(),
-			(ee(12, 13), true),
-			Ok(ee(12, 13)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ee(12, 13), true),
-				(ie(14, 16), true),
-			]),
-		);
-		assert_insert_merge_touching(
-			basic(),
-			(ee(13, 14), false),
-			Ok(ee(13, 16)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ee(13, 16), false),
-			]),
-		);
-		assert_insert_merge_touching(
-			basic(),
 			(ee(7, 14), false),
 			Ok(ie(7, 16)),
 			Some([(ui(4), false), (ee(5, 7), true), (ie(7, 16), false)]),
-		);
-
-		assert_insert_merge_touching(
-			special(),
-			(mee(6, 7), true),
-			Err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds(
-				TryFromDiscreteBoundsError,
-			)),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching(
-			special(),
-			(mii(6, 7), true),
-			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching(
-			special(),
-			(mee(12, 15), true),
-			Err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds(
-				TryFromDiscreteBoundsError,
-			)),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching(
-			special(),
-			(mii(12, 15), true),
-			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
-			None::<[_; 0]>,
 		);
 	}
 	fn assert_insert_merge_touching<const N: usize, I, K, V>(
@@ -2328,29 +2166,6 @@ mod tests {
 		);
 		assert_insert_merge_touching_if_values_equal(
 			basic(),
-			(ee(12, 13), true),
-			Ok(ee(12, 13)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ee(12, 13), true),
-				(ie(14, 16), true),
-			]),
-		);
-		assert_insert_merge_touching_if_values_equal(
-			basic(),
-			(ee(13, 14), true),
-			Ok(ee(13, 16)),
-			Some([
-				(ui(4), false),
-				(ee(5, 7), true),
-				(ii(7, 7), false),
-				(ee(13, 16), true),
-			]),
-		);
-		assert_insert_merge_touching_if_values_equal(
-			basic(),
 			(ee(7, 14), false),
 			Ok(ie(7, 14)),
 			Some([
@@ -2359,38 +2174,6 @@ mod tests {
 				(ie(7, 14), false),
 				(ie(14, 16), true),
 			]),
-		);
-
-		assert_insert_merge_touching_if_values_equal(
-			special(),
-			(mee(6, 7), true),
-			Ok(mee(6, 7)),
-			Some([
-				(mii(4, 6), false),
-				(mee(6, 7), true),
-				(mee(7, 8), true),
-				(mii(8, 12), false),
-			]),
-		);
-		assert_insert_merge_touching_if_values_equal(
-			special(),
-			(mii(6, 7), true),
-			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching_if_values_equal(
-			special(),
-			(mee(12, 15), false),
-			Err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds(
-				TryFromDiscreteBoundsError,
-			)),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching_if_values_equal(
-			special(),
-			(mii(12, 15), true),
-			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
-			None::<[_; 0]>,
 		);
 	}
 	fn assert_insert_merge_touching_if_values_equal<const N: usize, I, K, V>(
@@ -2458,37 +2241,6 @@ mod tests {
 			]),
 		);
 		assert_insert_merge_overlapping(basic(), (uu(), false), Ok(uu()), Some([(uu(), false)]));
-
-		assert_insert_merge_overlapping(
-			special(),
-			(mii(10, 18), true),
-			Ok(mii(8, 18)),
-			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 18), true)]),
-		);
-		assert_insert_merge_overlapping(
-			special(),
-			(mee(10, 18), true),
-			Err(TryFromDiscreteBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_overlapping(
-			special(),
-			(mee(8, 12), true),
-			Ok(mii(8, 12)),
-			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 12), true)]),
-		);
-		assert_insert_merge_overlapping(
-			special(),
-			(mee(7, 8), false),
-			Ok(mee(7, 8)),
-			Some([(mii(4, 6), false), (mee(7, 8), false), (mii(8, 12), false)]),
-		);
-		assert_insert_merge_overlapping(
-			special(),
-			(mii(7, 8), false),
-			Ok(mii(7, 12)),
-			Some([(mii(4, 6), false), (mii(7, 12), false)]),
-		);
 	}
 	fn assert_insert_merge_overlapping<const N: usize, I, K, V>(
 		mut before: RangeBoundsMap<I, K, V>,
@@ -2574,51 +2326,6 @@ mod tests {
 			(ii(7, 14), false),
 			Ok(ee(5, 16)),
 			Some([(ui(4), false), (ee(5, 16), false)]),
-		);
-
-		//copied from insert_merge_overlapping_tests
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mii(10, 18), true),
-			Ok(mii(8, 18)),
-			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 18), true)]),
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(10, 18), true),
-			Err(TryFromDiscreteBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(8, 12), true),
-			Ok(mii(8, 12)),
-			Some([(mii(4, 6), false), (mee(7, 8), true), (mii(8, 12), true)]),
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(7, 8), false),
-			Err(TryFromDiscreteBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mii(7, 8), false),
-			Ok(mii(7, 12)),
-			Some([(mii(4, 6), false), (mii(7, 12), false)]),
-		);
-		//copied from insert_merge_touching_tests
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(6, 7), true),
-			Err(TryFromDiscreteBoundsError),
-			None::<[_; 0]>,
-		);
-		assert_insert_merge_touching_or_overlapping(
-			special(),
-			(mee(12, 15), true),
-			Err(TryFromDiscreteBoundsError),
-			None::<[_; 0]>,
 		);
 	}
 	fn assert_insert_merge_touching_or_overlapping<const N: usize, I, K, V>(
@@ -2772,7 +2479,7 @@ mod tests {
 	}
 
 	fn all_valid_test_bounds() -> Vec<DiscreteBounds<i8>> {
-		let output = Vec::new();
+		let mut output = Vec::new();
 		for i in NUMBERS
 			.into_iter()
 			.map(|i| DiscreteBoundOrd::Included(*i))

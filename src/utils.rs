@@ -24,9 +24,9 @@ use crate::discrete_bounds::DiscreteBounds;
 use crate::range_bounds_map::DiscreteRange;
 use crate::stepable::Stepable;
 
-pub(crate) fn cmp_range_with_discrete_bound_ord<A, B>(
-	range: A,
+pub(crate) fn cmp_discrete_bound_ord_with_range<A, B>(
 	discrete_bound_ord: DiscreteBoundOrd<B>,
+	range: A,
 ) -> Ordering
 where
 	A: DiscreteRange<B>,
@@ -57,28 +57,25 @@ where
 	B: DiscreteRange<I> + Copy,
 	I: Ord,
 {
-	match a.start() < b.start() {
-		true => {
-			match (
-				contains_bound_ord(a, b.start()),
-				contains_bound_ord(a, b.end()),
-			) {
-				(false, false) => Config::LeftFirstNonOverlapping,
-				(true, false) => Config::LeftFirstPartialOverlap,
-				(true, true) => Config::LeftContainsRight,
-				(false, true) => unreachable!(),
-			}
+	if a.start() < b.start() {
+		match (
+			contains_discrete_bound_ord(a, b.start()),
+			contains_discrete_bound_ord(a, b.end()),
+		) {
+			(false, false) => Config::LeftFirstNonOverlapping,
+			(true, false) => Config::LeftFirstPartialOverlap,
+			(true, true) => Config::LeftContainsRight,
+			(false, true) => unreachable!(),
 		}
-		false => {
-			match (
-				contains_bound_ord(b, a.start()),
-				contains_bound_ord(b, a.end()),
-			) {
-				(false, false) => Config::RightFirstNonOverlapping,
-				(true, false) => Config::RightFirstPartialOverlap,
-				(true, true) => Config::RightContainsLeft,
-				(false, true) => unreachable!(),
-			}
+	} else {
+		match (
+			contains_discrete_bound_ord(b, a.start()),
+			contains_discrete_bound_ord(b, a.end()),
+		) {
+			(false, false) => Config::RightFirstNonOverlapping,
+			(true, false) => Config::RightFirstPartialOverlap,
+			(true, true) => Config::RightContainsLeft,
+			(false, true) => unreachable!(),
 		}
 	}
 }
@@ -116,12 +113,15 @@ where
 	}
 }
 
-pub(crate) fn contains_bound_ord<I, A>(range: A, discrete_bound_ord: DiscreteBoundOrd<I>) -> bool
+pub(crate) fn contains_discrete_bound_ord<I, A>(
+	range: A,
+	discrete_bound_ord: DiscreteBoundOrd<I>,
+) -> bool
 where
 	A: DiscreteRange<I>,
 	I: Ord,
 {
-	cmp_range_with_discrete_bound_ord(range, discrete_bound_ord).is_eq()
+	cmp_discrete_bound_ord_with_range(discrete_bound_ord, range).is_eq()
 }
 
 #[derive(Debug)]

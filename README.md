@@ -135,12 +135,6 @@ When a range "merges" other ranges it absorbs them to become larger.
 See Wikipedia's article on mathematical Intervals:
 <https://en.wikipedia.org/wiki/Interval_(mathematics)>
 
-# Improvements/Caveats
-
-- I had to create a new trait: [`TryFromDiscreteBounds`] rather than using
-  `TryFrom<(Bound, Bound)>` (relys on upstream to impl, see [this
-  thread](https://internals.rust-lang.org/t/range-should-impl-tryfrom-bound-bound))
-
 # Credit
 
 I originally came up with the `StartBound`: [`Ord`] bodge on my own,

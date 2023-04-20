@@ -86,7 +86,7 @@ impl<I> RangeBounds<I> for DiscreteBounds<I> {
 		}
 	}
 	fn end_bound(&self) -> Bound<&I> {
-		match self.start {
+		match self.end {
 			DiscreteBound::Included(ref x) => Bound::Included(x),
 			DiscreteBound::Unbounded => Bound::Unbounded,
 		}
