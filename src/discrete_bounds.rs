@@ -21,11 +21,12 @@ use std::ops::{Bound, RangeBounds};
 
 use crate::bound_ord::DiscreteBoundOrd;
 use crate::stepable::Stepable;
+use crate::try_from_discrete_bounds::TryFromDiscreteBounds;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DiscreteBounds<I> {
-	start: DiscreteBound<I>,
-	end: DiscreteBound<I>,
+	pub start: DiscreteBound<I>,
+	pub end: DiscreteBound<I>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,5 +90,16 @@ impl<I> RangeBounds<I> for DiscreteBounds<I> {
 			DiscreteBound::Included(ref x) => Bound::Included(x),
 			DiscreteBound::Unbounded => Bound::Unbounded,
 		}
+	}
+}
+
+impl<I> TryFromDiscreteBounds<I> for DiscreteBounds<I> {
+	fn try_from_discrete_bounds(
+		discrete_bounds: DiscreteBounds<I>,
+	) -> Result<Self, crate::TryFromDiscreteBoundsError>
+	where
+		Self: Sized,
+	{
+		Ok(discrete_bounds)
 	}
 }

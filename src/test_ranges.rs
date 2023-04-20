@@ -54,7 +54,3 @@ pub fn ee(x1: i8, x2: i8) -> DiscreteBounds<i8> {
 		end: DiscreteBound::Included(x2.down().unwrap()),
 	}
 }
-
-pub fn u() -> Bound<i8> {
-	Bound::Unbounded
-}
