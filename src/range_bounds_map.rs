@@ -34,7 +34,7 @@ use crate::bound_ord::DiscreteBoundOrd;
 use crate::discrete_bounds::{DiscreteBound, DiscreteBounds};
 use crate::stepable::Stepable;
 use crate::utils::{
-	cmp_range_with_discrete_bound_ord, cut_range, flip_bound, is_valid_range, overlaps,
+	cmp_range_with_discrete_bound_ord, cut_range, is_valid_range, overlaps,
 };
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
@@ -364,7 +364,7 @@ where
 	/// ```
 	pub fn overlaps<Q>(&self, range: Q) -> bool
 	where
-		Q: DiscreteRange<I>,
+		Q: DiscreteRange<I> + Copy,
 	{
 		invalid_range_panic(range);
 
@@ -735,10 +735,11 @@ where
 	pub fn cut<'a, Q>(
 		&'a mut self,
 		range: Q,
-	) -> Result<impl Iterator<Item = ((Bound<I>, Bound<I>), V)> + '_, TryFromBoundsError>
+	) -> Result<impl Iterator<Item = (DiscreteBounds<I>, V)> + '_, TryFromBoundsError>
 	where
 		Q: DiscreteRange<I> + Copy + 'a,
 		K: TryFrom<DiscreteBounds<I>>,
+        TryFromBoundsError: From<K::Error>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -767,27 +768,28 @@ where
 		&mut self,
 		range: Q,
 		single_overlapping_range: K,
-	) -> Result<impl Iterator<Item = ((Bound<I>, Bound<I>), V)>, TryFromBoundsError>
+	) -> Result<impl Iterator<Item = (DiscreteBounds<I>, V)>, TryFromBoundsError>
 	where
 		Q: DiscreteRange<I>  + Copy,
 		K: TryFrom<DiscreteBounds<I>>,
+        TryFromBoundsError: From<K::Error>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
 
 		let cut_result = cut_range(single_overlapping_range, range);
 		let returning_before_cut = match cut_result.before_cut {
-			Some((start, end)) => Some(K::try_from(start, end)?),
+			Some(before_cut) => Some(K::try_from(before_cut)?),
 			None => None,
 		};
 		let returning_after_cut = match cut_result.after_cut {
-			Some((start, end)) => Some(K::try_from_bounds(start, end)?),
+			Some(after_cut) => Some(K::try_from(after_cut)?),
 			None => None,
 		};
 
 		let value = self
 			.inner
-			.remove(overlapping_start_comp(range.start()))
+			.remove(overlapping_comp(range.start()))
 			.unwrap();
 
 		if let Some(before) = returning_before_cut {
@@ -804,10 +806,11 @@ where
 		range: Q,
 		left_overlapping: Option<K>,
 		right_overlapping: Option<K>,
-	) -> Result<impl Iterator<Item = ((Bound<I>, Bound<I>), V)> + '_, TryFromBoundsError>
+	) -> Result<impl Iterator<Item = (DiscreteBounds<I>, V)> + '_, TryFromBoundsError>
 	where
-		Q: DiscreteRange<I> + 'a,
+		Q: DiscreteRange<I> + Copy + 'a,
 		K: TryFrom<DiscreteBounds<I>>,
+        TryFromBoundsError: From<K::Error>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -818,7 +821,7 @@ where
 
 				Some((
 					match cut_result.before_cut {
-						Some((start, end)) => Some(K::try_from_bounds(start, end)?),
+						Some(before_cut) => Some(K::try_from(before_cut)?),
 						None => None,
 					},
 					cut_result.inside_cut.unwrap(),
@@ -832,7 +835,7 @@ where
 
 				Some((
 					match cut_result.after_cut {
-						Some((start, end)) => Some(K::try_from_bounds(start, end)?),
+						Some(after_cut) => Some(K::try_from(after_cut)?),
 						None => None,
 					},
 					cut_result.inside_cut.unwrap(),
@@ -841,8 +844,8 @@ where
 			None => None,
 		};
 
-		let before_value = self.inner.remove(overlapping_start_comp(range.start()));
-		let after_value = self.inner.remove(overlapping_end_comp(range.end()));
+		let before_value = self.inner.remove(overlapping_comp(range.start()));
+		let after_value = self.inner.remove(overlapping_comp(range.end()));
 
 		if let Some((Some(returning_before_cut), _)) = before_config {
 			self.insert_unchecked(
@@ -863,7 +866,7 @@ where
 			.into_iter()
 			.chain(
 				self.remove_overlapping(range)
-					.map(|(key, value)| ((key.start(), key.end()), value)),
+					.map(|(key, value)| ((DiscreteBounds::from(key)), value)),
 			)
 			.chain(keeping_after_entry.into_iter()));
 	}
@@ -907,7 +910,7 @@ where
 	/// ```
 	pub fn gaps<Q>(&self, outer_range: Q) -> impl DoubleEndedIterator<Item = (Bound<I>, Bound<I>)>
 	where
-		Q: DiscreteRange<I>,
+		Q: DiscreteRange<I> + Copy,
 	{
 		invalid_range_panic(outer_range);
 
@@ -1044,6 +1047,7 @@ where
 	) -> Result<K, TryFromBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
+        TryFromBoundsError: From<K::Error>,
 		G1: FnOnce(&Self, &V) -> Option<K>,
 		G2: FnOnce(&Self, &V) -> Option<K>,
 		R1: FnOnce(&mut Self, &V),
@@ -1142,6 +1146,7 @@ where
 	) -> Result<K, OverlapOrTryFromBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
+        TryFromBoundsError: From<K::Error>,
 	{
 		invalid_range_panic(range);
 
@@ -1241,6 +1246,7 @@ where
 	) -> Result<K, OverlapOrTryFromBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
+        TryFromBoundsError: From<K::Error>,
 		V: Eq,
 	{
 		invalid_range_panic(range);
@@ -1343,6 +1349,7 @@ where
 	pub fn insert_merge_overlapping(&mut self, range: K, value: V) -> Result<K, TryFromBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
+        TryFromBoundsError: From<K::Error>,
 	{
 		invalid_range_panic(range);
 
@@ -1430,6 +1437,7 @@ where
 	) -> Result<K, TryFromBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
+        TryFromBoundsError: From<K::Error>,
 	{
 		invalid_range_panic(range);
 
@@ -1503,6 +1511,7 @@ where
 	pub fn insert_overwrite(&mut self, range: K, value: V) -> Result<(), TryFromBoundsError>
 	where
 		K: TryFrom<DiscreteBounds<I>>,
+        TryFromBoundsError: From<K::Error>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -2118,6 +2127,7 @@ mod tests {
 	) where
 		I: Ord + Debug + Copy,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+        TryFromBoundsError: From<K::Error>,
 		Q: DiscreteRange<I>,
 		V: PartialEq + Debug + Clone,
 	{
@@ -2261,6 +2271,7 @@ mod tests {
 	) where
 		I: Ord + Debug + Copy,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+        TryFromBoundsError: From<K::Error>,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2381,6 +2392,7 @@ mod tests {
 	) where
 		I: Ord + Debug + Copy,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+        TryFromBoundsError: From<K::Error>,
 		V: Eq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2478,6 +2490,7 @@ mod tests {
 	) where
 		I: Ord + Debug + Copy,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+        TryFromBoundsError: From<K::Error>,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
@@ -2609,6 +2622,7 @@ mod tests {
 	) where
 		I: Ord + Debug + Copy,
 		K: DiscreteRange<I> + TryFrom<DiscreteBounds<I>> + PartialEq + Debug,
+        TryFromBoundsError: From<K::Error>,
 		V: PartialEq + Debug + Clone,
 	{
 		let clone = before.clone();
