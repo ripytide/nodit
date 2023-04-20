@@ -230,6 +230,8 @@ pub mod range_bounds_map;
 pub mod range_bounds_set;
 
 pub use crate::range_bounds_map::{
-	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap, TryFromDiscreteBoundsError,
+	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
 };
 pub use crate::range_bounds_set::RangeBoundsSet;
+pub use crate::try_from_discrete_bounds::{TryFromDiscreteBounds, TryFromDiscreteBoundsError};
+pub use crate::discrete_bounds::DiscreteBounds;

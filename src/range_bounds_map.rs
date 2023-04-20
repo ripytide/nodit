@@ -33,7 +33,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::discrete_bound_ord::DiscreteBoundOrd;
 use crate::discrete_bounds::{DiscreteBound, DiscreteBounds};
 use crate::stepable::Stepable;
-use crate::try_from_discrete_bounds::TryFromDiscreteBounds;
+use crate::try_from_discrete_bounds::{TryFromDiscreteBounds, TryFromDiscreteBoundsError};
 use crate::utils::{cmp_discrete_bound_ord_with_range, cut_range, is_valid_range, overlaps};
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
@@ -78,34 +78,31 @@ use crate::utils::{cmp_discrete_bound_ord_with_range, cut_range, is_valid_range,
 /// ```
 /// use std::ops::{Bound, RangeBounds};
 ///
-/// use ordered_float::NotNan;
 /// use range_bounds_map::RangeBoundsMap;
 ///
-/// // An Exclusive-Exclusive range of [`f32`]s is not provided by any
-/// // std::ops ranges.
+/// // An Exclusive-Exclusive range is not provided by any
+/// // std::ops ranges so let't make our own!.
 ///
-/// // We use [`ordered_float::NotNan`]s as the inner type must be Ord
-/// // similar to a normal [`BTreeMap`].
 /// #[derive(Debug, Copy, Clone, PartialEq)]
 /// struct ExEx {
-/// 	start: NotNan<f32>,
-/// 	end: NotNan<f32>,
+/// 	start: u8,
+/// 	end: u8,
 /// }
-/// # impl ExEx {
-/// #    fn new(start: f32, end: f32) -> ExEx {
-/// #        ExEx {
-/// #            start: NotNan::new(start).unwrap(),
-/// #            end: NotNan::new(end).unwrap(),
-/// #        }
-/// #    }
-/// # }
+/// impl ExEx {
+///     fn new(start: u8, end: u8) -> ExEx {
+///         ExEx {
+///             start,
+///             end,
+///         }
+///     }
+/// }
 ///
-/// // Implement RangeBounds<f32> on our new type
-/// impl RangeBounds<NotNan<f32>> for ExEx {
-/// 	fn start_bound(&self) -> Bound<&NotNan<f32>> {
-/// 		Bound::Excluded(&self.start)
+/// // Implement RangeBounds<u8> on our new type
+/// impl RangeBounds<u8> for ExEx {
+/// 	fn start_bound(&self) -> Bound<&u8> {
+/// 	    Bound::Excluded(&self.start)
 /// 	}
-/// 	fn end_bound(&self) -> Bound<&NotNan<f32>> {
+/// 	fn end_bound(&self) -> Bound<&u8> {
 /// 		Bound::Excluded(&self.end)
 /// 	}
 /// }
@@ -113,20 +110,20 @@ use crate::utils::{cmp_discrete_bound_ord_with_range, cut_range, is_valid_range,
 /// // Now we can make a [`RangeBoundsMap`] of [`ExEx`]s to `i8`
 /// let mut map = RangeBoundsMap::new();
 ///
-/// map.insert_strict(ExEx::new(0.0, 5.0), 8).unwrap();
-/// map.insert_strict(ExEx::new(5.0, 7.5), 32).unwrap();
+/// map.insert_strict(ExEx::new(0, 5), 8).unwrap();
+/// map.insert_strict(ExEx::new(5, 7), 32).unwrap();
 ///
-/// assert_eq!(map.contains_point(NotNan::new(5.0).unwrap()), false);
+/// assert_eq!(map.contains_point(5), false);
 ///
-/// assert_eq!(map.get_at_point(NotNan::new(9.0).unwrap()), None);
+/// assert_eq!(map.get_at_point(9), None);
 /// assert_eq!(
-/// 	map.get_at_point(NotNan::new(7.0).unwrap()),
+/// 	map.get_at_point(6),
 /// 	Some(&32)
 /// );
 ///
 /// assert_eq!(
-/// 	map.get_entry_at_point(NotNan::new(2.0).unwrap()),
-/// 	Ok((&ExEx::new(0.0, 5.0), &8))
+/// 	map.get_entry_at_point(2),
+/// 	Ok((&ExEx::new(0, 5), &8))
 /// );
 /// ```
 ///
@@ -142,133 +139,6 @@ pub struct RangeBoundsMap<I, K, V> {
 /// [`RangeBounds`] when it should not have.
 #[derive(PartialEq, Debug)]
 pub struct OverlapError;
-
-/// An error type to represent a failed [`TryFromDiscreteBounds`] within a
-/// method.
-///
-/// There are several methods that return this error, and some of the
-/// causes of this error can be very subtle, so here are some examples
-/// showing all the reasons this error might be returned.
-///
-/// # Example with [`RangeBoundsMap::cut()`]
-///
-/// The first way you may recieve [`TryFromDiscreteBoundsError`] is from
-/// [`RangeBoundsMap::cut()`].
-///
-/// In this example we try to cut `ii(4, 6)` out of a `RangeBoundsMap`
-/// that contains `ie(2, 8)`. If this was successful then the
-/// `RangeBoundsMap` would hold `ie(2, 4)` and `(Bound::Exclusive(6),
-/// Bound::Exclusive(8))`. However, since the `RangeBounds` type of
-/// this `RangeBoundsMap` is `Range<{integer}>` the latter of the two
-/// new `RangeBounds` is "unrepresentable", and hence will fail to be
-/// created via [`TryFromDiscreteBounds`] and [`RangeBoundsMap::cut()`] will
-/// return Err(TryFromDiscreteBoundsError).
-///
-/// ```
-/// use range_bounds_map::test_ranges::{ie_strict, ii};
-/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteBoundsError};
-///
-/// let mut map =
-/// 	RangeBoundsMap::from_slice_strict([(ie_strict(2, 8), true)])
-/// 		.unwrap();
-///
-/// assert!(map.cut(ii(4, 6)).is_err());
-/// ```
-///
-/// # Example with `insert_merge_*` functions.
-///
-/// The second and final way you may recieve a [`TryFromDiscreteBoundsError`]
-/// is via merging methods such as
-/// [`RangeBoundsMap::insert_merge_touching`].
-///
-/// In the first example it was fairly easy to create an invalid
-/// `RangeBounds` by cutting with a different `RangeBounds` than the
-/// underlying `RangeBoundsMap`'s `RangeBounds` type. However, the
-/// `insert_merge_*` functions all take `range: K` as an
-/// argument so it is not possible to create an invalid `K` type
-/// directly. However upon "merging" of two ranges (even if
-/// both of them are type `K`), you can create a range that *cannot* be
-/// of type `K`.
-///
-/// In this example we use a `RangeBounds` type that can be either
-/// Inclusive-Inclusive OR Exclusive-Exclusive. We then try to use
-/// [`RangeBoundsMap::insert_merge_touching()`] to "merge" an
-/// Inclusive-Inclusive and a Exclusive-Exclusive `MultiBounds`. This
-/// will however fail as the resulting "merged" `RangeBounds` would
-/// have to be Inclusive-Exclusive which `MultiBounds` does not support.
-///
-/// ```
-/// use std::ops::{Bound, RangeBounds};
-///
-/// use range_bounds_map::{
-/// 	OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap, TryFromDiscreteBounds,
-/// 	TryFromDiscreteBoundsError,
-/// };
-///
-/// #[derive(Debug, Copy, Clone, PartialEq)]
-/// enum MultiBounds {
-/// 	Inclusive(i8, i8),
-/// 	Exclusive(i8, i8),
-/// }
-///
-/// impl RangeBounds<i8> for MultiBounds {
-/// 	fn start_bound(&self) -> Bound<&i8> {
-/// 		match self {
-/// 			MultiBounds::Inclusive(start, _) => {
-/// 				Bound::Included(start)
-/// 			}
-/// 			MultiBounds::Exclusive(start, _) => {
-/// 				Bound::Excluded(start)
-/// 			}
-/// 		}
-/// 	}
-/// 	fn end_bound(&self) -> Bound<&i8> {
-/// 		match self {
-/// 			MultiBounds::Inclusive(_, end) => {
-/// 				Bound::Included(end)
-/// 			}
-/// 			MultiBounds::Exclusive(_, end) => {
-/// 				Bound::Excluded(end)
-/// 			}
-/// 		}
-/// 	}
-/// }
-///
-/// impl TryFromDiscreteBounds<i8> for MultiBounds {
-/// 	fn try_from_bounds(
-/// 		start_bound: Bound<i8>,
-/// 		end_bound: Bound<i8>,
-/// 	) -> Result<Self, TryFromDiscreteBoundsError> {
-/// 		match (start_bound, end_bound) {
-/// 			(Bound::Included(start), Bound::Included(end)) => {
-/// 				Ok(MultiBounds::Inclusive(start, end))
-/// 			}
-/// 			(Bound::Excluded(start), Bound::Excluded(end)) => {
-/// 				Ok(MultiBounds::Exclusive(start, end))
-/// 			}
-/// 			_ => Err(TryFromDiscreteBoundsError),
-/// 		}
-/// 	}
-/// }
-///
-/// let mut map = RangeBoundsMap::from_slice_strict([(
-/// 	MultiBounds::Inclusive(2, 4),
-/// 	true,
-/// )])
-/// .unwrap();
-///
-/// assert_eq!(
-/// 	map.insert_merge_touching(
-/// 		MultiBounds::Exclusive(4, 6),
-/// 		false
-/// 	),
-/// 	Err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds(
-/// 		TryFromDiscreteBoundsError
-/// 	))
-/// );
-/// ```
-#[derive(PartialEq, Debug)]
-pub struct TryFromDiscreteBoundsError;
 
 /// An error type to represent either an [`OverlapError`] or a
 /// [`TryFromDiscreteBoundsError`].
@@ -289,10 +159,10 @@ where
 	/// ```
 	/// use std::ops::Range;
 	///
-	/// use range_bounds_map::test_ranges::AnyRange;
 	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteBounds;
 	///
-	/// let map: RangeBoundsMap<i8, AnyRange, bool> =
+	/// let map: RangeBoundsMap<i8, DiscreteBounds<i8>, bool> =
 	/// 	RangeBoundsMap::new();
 	/// ```
 	pub fn new() -> Self {
@@ -537,7 +407,7 @@ where
 	/// ```
 	/// use std::ops::Bound;
 	///
-	/// use range_bounds_map::test_ranges::ie;
+	/// use range_bounds_map::test_ranges::{ie, iu};
 	/// use range_bounds_map::RangeBoundsMap;
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
@@ -551,35 +421,36 @@ where
 	/// assert_eq!(map.get_entry_at_point(5), Ok((&ie(4, 6), &true)));
 	/// assert_eq!(
 	/// 	map.get_entry_at_point(7),
-	/// 	Err((Bound::Included(6), Bound::Excluded(8)))
+	/// 	Err(ie(6, 8))
 	/// );
 	/// assert_eq!(
 	/// 	map.get_entry_at_point(101),
-	/// 	Err((Bound::Included(100), Bound::Unbounded))
+	/// 	Err(iu(100))
 	/// );
 	/// ```
 	pub fn get_entry_at_point(&self, point: I) -> Result<(&K, &V), DiscreteBounds<I>> {
 		self.inner
 			.get_key_value(overlapping_comp(DiscreteBoundOrd::Included(point)))
-			.ok_or_else(|| {
-				let lower = self.inner.upper_bound(
-					overlapping_comp(DiscreteBoundOrd::Included(point)),
-					SearchBoundCustom::Included,
-				);
-				let upper = self.inner.lower_bound(
-					overlapping_comp(DiscreteBoundOrd::Included(point)),
-					SearchBoundCustom::Included,
-				);
+			.ok_or_else(|| self.get_gap_at_raw(DiscreteBoundOrd::Included(point)))
+	}
+	fn get_gap_at_raw(&self, discrete_bound_ord: DiscreteBoundOrd<I>) -> DiscreteBounds<I> {
+		let lower = self.inner.upper_bound(
+			overlapping_comp(discrete_bound_ord),
+			SearchBoundCustom::Included,
+		);
+		let upper = self.inner.lower_bound(
+			overlapping_comp(discrete_bound_ord),
+			SearchBoundCustom::Included,
+		);
 
-				DiscreteBounds {
-					start: lower.key().map_or(DiscreteBound::Unbounded, |lower| {
-						DiscreteBound::from(lower.end()).up_if_finite()
-					}),
-					end: upper.key().map_or(DiscreteBound::Unbounded, |upper| {
-						DiscreteBound::from(upper.start()).down_if_finite()
-					}),
-				}
-			})
+		DiscreteBounds {
+			start: lower.key().map_or(DiscreteBound::Unbounded, |lower| {
+				DiscreteBound::from(lower.end()).up_if_finite()
+			}),
+			end: upper.key().map_or(DiscreteBound::Unbounded, |upper| {
+				DiscreteBound::from(upper.start()).down_if_finite()
+			}),
+		}
 	}
 
 	/// Returns an iterator over every entry in the map in ascending
@@ -723,13 +594,12 @@ where
 	/// assert_eq!(
 	/// 	base.cut(ie(2, 40)).unwrap().collect::<Vec<_>>(),
 	/// 	[
-	/// 		((Bound::Included(2), Bound::Excluded(4)), false),
-	/// 		((Bound::Included(4), Bound::Excluded(8)), true),
-	/// 		((Bound::Included(8), Bound::Excluded(40)), false),
+	/// 		(ie(2, 4), false),
+	/// 		(ie(4, 8), true),
+	/// 		(ie(8, 40), false),
 	/// 	]
 	/// );
 	/// assert_eq!(base, after_cut);
-	/// assert!(base.cut(ii(60, 80)).is_err());
 	/// ```
 	pub fn cut<'a, Q>(
 		&'a mut self,
@@ -900,9 +770,7 @@ where
 	/// assert_eq!(
 	/// 	gaps.collect::<Vec<_>>(),
 	/// 	[
-	/// 		(Bound::Included(3), Bound::Excluded(5)),
-	/// 		(Bound::Included(7), Bound::Excluded(9)),
-	/// 		(Bound::Included(100), Bound::Unbounded)
+	/// 	    ie(3, 5),ie(7, 9),iu(100)
 	/// 	]
 	/// );
 	/// ```
@@ -919,32 +787,59 @@ where
 
 		// If the start or end point of outer_range is not
 		// contained within a RangeBounds in the map then we need to
-		// generate a artificial RangeBounds to use instead.
-		//
-		// We also have to flip the artificial ones ahead of time as
-		// we actually want the range endpoints included
-		// not excluded unlike with other bounds in artificials
-
-		//todo check if stepable first before adding artificials
-		let artificial_start = (outer_range.start(), outer_range.start().down_if_finite());
-		let artificial_end = (outer_range.end().up_if_finite(), outer_range.start());
-		let mut artificials = once(artificial_start)
-			.chain(overlapping)
-			.chain(once(artificial_end));
-
-		let start_contained = self
+		// generate the gaps.
+		let start_gap = (!self
 			.inner
-			.contains_key(overlapping_comp(outer_range.start()));
-		let end_contained = self.inner.contains_key(overlapping_comp(outer_range.end()));
+			.contains_key(overlapping_comp(outer_range.start())))
+		.then(|| self.get_gap_at_raw(outer_range.start()));
+		let end_gap = (!self.inner.contains_key(overlapping_comp(outer_range.end())))
+			.then(|| self.get_gap_at_raw(outer_range.end()));
 
-		if start_contained {
-			artificials.next();
-		}
-		if end_contained {
-			artificials.next_back();
-		}
+		let (trimmed_start_gap, trimmed_end_gap) = match (start_gap, end_gap) {
+			(Some(mut start_gap), Some(mut end_gap)) => {
+				if start_gap.start() == end_gap.end() {
+					//it's the same gap
+					if let DiscreteBoundOrd::Included(outer_range_start) = outer_range.start() {
+						start_gap.start = DiscreteBound::Included(outer_range_start);
+					}
+					if let DiscreteBoundOrd::Included(outer_range_end) = outer_range.end() {
+						start_gap.end = DiscreteBound::Included(outer_range_end);
+					}
 
-		return artificials
+					(Some(start_gap), None)
+				} else {
+					//it's different gaps
+					//
+					//trim the start gap to the outer range
+					if let DiscreteBoundOrd::Included(outer_range_start) = outer_range.start() {
+						start_gap.start = DiscreteBound::Included(outer_range_start);
+					}
+					//trim the end gap to the outer range
+					if let DiscreteBoundOrd::Included(outer_range_end) = outer_range.end() {
+						end_gap.end = DiscreteBound::Included(outer_range_end);
+					}
+
+					(Some(start_gap), Some(end_gap))
+				}
+			}
+			(Some(mut start_gap), None) => {
+				//trim the start gap to the outer range
+				if let DiscreteBoundOrd::Included(outer_range_start) = outer_range.start() {
+					start_gap.start = DiscreteBound::Included(outer_range_start);
+				}
+				(Some(start_gap), None)
+			}
+			(None, Some(mut end_gap)) => {
+				//trim the end gap to the outer range
+				if let DiscreteBoundOrd::Included(outer_range_end) = outer_range.end() {
+					end_gap.end = DiscreteBound::Included(outer_range_end);
+				}
+				(None, Some(end_gap))
+			}
+			(None, None) => (None, None),
+		};
+
+		let inner_gaps = overlapping
 			//optimisation find an implementation of windows()
 			//somewhere that supports DoubleEndedIterator, I couldn't
 			//find one at the time of writing
@@ -958,6 +853,12 @@ where
 			//optimisation this would also then be unneccessary
 			.collect::<Vec<_>>()
 			.into_iter();
+
+		//possibly add the trimmed start and end gaps
+		return trimmed_start_gap
+			.into_iter()
+			.chain(inner_gaps)
+			.chain(trimmed_end_gap.into_iter());
 	}
 
 	/// Returns `true` if the map covers every point in the given
@@ -2055,6 +1956,7 @@ mod tests {
 
 	#[test]
 	fn gaps_tests() {
+        eprintln!("hererererererer");
 		assert_gaps(basic(), ii(50, 60), [ii(50, 60)]);
 		assert_gaps(basic(), iu(50), [iu(50)]);
 		assert_gaps(basic(), ee(3, 16), [ei(4, 5), ee(7, 14)]);
@@ -2065,6 +1967,12 @@ mod tests {
 		assert_gaps(basic(), ii(6, 6), []);
 		assert_gaps(basic(), ii(7, 7), []);
 		assert_gaps(basic(), ii(8, 8), [ii(8, 8)]);
+
+		assert_gaps(
+			basic(),
+			ii(i8::MIN, i8::MAX),
+			[ei(4, 5), ee(7, 14), ii(16, i8::MAX)],
+		);
 	}
 	fn assert_gaps<const N: usize>(
 		map: RangeBoundsMap<i8, DiscreteBounds<i8>, bool>,

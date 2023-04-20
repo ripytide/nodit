@@ -1,4 +1,7 @@
-use crate::{discrete_bounds::DiscreteBounds, TryFromDiscreteBoundsError};
+use crate::discrete_bounds::DiscreteBounds;
+
+#[derive(PartialEq, Debug)]
+pub struct TryFromDiscreteBoundsError;
 
 pub trait TryFromDiscreteBounds<I> {
 	fn try_from_discrete_bounds(
