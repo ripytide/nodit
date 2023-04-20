@@ -1,59 +1,60 @@
-use std::ops::{Bound, RangeBounds};
+use std::ops::Bound;
 
-use crate::{TryFromBoundsError};
+use crate::discrete_bounds::{DiscreteBound, DiscreteBounds};
+use crate::stepable::Stepable;
 
-pub type AnyRange = (Bound<i8>, Bound<i8>);
-
-pub fn uu() -> AnyRange {
-	(Bound::Unbounded, Bound::Unbounded)
+pub fn uu() -> DiscreteBounds<i8> {
+	DiscreteBounds {
+		start: DiscreteBound::Unbounded,
+		end: DiscreteBound::Unbounded,
+	}
 }
-pub fn ui(x: i8) -> AnyRange {
-	(Bound::Unbounded, Bound::Included(x))
+pub fn ui(x: i8) -> DiscreteBounds<i8> {
+	DiscreteBounds {
+		start: DiscreteBound::Unbounded,
+		end: DiscreteBound::Included(x),
+	}
 }
-pub fn ue(x: i8) -> AnyRange {
-	(Bound::Unbounded, Bound::Excluded(x))
+pub fn ue(x: i8) -> DiscreteBounds<i8> {
+	DiscreteBounds {
+		start: DiscreteBound::Unbounded,
+		end: DiscreteBound::Included(x.down().unwrap()),
+	}
 }
-pub fn iu(x: i8) -> AnyRange {
-	(Bound::Included(x), Bound::Unbounded)
+pub fn iu(x: i8) -> DiscreteBounds<i8> {
+	DiscreteBounds {
+		start: DiscreteBound::Included(x),
+		end: DiscreteBound::Unbounded,
+	}
 }
 //fn eu(x: i8) -> TestBounds {
 //(Bound::Excluded(x), Bound::Unbounded)
 //}
-pub fn ii(x1: i8, x2: i8) -> AnyRange {
-	(Bound::Included(x1), Bound::Included(x2))
+pub fn ii(x1: i8, x2: i8) -> DiscreteBounds<i8> {
+	DiscreteBounds {
+		start: DiscreteBound::Included(x1),
+		end: DiscreteBound::Included(x2),
+	}
 }
-pub fn ie(x1: i8, x2: i8) -> AnyRange {
-	(Bound::Included(x1), Bound::Excluded(x2))
+pub fn ie(x1: i8, x2: i8) -> DiscreteBounds<i8> {
+	DiscreteBounds {
+		start: DiscreteBound::Included(x1),
+		end: DiscreteBound::Included(x2.down().unwrap()),
+	}
 }
-pub fn ei(x1: i8, x2: i8) -> AnyRange {
-	(Bound::Excluded(x1), Bound::Included(x2))
+pub fn ei(x1: i8, x2: i8) -> DiscreteBounds<i8> {
+	DiscreteBounds {
+		start: DiscreteBound::Included(x1.up().unwrap()),
+		end: DiscreteBound::Included(x2),
+	}
 }
-pub fn ee(x1: i8, x2: i8) -> AnyRange {
-	(Bound::Excluded(x1), Bound::Excluded(x2))
+pub fn ee(x1: i8, x2: i8) -> DiscreteBounds<i8> {
+	DiscreteBounds {
+		start: DiscreteBound::Included(x1.up().unwrap()),
+		end: DiscreteBound::Included(x2.down().unwrap()),
+	}
 }
 
 pub fn u() -> Bound<i8> {
 	Bound::Unbounded
-}
-
-/// a..b Inclusive-Exclusive range struct
-/// since the builtin range isn't Copy for some reason
-#[allow(dead_code)]
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct InExRange {
-	start: i8,
-	end: i8,
-}
-
-pub fn ie_strict(start: i8, end: i8) -> InExRange {
-	InExRange { start, end }
-}
-
-impl RangeBounds<i8> for InExRange {
-	fn start_bound(&self) -> Bound<&i8> {
-		Bound::Included(&self.start)
-	}
-	fn end_bound(&self) -> Bound<&i8> {
-		Bound::Excluded(&self.end)
-	}
 }

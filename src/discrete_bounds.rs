@@ -22,13 +22,13 @@ use std::ops::{Bound, RangeBounds};
 use crate::bound_ord::DiscreteBoundOrd;
 use crate::stepable::Stepable;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DiscreteBounds<I> {
 	start: DiscreteBound<I>,
 	end: DiscreteBound<I>,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiscreteBound<I> {
 	Included(I),
 	Unbounded,

@@ -230,6 +230,7 @@ pub(crate) mod utils;
 
 pub mod stepable;
 pub mod discrete_bounds;
+pub mod try_from_discrete_bounds;
 
 pub mod range_bounds_map;
 pub mod range_bounds_set;
