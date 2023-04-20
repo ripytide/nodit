@@ -147,7 +147,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! # Improvements/Caveats
 //!
-//! - I had to create a new trait: [`TryFromBounds`] rather than using
+//! - I had to create a new trait: [`TryFromDiscreteBounds`] rather than using
 //!   `TryFrom<(Bound, Bound)>` (relys on upstream to impl, see [this
 //!   thread](https://internals.rust-lang.org/t/range-should-impl-tryfrom-bound-bound))
 //!
@@ -223,13 +223,13 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 #![allow(clippy::tabs_in_doc_comments)]
 #![allow(clippy::needless_return)]
 
-//todo rename me
-pub(crate) mod bound_ord;
 pub mod test_ranges;
 pub(crate) mod utils;
 
-pub mod stepable;
 pub mod discrete_bounds;
+pub(crate) mod discrete_bound_ord;
+
+pub mod stepable;
 pub mod try_from_discrete_bounds;
 
 pub mod range_bounds_map;

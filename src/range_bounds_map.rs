@@ -30,7 +30,7 @@ use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::bound_ord::DiscreteBoundOrd;
+use crate::discrete_bound_ord::DiscreteBoundOrd;
 use crate::discrete_bounds::{DiscreteBound, DiscreteBounds};
 use crate::stepable::Stepable;
 use crate::try_from_discrete_bounds::TryFromDiscreteBounds;
@@ -143,7 +143,7 @@ pub struct RangeBoundsMap<I, K, V> {
 #[derive(PartialEq, Debug)]
 pub struct OverlapError;
 
-/// An error type to represent a failed [`TryFromBounds`] within a
+/// An error type to represent a failed [`TryFromDiscreteBounds`] within a
 /// method.
 ///
 /// There are several methods that return this error, and some of the
@@ -161,7 +161,7 @@ pub struct OverlapError;
 /// Bound::Exclusive(8))`. However, since the `RangeBounds` type of
 /// this `RangeBoundsMap` is `Range<{integer}>` the latter of the two
 /// new `RangeBounds` is "unrepresentable", and hence will fail to be
-/// created via [`TryFromBounds`] and [`RangeBoundsMap::cut()`] will
+/// created via [`TryFromDiscreteBounds`] and [`RangeBoundsMap::cut()`] will
 /// return Err(TryFromDiscreteBoundsError).
 ///
 /// ```
@@ -201,7 +201,7 @@ pub struct OverlapError;
 /// use std::ops::{Bound, RangeBounds};
 ///
 /// use range_bounds_map::{
-/// 	OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap, TryFromBounds,
+/// 	OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap, TryFromDiscreteBounds,
 /// 	TryFromDiscreteBoundsError,
 /// };
 ///
@@ -234,7 +234,7 @@ pub struct OverlapError;
 /// 	}
 /// }
 ///
-/// impl TryFromBounds<i8> for MultiBounds {
+/// impl TryFromDiscreteBounds<i8> for MultiBounds {
 /// 	fn try_from_bounds(
 /// 		start_bound: Bound<i8>,
 /// 		end_bound: Bound<i8>,
@@ -262,7 +262,7 @@ pub struct OverlapError;
 /// 		MultiBounds::Exclusive(4, 6),
 /// 		false
 /// 	),
-/// 	Err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds(
+/// 	Err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds(
 /// 		TryFromDiscreteBoundsError
 /// 	))
 /// );
@@ -275,7 +275,7 @@ pub struct TryFromDiscreteBoundsError;
 #[derive(PartialEq, Debug)]
 pub enum OverlapOrTryFromDiscreteBoundsError {
 	Overlap(OverlapError),
-	TryFromBounds(TryFromDiscreteBoundsError),
+	TryFromDiscreteBounds(TryFromDiscreteBoundsError),
 }
 
 impl<I, K, V> RangeBoundsMap<I, K, V>
@@ -685,7 +685,7 @@ where
 	/// the full or partial ranges that were cut.
 	///
 	/// If the remaining ranges left in the map after the cut would
-	/// not be able be created with the [`TryFromBounds`] trait then a
+	/// not be able be created with the [`TryFromDiscreteBounds`] trait then a
 	/// [`TryFromDiscreteBoundsError`] will be returned and the map will not
 	/// be cut at all.
 	///
@@ -1097,7 +1097,7 @@ where
 	///
 	/// If the range merges with one or two touching ranges and the
 	/// merged-together range cannot be created with the
-	/// [`TryFromBounds`] trait then a [`TryFromDiscreteBoundsError`] will be
+	/// [`TryFromDiscreteBounds`] trait then a [`TryFromDiscreteBoundsError`] will be
 	/// returned.
 	///
 	/// # Panics
@@ -1180,7 +1180,7 @@ where
 				selfy.inner.remove(touching_end_comp(range.end()));
 			},
 		)
-		.map_err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds)
+		.map_err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds)
 	}
 
 	/// Adds a new entry to the map and merges into other ranges in
@@ -1196,7 +1196,7 @@ where
 	///
 	/// If the range merges with one or two touching ranges and the
 	/// merged-together range cannot be created with the
-	/// [`TryFromBounds`] trait then a [`TryFromDiscreteBoundsError`] will be
+	/// [`TryFromDiscreteBounds`] trait then a [`TryFromDiscreteBoundsError`] will be
 	/// returned.
 	///
 	/// # Panics
@@ -1289,7 +1289,7 @@ where
 				}
 			},
 		)
-		.map_err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds)
+		.map_err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds)
 	}
 
 	/// Adds a new entry to the map and merges into other ranges in
@@ -1302,7 +1302,7 @@ where
 	/// returned.
 	///
 	/// If the range merges other ranges and the merged-together range
-	/// cannot be created with the [`TryFromBounds`] trait then a
+	/// cannot be created with the [`TryFromDiscreteBounds`] trait then a
 	/// [`TryFromDiscreteBoundsError`] will be returned.
 	///
 	/// # Panics
@@ -1389,7 +1389,7 @@ where
 	/// returned.
 	///
 	/// If the range merges other ranges and the merged-together range
-	/// cannot be created with the [`TryFromBounds`] trait then a
+	/// cannot be created with the [`TryFromDiscreteBounds`] trait then a
 	/// [`TryFromDiscreteBoundsError`] will be returned.
 	///
 	/// # Panics
@@ -1486,7 +1486,7 @@ where
 	/// same `V: Clone` trait bound applies.
 	///
 	/// If the remaining ranges left after the cut are not able to be
-	/// created with the [`TryFromBounds`] trait then a
+	/// created with the [`TryFromDiscreteBounds`] trait then a
 	/// [`TryFromDiscreteBoundsError`] will be returned.
 	///
 	/// # Panics
@@ -2247,7 +2247,7 @@ mod tests {
 		assert_insert_merge_touching(
 			special(),
 			(mee(6, 7), true),
-			Err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds(
+			Err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds(
 				TryFromDiscreteBoundsError,
 			)),
 			None::<[_; 0]>,
@@ -2261,7 +2261,7 @@ mod tests {
 		assert_insert_merge_touching(
 			special(),
 			(mee(12, 15), true),
-			Err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds(
+			Err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds(
 				TryFromDiscreteBoundsError,
 			)),
 			None::<[_; 0]>,
@@ -2381,7 +2381,7 @@ mod tests {
 		assert_insert_merge_touching_if_values_equal(
 			special(),
 			(mee(12, 15), false),
-			Err(OverlapOrTryFromDiscreteBoundsError::TryFromBounds(
+			Err(OverlapOrTryFromDiscreteBoundsError::TryFromDiscreteBounds(
 				TryFromDiscreteBoundsError,
 			)),
 			None::<[_; 0]>,

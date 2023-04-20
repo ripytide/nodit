@@ -1,16 +1,16 @@
 use std::fmt;
 use std::marker::PhantomData;
-use std::ops::Bound;
 
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::discrete_bounds::DiscreteBounds;
-use crate::range_bounds_map::{IntoIter as RangeBoundsMapIntoIter, DiscreteRange};
+use crate::range_bounds_map::{DiscreteRange, IntoIter as RangeBoundsMapIntoIter};
+use crate::stepable::Stepable;
+use crate::try_from_discrete_bounds::TryFromDiscreteBounds;
 use crate::{
-	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
-	TryFromDiscreteBoundsError,
+	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap, TryFromDiscreteBoundsError,
 };
 
 /// An ordered set of non-overlapping ranges based on [`RangeBoundsMap`].
@@ -33,8 +33,8 @@ pub struct RangeBoundsSet<I, K> {
 
 impl<I, K> RangeBoundsSet<I, K>
 where
-	I: Ord + Copy,
-	K: DiscreteRange<I>,
+	I: Ord + Copy + Stepable,
+	K: DiscreteRange<I> + Copy,
 {
 	/// See [`RangeBoundsMap::new()`] for more details.
 	pub fn new() -> Self {
@@ -53,22 +53,19 @@ where
 	/// See [`RangeBoundsMap::overlaps()`] for more details.
 	pub fn overlaps<Q>(&self, range: Q) -> bool
 	where
-		Q: DiscreteRange<I>,
+		Q: DiscreteRange<I> + Copy,
 	{
 		self.inner.overlaps(range)
 	}
 	/// See [`RangeBoundsMap::overlapping()`] for more details.
-	pub fn overlapping<Q>(
-		&self,
-		range: Q,
-	) -> impl DoubleEndedIterator<Item = &K>
+	pub fn overlapping<Q>(&self, range: Q) -> impl DoubleEndedIterator<Item = &K>
 	where
-		Q: DiscreteRange<I>,
+		Q: DiscreteRange<I> + Copy,
 	{
 		self.inner.overlapping(range).map(first)
 	}
 	/// See [`RangeBoundsMap::get_entry_at_point()`] for more details.
-	pub fn get_at_point(&self, point: I) -> Result<K, (Bound<I>, Bound<I>)> {
+	pub fn get_at_point(&self, point: I) -> Result<K, DiscreteBounds<I>> {
 		self.inner.get_entry_at_point(point).map(first).copied()
 	}
 	/// See [`RangeBoundsMap::contains_point()`] for more details.
@@ -80,12 +77,9 @@ where
 		self.inner.iter().map(first)
 	}
 	/// See [`RangeBoundsMap::remove_overlapping()`] for more details.
-	pub fn remove_overlapping<'a, Q>(
-		&'a mut self,
-		range: Q,
-	) -> impl Iterator<Item = K> + '_
+	pub fn remove_overlapping<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = K> + '_
 	where
-		Q: DiscreteRange<I> + 'a,
+		Q: DiscreteRange<I> + Copy + 'a,
 	{
 		self.inner.remove_overlapping(range).map(first)
 	}
@@ -93,13 +87,10 @@ where
 	pub fn cut<'a, Q>(
 		&'a mut self,
 		range: Q,
-	) -> Result<
-		impl Iterator<Item = (Bound<I>, Bound<I>)> + '_,
-		TryFromDiscreteBoundsError,
-	>
+	) -> Result<impl Iterator<Item = DiscreteBounds<I>> + '_, TryFromDiscreteBoundsError>
 	where
-		Q: DiscreteRange<I> + 'a,
-		K: TryFrom<DiscreteBounds<I>>,
+		Q: DiscreteRange<I> + Copy + 'a,
+		K: TryFromDiscreteBounds<I>,
 	{
 		self.inner.cut(range).map(|x| x.map(first))
 	}
@@ -107,16 +98,16 @@ where
 	pub fn gaps<'a, Q>(
 		&'a self,
 		range: Q,
-	) -> impl DoubleEndedIterator<Item = (Bound<I>, Bound<I>)> + '_
+	) -> impl DoubleEndedIterator<Item = DiscreteBounds<I>> + '_
 	where
-		Q: DiscreteRange<I> + 'a,
+		Q: DiscreteRange<I> + Copy + 'a,
 	{
 		self.inner.gaps(range)
 	}
 	/// See [`RangeBoundsMap::contains_range()`] for more details.
 	pub fn contains_range<Q>(&self, range: Q) -> bool
 	where
-		Q: DiscreteRange<I>,
+		Q: DiscreteRange<I> + Copy,
 	{
 		self.inner.contains_range(range)
 	}
@@ -130,17 +121,14 @@ where
 		range: K,
 	) -> Result<K, OverlapOrTryFromDiscreteBoundsError>
 	where
-		K: TryFrom<DiscreteBounds<I>>,
+		K: TryFromDiscreteBounds<I>,
 	{
 		self.inner.insert_merge_touching(range, ())
 	}
 	/// See [`RangeBoundsMap::insert_merge_overlapping()`] for more details.
-	pub fn insert_merge_overlapping(
-		&mut self,
-		range: K,
-	) -> Result<K, TryFromDiscreteBoundsError>
+	pub fn insert_merge_overlapping(&mut self, range: K) -> Result<K, TryFromDiscreteBoundsError>
 	where
-		K: TryFrom<DiscreteBounds<I>>,
+		K: TryFromDiscreteBounds<I>,
 	{
 		self.inner.insert_merge_overlapping(range, ())
 	}
@@ -150,17 +138,14 @@ where
 		range: K,
 	) -> Result<K, TryFromDiscreteBoundsError>
 	where
-		K: TryFrom<DiscreteBounds<I>>,
+		K: TryFromDiscreteBounds<I>,
 	{
 		self.inner.insert_merge_touching_or_overlapping(range, ())
 	}
 	/// See [`RangeBoundsMap::insert_overwrite()`] for more details.
-	pub fn insert_overwrite(
-		&mut self,
-		range: K,
-	) -> Result<(), TryFromDiscreteBoundsError>
+	pub fn insert_overwrite(&mut self, range: K) -> Result<(), TryFromDiscreteBoundsError>
 	where
-		K: TryFrom<DiscreteBounds<I>>,
+		K: TryFromDiscreteBounds<I>,
 	{
 		self.inner.insert_overwrite(range, ())
 	}
@@ -232,8 +217,8 @@ where
 
 impl<I, K> Serialize for RangeBoundsSet<I, K>
 where
-	I: Ord + Copy,
-	K: DiscreteRange<I> + Serialize,
+	I: Ord + Copy + Stepable,
+	K: DiscreteRange<I> + Copy + Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -249,8 +234,8 @@ where
 
 impl<'de, I, K> Deserialize<'de> for RangeBoundsSet<I, K>
 where
-	I: Ord + Copy,
-	K: DiscreteRange<I> + Deserialize<'de>,
+	I: Ord + Copy + Stepable,
+	K: DiscreteRange<I> + Copy + Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
@@ -270,8 +255,8 @@ struct RangeBoundsSetVisitor<I, K> {
 
 impl<'de, I, K> Visitor<'de> for RangeBoundsSetVisitor<I, K>
 where
-	I: Ord + Copy,
-	K: DiscreteRange<I> + Deserialize<'de>,
+	I: Ord + Copy + Stepable,
+	K: DiscreteRange<I> + Copy + Deserialize<'de>,
 {
 	type Value = RangeBoundsSet<I, K>;
 

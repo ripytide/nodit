@@ -137,7 +137,7 @@ See Wikipedia's article on mathematical Intervals:
 
 # Improvements/Caveats
 
-- I had to create a new trait: [`TryFromBounds`] rather than using
+- I had to create a new trait: [`TryFromDiscreteBounds`] rather than using
   `TryFrom<(Bound, Bound)>` (relys on upstream to impl, see [this
   thread](https://internals.rust-lang.org/t/range-should-impl-tryfrom-bound-bound))
 

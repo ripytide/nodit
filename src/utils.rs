@@ -19,7 +19,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::cmp::Ordering;
 
-use crate::bound_ord::DiscreteBoundOrd;
+use crate::discrete_bound_ord::DiscreteBoundOrd;
 use crate::discrete_bounds::DiscreteBounds;
 use crate::range_bounds_map::DiscreteRange;
 use crate::stepable::Stepable;
@@ -53,8 +53,8 @@ pub(crate) enum Config {
 }
 pub(crate) fn config<I, A, B>(a: A, b: B) -> Config
 where
-	A: DiscreteRange<I>,
-	B: DiscreteRange<I>,
+	A: DiscreteRange<I> + Copy,
+	B: DiscreteRange<I> + Copy,
 	I: Ord,
 {
 	match a.start() < b.start() {
@@ -99,8 +99,8 @@ enum SortedConfig<I> {
 }
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
-	A: DiscreteRange<I>,
-	B: DiscreteRange<I>,
+	A: DiscreteRange<I> + Copy,
+	B: DiscreteRange<I> + Copy,
 	I: Ord,
 {
 	let ae = (a.start(), a.end());
@@ -132,8 +132,8 @@ pub(crate) struct CutResult<I> {
 }
 pub(crate) fn cut_range<I, B, C>(base: B, cut: C) -> CutResult<I>
 where
-	B: DiscreteRange<I>,
-	C: DiscreteRange<I>,
+	B: DiscreteRange<I> + Copy,
+	C: DiscreteRange<I> + Copy,
 	I: Ord + Copy + Stepable,
 {
 	let mut result = CutResult {
@@ -222,8 +222,8 @@ where
 
 pub(crate) fn overlaps<I, A, B>(a: A, b: B) -> bool
 where
-	A: DiscreteRange<I>,
-	B: DiscreteRange<I>,
+	A: DiscreteRange<I> + Copy,
+	B: DiscreteRange<I> + Copy,
 	I: Ord,
 {
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))

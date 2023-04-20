@@ -19,7 +19,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::ops::{Bound, RangeBounds};
 
-use crate::bound_ord::DiscreteBoundOrd;
+use crate::discrete_bound_ord::DiscreteBoundOrd;
 use crate::stepable::Stepable;
 use crate::try_from_discrete_bounds::TryFromDiscreteBounds;
 
@@ -37,7 +37,7 @@ pub enum DiscreteBound<I> {
 
 impl<I> DiscreteBound<I>
 where
-	I: Stepable,
+	I: Stepable + Copy,
 {
 	pub fn start(bound: Bound<I>) -> Self {
 		match bound {

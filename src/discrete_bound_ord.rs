@@ -29,7 +29,7 @@ use crate::stepable::Stepable;
 ///
 /// [`Step`]: std::iter::Step
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-pub(crate) enum DiscreteBoundOrd<T> {
+pub enum DiscreteBoundOrd<T> {
 	Included(T),
 	StartUnbounded,
 	EndUnbounded,
@@ -51,7 +51,7 @@ impl<I> DiscreteBoundOrd<I> {
 
 	pub fn up_if_finite(&self) -> DiscreteBoundOrd<I>
 	where
-		I: Stepable,
+		I: Stepable + Copy,
 	{
 		match self {
 			DiscreteBoundOrd::Included(x) => DiscreteBoundOrd::Included(x.up().unwrap()),
@@ -60,7 +60,7 @@ impl<I> DiscreteBoundOrd<I> {
 	}
 	pub fn down_if_finite(&self) -> DiscreteBoundOrd<I>
 	where
-		I: Stepable,
+		I: Stepable + Copy,
 	{
 		match self {
 			DiscreteBoundOrd::Included(x) => DiscreteBoundOrd::Included(x.down().unwrap()),
