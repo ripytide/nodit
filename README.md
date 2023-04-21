@@ -185,6 +185,8 @@ all from scratch.
 It is however worth noting the library eventually expanded and evolved
 from it's origins.
 
+This crate was previously named [`range_bounds_map`].
+
 # Similar Crates
 
 Here are some relevant crates I found whilst searching around the
@@ -232,3 +234,4 @@ topic area:
 [`interval-mathematics`]: https://en.wikipedia.org/wiki/Interval_(mathematics)
 [`actual infinity`]: https://en.wikipedia.org/wiki/Actual_infinity
 [`finite`]: https://en.wiktionary.org/wiki/finite#Adjective
+[`range_bounds_map`]: https://docs.rs/range_bounds_map

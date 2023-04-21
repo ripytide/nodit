@@ -1,10 +1,13 @@
-# todo this file put back to normal
-
-# - rename crate too
 # - add link to previous crate on readme
 # - update shared descriptions to note the discreteness
 # - fix doc.rs links in docs to print at new crate name
-# - fix doc warnings
+edition="2024"
+version = "Two"
 hard_tabs=true
 imports_granularity="Module"
 group_imports="StdExternalCrate"
+max_width=80
+format_code_in_doc_comments=true
+doc_comment_code_block_width=70
+unstable_features = true
+comment_width=70
