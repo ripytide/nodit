@@ -15,16 +15,17 @@ Structures for storing non-overlapping intervals based of [`BTreeMap`].
 ## Example using [`Range`]s
 
 ```rust
+use range_bounds_map::test_ranges::ie;
 use range_bounds_map::RangeBoundsMap;
 
 let mut map = RangeBoundsMap::new();
 
-map.insert_strict(0..5, true);
-map.insert_strict(5..10, false);
+map.insert_strict(ie(0, 5), true);
+map.insert_strict(ie(5, 10), false);
 
-assert_eq!(map.overlaps(&(-2..12)), true);
-assert_eq!(map.contains_point(&20), false);
-assert_eq!(map.contains_point(&5), true);
+assert_eq!(map.overlaps(ie(-2, 12)), true);
+assert_eq!(map.contains_point(20), false);
+assert_eq!(map.contains_point(5), true);
 ```
 
 ## Example using a custom [`RangeBounds`] type
@@ -32,44 +33,44 @@ assert_eq!(map.contains_point(&5), true);
 ```rust
 use std::ops::{Bound, RangeBounds};
 
+use range_bounds_map::test_ranges::ie;
 use range_bounds_map::RangeBoundsMap;
+use range_bounds_map::FiniteRange;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Reservation {
-	// Start, End (Inclusive-Inclusive)
-	Finite(u8, u8),
-	// Start (Exclusive)
-	Infinite(u8),
+	// Start, End (Inclusive-Exclusive)
+	Finite(i8, i8),
+	// Start (Inclusive-Forever)
+	Infinite(i8),
 }
 
-// First, we need to implement RangeBounds
-impl RangeBounds<u8> for Reservation {
-	fn start_bound(&self) -> Bound<&u8> {
-		match self {
-			Reservation::Finite(start, _) => {
-				Bound::Included(start)
-			}
-			Reservation::Infinite(start) => {
-				Bound::Excluded(start)
-			}
-		}
-	}
-	fn end_bound(&self) -> Bound<&u8> {
-		match self {
-			Reservation::Finite(_, end) => Bound::Included(end),
-			Reservation::Infinite(_) => Bound::Unbounded,
-		}
-	}
+// First, we need to implement FiniteRange
+impl FiniteRange<i8> for Reservation {
+    fn start(&self) -> i8 {
+        match self {
+            Reservation::Finite(start, _) => *start,
+            Reservation::Infinite(start) => *start,
+        }
+    }
+    fn end(&self) -> i8 {
+        match self {
+            //the end is exclusive so we take off 1 with checking
+            //for compile time error overflow detection
+            Reservation::Finite(_, end) => end.checked_sub(1).unwrap(),
+            Reservation::Infinite(_) => i8::MAX,
+        }
+    }
 }
 
 // Next we can create a custom typed RangeBoundsMap
-let reservation_map = RangeBoundsMap::try_from([
+let reservation_map = RangeBoundsMap::from_slice_strict([
 	(Reservation::Finite(10, 20), "Ferris".to_string()),
 	(Reservation::Infinite(20), "Corro".to_string()),
 ])
 .unwrap();
 
-for (reservation, name) in reservation_map.overlapping(&(16..17))
+for (reservation, name) in reservation_map.overlapping(ie(16, 17))
 {
 	println!(
 		"{name} has reserved {reservation:?} inside the range 16..17"
@@ -81,7 +82,7 @@ for (reservation, name) in reservation_map.iter() {
 }
 
 assert_eq!(
-	reservation_map.overlaps(&Reservation::Infinite(0)),
+	reservation_map.overlaps(Reservation::Infinite(0)),
 	true
 );
 ```
