@@ -34,7 +34,7 @@ assert_eq!(map.contains_point(20), false);
 assert_eq!(map.contains_point(5), true);
 ```
 
-## Example using a custom [`DiscreteRange`] type
+## Example using a custom range type
 
 ```rust
 use range_bounds_map::test_ranges::ie;
@@ -178,9 +178,12 @@ The aim for this library was to become a more generic superset of
 [`rangemap`], following from [this
 issue](https://github.com/jeffparsons/rangemap/issues/56) and [this
 pull request](https://github.com/jeffparsons/rangemap/pull/57) in
-which I changed [`rangemap`]'s [`RangeMap`] to use [`DiscreteRange`]s as
+which I changed [`rangemap`]'s [`RangeMap`] to use [`RangeBounds`]s as
 keys before I realized it might be easier and simpler to just write it
 all from scratch.
+
+It is however worth noting the library eventually expanded and evolved
+from it's origins.
 
 # Similar Crates
 
@@ -214,8 +217,6 @@ topic area:
 
 [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 [`btreeset`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
-[`start_bound()`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html#tymethod.start_bound
-[`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html#tymethod.end_bound
 [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
 [`range()`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/

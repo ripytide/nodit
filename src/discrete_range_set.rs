@@ -13,16 +13,14 @@ use crate::{OverlapError, DiscreteRangeMap};
 /// An ordered set of non-overlapping ranges based on [`DiscreteRangeMap`].
 ///
 /// `I` is the generic type parameter for the [`Ord`] type the `K`
-/// type is [`DiscreteRange`] over.
+/// type is range over.
 ///
-/// `K` is the generic type parameter for the [`DiscreteRange`]
-/// implementing type in the set.
+/// `K` is the generic type parameter for the range implementing type
+/// in the set.
 ///
 /// Phrasing it another way: `I` is the point type and `K` is the range type.
 ///
 /// See [`DiscreteRangeMap`] for more details.
-///
-/// [`DiscreteRange`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscreteRangeSet<I, K> {
 	inner: DiscreteRangeMap<I, K, ()>,

@@ -35,11 +35,11 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
 ///
-/// `I` is the generic type parameter for the [`Ord`] type the `K` type
-/// is [`DiscreteRange`] over.
+/// `I` is the generic type parameter for the [`Ord`] type the `K`
+/// type is a range over.
 ///
-/// `K` is the generic type parameter for the [`DiscreteRange`]
-/// implementing type stored as the keys in the map.
+/// `K` is the generic type parameter for the range type stored as the
+/// keys in the map.
 ///
 /// `V` is the generic type parameter for the values associated with the
 /// keys in the map.
@@ -71,7 +71,7 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// 	println!("{range:?}, {value:?}");
 /// }
 /// ```
-/// Example using a custom [`DiscreteRange`] type:
+/// Example using a custom range type:
 /// ```
 /// use range_bounds_map::DiscreteRangeMap;
 /// use range_bounds_map::FiniteRange;
@@ -125,7 +125,6 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// );
 /// ```
 ///
-/// [`DiscreteRange`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscreteRangeMap<I, K, V> {
