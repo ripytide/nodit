@@ -87,7 +87,30 @@ assert_eq!(
 );
 ```
 
-## Key Definitions:
+## Key Understandings and Philosophies:
+
+### Discrete-ness
+
+This crate is designed to work with [`Discrete`] types as compared to
+[`Continuous`] types. For example, `u8` is a `Discrete` type, but
+`String` is a `Continuous` if you try to parse it as a decimal value.
+
+The reason for this is that common [`interval-Mathematics`] operations
+differ depending on wether the underlying type is `Discrete` or
+`Continuous`. For example `5..=6` touches `7..=8` since integers are
+`Discrete` but `5.0..=6.0` does **not** touch `7.0..=8.0` since the
+value `6.5` exists.
+
+### Finite-ness
+
+This crate is also designed to work with [`Finite`] types since it is
+much easy to implement and it is not restrictive to users since you
+can still represent `Infinite` numbers in `Finite` types paradoxically.
+
+For example you could define `Infinite` for `u8` as `u8::MAX` or if
+you still want to use `u8::MAX` as a `Finite` number you could define
+a wrapper type for `u8` that adds an [`Actual Infinity`] value to the
+`u8` set.
 
 ### Invalid Ranges
 
@@ -104,17 +127,14 @@ values are greater than their end values. such as `5..2` or
 
 Here are a few examples of ranges and whether they are valid:
 
-| range          | valid |
-| -------------- | ----- |
-| 0..=0          | YES   |
-| 0..0           | NO    |
-| 0..1           | YES   |
-| 9..8           | NO    |
-| (0.4)..=(-0.2) | NO    |
-| ..(-3)         | YES   |
-| 0.0003..       | YES   |
-| ..             | YES   |
-| 400..=400      | YES   |
+| range                                  | valid |
+| -------------------------------------- | ----- |
+| 0..=0                                  | YES   |
+| 0..0                                   | NO    |
+| 0..1                                   | YES   |
+| 9..8                                   | NO    |
+| (Bound::Exluded(3), Bound::Exluded(4)) | NO    |
+| 400..=400                              | YES   |
 
 ### Overlap
 
@@ -201,3 +221,7 @@ topic area:
 [`rangeboundsmap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.RangeBoundsMap.html
 [`rangeboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.RangeBoundsSet.html
 [`copse`]: https://github.com/eggyal/copse
+[`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
+[`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics
+[`interval-mathematics`]: https://en.wikipedia.org/wiki/Interval_(mathematics)
+[`actual infinity`]: https://en.wikipedia.org/wiki/Actual_infinity
