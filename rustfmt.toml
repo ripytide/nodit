@@ -1,6 +1,3 @@
-# - add link to previous crate on readme
-# - update shared descriptions to note the discreteness
-# - fix doc.rs links in docs to print at new crate name
 edition="2024"
 version = "Two"
 hard_tabs=true

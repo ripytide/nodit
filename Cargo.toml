@@ -4,8 +4,9 @@ version = "0.4.0"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
-This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`], Data
-Structures for storing non-overlapping intervals based of [`BTreeMap`].
+This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
+Data Structures for storing non-overlapping discrete intervals based
+of [`BTreeMap`].
 """
 documentation = "https://docs.rs/discrete_range_map"
 readme = "README.md"

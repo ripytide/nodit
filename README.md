@@ -9,8 +9,9 @@
 <img src="logo.png" alt="discrete_range_map_logo" width="350">
 </p>
 
-This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`], Data
-Structures for storing non-overlapping intervals based of [`BTreeMap`].
+This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
+Data Structures for storing non-overlapping discrete intervals based
+of [`BTreeMap`].
 
 ## You must implement `Copy`
 
