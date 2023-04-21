@@ -21,7 +21,6 @@ use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::iter::once;
 use std::marker::PhantomData;
-use std::ops::RangeBounds;
 
 use btree_monstrousity::btree_map::{IntoIter as BTreeMapIntoIter, SearchBoundCustom};
 use btree_monstrousity::BTreeMap;
@@ -611,9 +610,9 @@ where
 			.copied();
 
 		if let Some(left) = left_overlapping && let Some(right) = right_overlapping && left.start() == right.start() {
-            Ok(Either::Left(self.cut_single_overlapping(range, left)?))
+            Either::Left(self.cut_single_overlapping(range, left))
         } else {
-            Ok(Either::Right(self.cut_non_single_overlapping(range, left_overlapping, right_overlapping)?))
+            Either::Right(self.cut_non_single_overlapping(range, left_overlapping, right_overlapping))
         }
 	}
 	fn cut_single_overlapping<Q>(
@@ -630,11 +629,11 @@ where
 
 		let cut_result = cut_range(single_overlapping_range, range);
 		let returning_before_cut = match cut_result.before_cut {
-			Some(before_cut) => Some(K::try_from_discrete_bounds(before_cut)?),
+			Some(before_cut) => Some(K::from(before_cut)),
 			None => None,
 		};
 		let returning_after_cut = match cut_result.after_cut {
-			Some(after_cut) => Some(K::try_from_discrete_bounds(after_cut)?),
+			Some(after_cut) => Some(K::from(after_cut)),
 			None => None,
 		};
 
@@ -647,7 +646,7 @@ where
 			self.insert_unchecked(after, value.clone());
 		}
 
-		Ok(once((cut_result.inside_cut.unwrap(), value)))
+		once((cut_result.inside_cut.unwrap(), value))
 	}
 	fn cut_non_single_overlapping<'a, Q>(
 		&'a mut self,
@@ -668,7 +667,7 @@ where
 
 				Some((
 					match cut_result.before_cut {
-						Some(before_cut) => Some(K::try_from_discrete_bounds(before_cut)?),
+						Some(before_cut) => Some(K::from(before_cut)),
 						None => None,
 					},
 					cut_result.inside_cut.unwrap(),
@@ -682,7 +681,7 @@ where
 
 				Some((
 					match cut_result.after_cut {
-						Some(after_cut) => Some(K::try_from_discrete_bounds(after_cut)?),
+						Some(after_cut) => Some(K::from(after_cut)),
 						None => None,
 					},
 					cut_result.inside_cut.unwrap(),
@@ -709,18 +708,18 @@ where
 		let keeping_after_entry = after_config
 			.map(|(_, keeping_after_entry)| (keeping_after_entry, after_value.unwrap()));
 
-		return Ok(keeping_before_entry
+		return keeping_before_entry
 			.into_iter()
 			.chain(self.remove_overlapping(range).map(|(key, value)| {
 				(
 					(DiscreteBounds {
-						start: key.start().into(),
-						end: key.end().into(),
+						start: key.start(),
+						end: key.end(),
 					}),
 					value,
 				)
 			}))
-			.chain(keeping_after_entry.into_iter()));
+			.chain(keeping_after_entry.into_iter());
 	}
 
 	/// Returns an iterator of ranges over all the maximally-sized
@@ -813,8 +812,8 @@ where
 			.collect::<Vec<_>>()
 			.windows(2)
 			.map(|windows| DiscreteBounds {
-				start: windows[0].1.up_if_finite().into(),
-				end: windows[1].0.down_if_finite().into(),
+				start: windows[0].1.up().unwrap(),
+				end: windows[1].0.down().unwrap(),
 			})
 			.filter(|range| is_valid_range(*range))
 			//optimisation this would also then be unneccessary
@@ -923,20 +922,18 @@ where
 		let matching_end = get_end(self, &value);
 
 		let returning = match (matching_start, matching_end) {
-			(Some(matching_start), Some(matching_end)) => {
-				K::try_from_discrete_bounds(DiscreteBounds {
-					start: matching_start.start().into(),
-					end: matching_end.end().into(),
-				})?
-			}
-			(Some(matching_start), None) => K::try_from_discrete_bounds(DiscreteBounds {
-				start: matching_start.start().into(),
-				end: range.end().into(),
-			})?,
-			(None, Some(matching_end)) => K::try_from_discrete_bounds(DiscreteBounds {
-				start: range.start().into(),
-				end: matching_end.end().into(),
-			})?,
+			(Some(matching_start), Some(matching_end)) => K::from(DiscreteBounds {
+				start: matching_start.start(),
+				end: matching_end.end(),
+			}),
+			(Some(matching_start), None) => K::from(DiscreteBounds {
+				start: matching_start.start(),
+				end: range.end(),
+			}),
+			(None, Some(matching_end)) => K::from(DiscreteBounds {
+				start: range.start(),
+				end: matching_end.end(),
+			}),
 			(None, None) => range,
 		};
 
@@ -947,7 +944,7 @@ where
 
 		self.insert_unchecked(returning, value);
 
-		Ok(returning)
+		return returning;
 	}
 
 	/// Adds a new entry to the map and merges into other ranges in
@@ -1372,7 +1369,7 @@ where
 	{
 		invalid_range_panic(range);
 
-		let _ = self.cut(range)?;
+		let _ = self.cut(range);
 		self.insert_unchecked(range, value);
 	}
 
@@ -1618,7 +1615,7 @@ mod tests {
 
 	use super::*;
 	use crate::test_ranges::{ee, ei, ie, ii, iu, ue, ui, uu};
-	use crate::utils::{config, Config, CutResult};
+	use crate::utils::{config, contains_point, Config, CutResult};
 
 	//only every other number to allow mathematical_overlapping_definition
 	//to test between bounds in finite using smaller intervalled finite
@@ -1635,49 +1632,41 @@ mod tests {
 		])
 		.unwrap()
 	}
+	fn basic_slice() -> [(DiscreteBounds<i8>, bool); 4] {
+		[
+			(ui(4), false),
+			(ee(5, 7), true),
+			(ii(7, 7), false),
+			(ie(14, 16), true),
+		]
+	}
 
 	#[test]
 	fn insert_strict_tests() {
-		assert_insert_strict(
-			basic(),
-			(ii(0, 4), false),
-			Err(OverlapError),
-			None::<[_; 0]>,
-		);
-		assert_insert_strict(
-			basic(),
-			(ii(5, 6), false),
-			Err(OverlapError),
-			None::<[_; 0]>,
-		);
-		assert_insert_strict(basic(), (ii(4, 5), true), Err(OverlapError), None::<[_; 0]>);
+		assert_insert_strict(basic(), (ii(0, 4), false), Err(OverlapError), basic_slice());
+		assert_insert_strict(basic(), (ii(5, 6), false), Err(OverlapError), basic_slice());
+		assert_insert_strict(basic(), (ii(4, 5), true), Err(OverlapError), basic_slice());
 		assert_insert_strict(
 			basic(),
 			(ei(4, 5), true),
 			Ok(()),
-			Some([
+			[
 				(ui(4), false),
 				(ei(4, 5), true),
 				(ee(5, 7), true),
 				(ii(7, 7), false),
 				(ie(14, 16), true),
-			]),
+			],
 		);
 	}
 	fn assert_insert_strict<const N: usize>(
 		mut before: RangeBoundsMap<i8, DiscreteBounds<i8>, bool>,
 		to_insert: (DiscreteBounds<i8>, bool),
 		result: Result<(), OverlapError>,
-		after: Option<[(DiscreteBounds<i8>, bool); N]>,
+		after: [(DiscreteBounds<i8>, bool); N],
 	) {
-		let clone = before.clone();
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
-		match after {
-			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
-			}
-			None => assert_eq!(before, clone),
-		}
+		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -1800,58 +1789,50 @@ mod tests {
 
 	#[test]
 	fn cut_tests() {
-		assert_cut(basic(), ii(50, 60), Ok([]), None::<[_; 0]>);
 		assert_cut(
 			basic(),
-			uu(),
-			Ok([
+			ii(50, 60),
+			[],
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ii(7, 7), false),
 				(ie(14, 16), true),
-			]),
-			Some([]),
+			],
+		);
+		assert_cut(
+			basic(),
+			uu(),
+			[
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ie(14, 16), true),
+			],
+			[],
 		);
 		assert_cut(
 			basic(),
 			ui(6),
-			Ok([(ui(4), false), (ei(5, 6), true)]),
-			Some([(ii(7, 7), false), (ie(14, 16), true)]),
+			[(ui(4), false), (ei(5, 6), true)],
+			[(ii(7, 7), false), (ie(14, 16), true)],
 		);
 		assert_cut(
 			basic(),
 			iu(6),
-			Ok([(ie(6, 7), true), (ii(7, 7), false), (ie(14, 16), true)]),
-			Some([(ui(4), false)]),
+			[(ie(6, 7), true), (ii(7, 7), false), (ie(14, 16), true)],
+			[(ui(4), false)],
 		);
 	}
-
 	fn assert_cut<const N: usize, const Y: usize>(
-		mut before: RangeBoundsMap<I, K, V>,
-		to_cut: Q,
-		result: Result<[(DiscreteBounds<I>, V); Y], TryFromDiscreteBoundsError>,
-		after: Option<[(K, V); N]>,
-	) where
-		I: Ord + Debug + Copy + Discrete,
-		K: DiscreteRange<I> + TryFromDiscreteBounds<I> + PartialEq + Debug + Copy,
-		Q: DiscreteRange<I> + Copy,
-		V: PartialEq + Debug + Clone,
-	{
+		mut before: RangeBoundsMap<i8, DiscreteBounds<i8>, bool>,
+		to_cut: DiscreteBounds<i8>,
+		result: [(DiscreteBounds<i8>, bool); Y],
+		after: [(DiscreteBounds<i8>, bool); N],
+	) {
 		let clone = before.clone();
-		match before.cut(to_cut) {
-			Ok(iter) => {
-				assert_eq!(iter.collect::<Vec<_>>(), result.unwrap());
-			}
-			Err(x) => {
-				assert_eq!(x, result.unwrap_err());
-			}
-		}
-		match after {
-			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
-			}
-			None => assert_eq!(before, clone),
-		}
+		assert_eq!(before.cut(to_cut).collect::<Vec<_>>(), result);
+		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap());
 	}
 
 	#[test]
@@ -1893,124 +1874,109 @@ mod tests {
 		assert_insert_merge_touching(
 			basic(),
 			(ii(0, 4), false),
-			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
-			None::<[_; 0]>,
+			Err(OverlapError),
+			[
+				(ui(4), false),
+				(ee(5, 7), true),
+				(ii(7, 7), false),
+				(ie(14, 16), true),
+			],
 		);
 		assert_insert_merge_touching(
 			basic(),
 			(ee(7, 10), false),
 			Ok(ie(7, 10)),
-			Some([
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ie(7, 10), false),
 				(ie(14, 16), true),
-			]),
+			],
 		);
 		assert_insert_merge_touching(
 			basic(),
 			(ee(7, 11), true),
 			Ok(ie(7, 11)),
-			Some([
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ie(7, 11), true),
 				(ie(14, 16), true),
-			]),
+			],
 		);
 		assert_insert_merge_touching(
 			basic(),
 			(ee(7, 14), false),
 			Ok(ie(7, 16)),
-			Some([(ui(4), false), (ee(5, 7), true), (ie(7, 16), false)]),
+			[(ui(4), false), (ee(5, 7), true), (ie(7, 16), false)],
 		);
 	}
-	fn assert_insert_merge_touching<const N: usize, I, K, V>(
-		mut before: RangeBoundsMap<I, K, V>,
-		to_insert: (K, V),
-		result: Result<K, OverlapOrTryFromDiscreteBoundsError>,
-		after: Option<[(K, V); N]>,
-	) where
-		I: Ord + Debug + Copy + Discrete,
-		K: DiscreteRange<I> + TryFromDiscreteBounds<I> + PartialEq + Debug + Copy,
-		V: PartialEq + Debug + Clone,
-	{
-		let clone = before.clone();
+	fn assert_insert_merge_touching<const N: usize>(
+		mut before: RangeBoundsMap<i8, DiscreteBounds<i8>, bool>,
+		to_insert: (DiscreteBounds<i8>, bool),
+		result: Result<DiscreteBounds<i8>, OverlapError>,
+		after: [(DiscreteBounds<i8>, bool); N],
+	) {
 		assert_eq!(
 			before.insert_merge_touching(to_insert.0, to_insert.1),
 			result
 		);
-		match after {
-			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
-			}
-			None => assert_eq!(before, clone),
-		}
+		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 	}
 	#[test]
 	fn insert_merge_touching_if_values_equal_tests() {
 		assert_insert_merge_touching_if_values_equal(
 			basic(),
 			(ii(0, 4), false),
-			Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
-			None::<[_; 0]>,
+			Err(OverlapError),
+			basic_slice(),
 		);
 		assert_insert_merge_touching_if_values_equal(
 			basic(),
 			(ee(7, 10), false),
 			Ok(ie(7, 10)),
-			Some([
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ie(7, 10), false),
 				(ie(14, 16), true),
-			]),
+			],
 		);
 		assert_insert_merge_touching_if_values_equal(
 			basic(),
 			(ee(7, 11), true),
 			Ok(ee(7, 11)),
-			Some([
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ii(7, 7), false),
 				(ee(7, 11), true),
 				(ie(14, 16), true),
-			]),
+			],
 		);
 		assert_insert_merge_touching_if_values_equal(
 			basic(),
 			(ee(7, 14), false),
 			Ok(ie(7, 14)),
-			Some([
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ie(7, 14), false),
 				(ie(14, 16), true),
-			]),
+			],
 		);
 	}
-	fn assert_insert_merge_touching_if_values_equal<const N: usize, I, K, V>(
-		mut before: RangeBoundsMap<I, K, V>,
-		to_insert: (K, V),
-		result: Result<K, OverlapOrTryFromDiscreteBoundsError>,
-		after: Option<[(K, V); N]>,
-	) where
-		I: Ord + Debug + Copy + Discrete,
-		K: DiscreteRange<I> + TryFromDiscreteBounds<I> + PartialEq + Debug + Copy,
-		V: Eq + Debug + Clone,
-	{
-		let clone = before.clone();
+	fn assert_insert_merge_touching_if_values_equal<const N: usize>(
+		mut before: RangeBoundsMap<i8, DiscreteBounds<i8>, bool>,
+		to_insert: (DiscreteBounds<i8>, bool),
+		result: Result<DiscreteBounds<i8>, OverlapError>,
+		after: [(DiscreteBounds<i8>, bool); N],
+	) {
 		assert_eq!(
 			before.insert_merge_touching_if_values_equal(to_insert.0, to_insert.1),
 			result
 		);
-		match after {
-			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
-			}
-			None => assert_eq!(before, clone),
-		}
+		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -2018,65 +1984,55 @@ mod tests {
 		assert_insert_merge_overlapping(
 			basic(),
 			(ii(0, 2), true),
-			Ok(ui(4)),
-			Some([
+			ui(4),
+			[
 				(ui(4), true),
 				(ee(5, 7), true),
 				(ii(7, 7), false),
 				(ie(14, 16), true),
-			]),
+			],
 		);
 		assert_insert_merge_overlapping(
 			basic(),
 			(ie(14, 16), false),
-			Ok(ie(14, 16)),
-			Some([
+			ie(14, 16),
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ii(7, 7), false),
 				(ie(14, 16), false),
-			]),
+			],
 		);
 		assert_insert_merge_overlapping(
 			basic(),
 			(ii(6, 11), false),
-			Ok(ei(5, 11)),
-			Some([(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)]),
+			ei(5, 11),
+			[(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)],
 		);
 		assert_insert_merge_overlapping(
 			basic(),
 			(ii(15, 18), true),
-			Ok(ii(14, 18)),
-			Some([
+			ii(14, 18),
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ii(7, 7), false),
 				(ii(14, 18), true),
-			]),
+			],
 		);
-		assert_insert_merge_overlapping(basic(), (uu(), false), Ok(uu()), Some([(uu(), false)]));
+		assert_insert_merge_overlapping(basic(), (uu(), false), uu(), [(uu(), false)]);
 	}
-	fn assert_insert_merge_overlapping<const N: usize, I, K, V>(
-		mut before: RangeBoundsMap<I, K, V>,
-		to_insert: (K, V),
-		result: Result<K, TryFromDiscreteBoundsError>,
-		after: Option<[(K, V); N]>,
-	) where
-		I: Ord + Debug + Copy + Discrete,
-		K: DiscreteRange<I> + TryFromDiscreteBounds<I> + PartialEq + Debug + Copy,
-		V: PartialEq + Debug + Clone,
-	{
-		let clone = before.clone();
+	fn assert_insert_merge_overlapping<const N: usize>(
+		mut before: RangeBoundsMap<i8, DiscreteBounds<i8>, bool>,
+		to_insert: (DiscreteBounds<i8>, bool),
+		result: DiscreteBounds<i8>,
+		after: [(DiscreteBounds<i8>, bool); N],
+	) {
 		assert_eq!(
 			before.insert_merge_overlapping(to_insert.0, to_insert.1),
 			result
 		);
-		match after {
-			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
-			}
-			None => assert_eq!(before, clone),
-		}
+		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -2084,85 +2040,70 @@ mod tests {
 		assert_insert_merge_touching_or_overlapping(
 			RangeBoundsMap::from_slice_strict([(ie(1, 4), false)]).unwrap(),
 			(ie(0, 1), true),
-			Ok(ie(0, 4)),
-			Some([(ie(0, 4), true)]),
+			ie(0, 4),
+			[(ie(0, 4), true)],
 		);
 
 		//copied from insert_merge_overlapping_tests
 		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ii(0, 2), true),
-			Ok(ui(4)),
-			Some([
+			ui(4),
+			[
 				(ui(4), true),
 				(ee(5, 7), true),
 				(ii(7, 7), false),
 				(ie(14, 16), true),
-			]),
+			],
 		);
 		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ie(14, 16), false),
-			Ok(ie(14, 16)),
-			Some([
+			ie(14, 16),
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ii(7, 7), false),
 				(ie(14, 16), false),
-			]),
+			],
 		);
 		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ii(6, 11), false),
-			Ok(ei(5, 11)),
-			Some([(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)]),
+			ei(5, 11),
+			[(ui(4), false), (ei(5, 11), false), (ie(14, 16), true)],
 		);
 		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ii(15, 18), true),
-			Ok(ii(14, 18)),
-			Some([
+			ii(14, 18),
+			[
 				(ui(4), false),
 				(ee(5, 7), true),
 				(ii(7, 7), false),
 				(ii(14, 18), true),
-			]),
+			],
 		);
-		assert_insert_merge_touching_or_overlapping(
-			basic(),
-			(uu(), false),
-			Ok(uu()),
-			Some([(uu(), false)]),
-		);
+		assert_insert_merge_touching_or_overlapping(basic(), (uu(), false), uu(), [(uu(), false)]);
 		//the only difference from the insert_merge_overlapping
 		assert_insert_merge_touching_or_overlapping(
 			basic(),
 			(ii(7, 14), false),
-			Ok(ee(5, 16)),
-			Some([(ui(4), false), (ee(5, 16), false)]),
+			ee(5, 16),
+			[(ui(4), false), (ee(5, 16), false)],
 		);
 	}
-	fn assert_insert_merge_touching_or_overlapping<const N: usize, I, K, V>(
-		mut before: RangeBoundsMap<I, K, V>,
-		to_insert: (K, V),
-		result: Result<K, TryFromDiscreteBoundsError>,
-		after: Option<[(K, V); N]>,
-	) where
-		I: Ord + Debug + Copy + Discrete,
-		K: DiscreteRange<I> + TryFromDiscreteBounds<I> + PartialEq + Debug + Copy,
-		V: PartialEq + Debug + Clone,
-	{
-		let clone = before.clone();
+	fn assert_insert_merge_touching_or_overlapping<const N: usize>(
+		mut before: RangeBoundsMap<i8, DiscreteBounds<i8>, bool>,
+		to_insert: (DiscreteBounds<i8>, bool),
+		result: DiscreteBounds<i8>,
+		after: [(DiscreteBounds<i8>, bool); N],
+	) {
 		assert_eq!(
 			before.insert_merge_touching_or_overlapping(to_insert.0, to_insert.1),
 			result
 		);
-		match after {
-			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
-			}
-			None => assert_eq!(before, clone),
-		}
+		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -2184,7 +2125,7 @@ mod tests {
 
 				let mathematical_definition_of_overlap = NUMBERS_DOMAIN
 					.iter()
-					.any(|x| range1.contains(x) && range2.contains(x));
+					.any(|x| contains_point(range1, *x) && contains_point(range2, *x));
 
 				if our_answer != mathematical_definition_of_overlap {
 					dbg!(range1, range2);
@@ -2209,8 +2150,8 @@ mod tests {
 
 				// The definition of a cut is: A && NOT B
 				for x in NUMBERS_DOMAIN {
-					let base_contains = base.contains(x);
-					let cut_contains = cut.contains(x);
+					let base_contains = contains_point(base, *x);
+					let cut_contains = contains_point(base, *x);
 
 					if cut_contains {
 						on_left = false;
@@ -2248,7 +2189,7 @@ mod tests {
 	}
 	fn con(x: Option<DiscreteBounds<i8>>, point: &i8) -> bool {
 		match x {
-			Some(y) => y.contains(point),
+			Some(y) => contains_point(y, *point),
 			None => false,
 		}
 	}
@@ -2294,21 +2235,10 @@ mod tests {
 
 	fn all_valid_test_bounds() -> Vec<DiscreteBounds<i8>> {
 		let mut output = Vec::new();
-		for i in NUMBERS
-			.into_iter()
-			.map(|i| DiscreteBoundOrd::Included(*i))
-			.chain(once(DiscreteBoundOrd::StartUnbounded))
-		{
-			for j in NUMBERS
-				.into_iter()
-				.map(|j| DiscreteBoundOrd::Included(*j))
-				.chain(once(DiscreteBoundOrd::StartUnbounded))
-			{
+		for i in NUMBERS {
+			for j in NUMBERS {
 				if i <= j {
-					output.push(DiscreteBounds {
-						start: i.into(),
-						end: j.into(),
-					});
+					output.push(DiscreteBounds { start: *i, end: *j });
 				}
 			}
 		}

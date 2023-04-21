@@ -23,12 +23,9 @@ use crate::discrete_bounds::DiscreteBounds;
 use crate::range_bounds_map::DiscreteRange;
 use crate::stepable::Discrete;
 
-pub(crate) fn cmp_point_with_range<I, K>(
-    point: I,
-	range: K,
-) -> Ordering
+pub(crate) fn cmp_point_with_range<I, K>(point: I, range: K) -> Ordering
 where
-    I: Ord,
+	I: Ord,
 	K: DiscreteRange<I>,
 {
 	if point < range.start() {
@@ -57,20 +54,14 @@ where
 	I: Ord,
 {
 	if a.start() < b.start() {
-		match (
-			contains_discrete_bound_ord(a, b.start()),
-			contains_discrete_bound_ord(a, b.end()),
-		) {
+		match (contains_point(a, b.start()), contains_point(a, b.end())) {
 			(false, false) => Config::LeftFirstNonOverlapping,
 			(true, false) => Config::LeftFirstPartialOverlap,
 			(true, true) => Config::LeftContainsRight,
 			(false, true) => unreachable!(),
 		}
 	} else {
-		match (
-			contains_discrete_bound_ord(b, a.start()),
-			contains_discrete_bound_ord(b, a.end()),
-		) {
+		match (contains_point(b, a.start()), contains_point(b, a.end())) {
 			(false, false) => Config::RightFirstNonOverlapping,
 			(true, false) => Config::RightFirstPartialOverlap,
 			(true, true) => Config::RightContainsLeft,
@@ -80,18 +71,9 @@ where
 }
 
 enum SortedConfig<I> {
-	NonOverlapping(
-		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
-		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
-	),
-	PartialOverlap(
-		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
-		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
-	),
-	Swallowed(
-		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
-		(DiscreteBoundOrd<I>, DiscreteBoundOrd<I>),
-	),
+	NonOverlapping(DiscreteBounds<I>, DiscreteBounds<I>),
+	PartialOverlap(DiscreteBounds<I>, DiscreteBounds<I>),
+	Swallowed(DiscreteBounds<I>, DiscreteBounds<I>),
 }
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
@@ -112,15 +94,12 @@ where
 	}
 }
 
-pub(crate) fn contains_discrete_bound_ord<I, A>(
-	range: A,
-	discrete_bound_ord: DiscreteBoundOrd<I>,
-) -> bool
+pub(crate) fn contains_point<I, A>(range: A, point: I) -> bool
 where
 	A: DiscreteRange<I>,
 	I: Ord,
 {
-	cmp_point_with_range(discrete_bound_ord, range).is_eq()
+	cmp_point_with_range(point, range).is_eq()
 }
 
 #[derive(Debug)]
@@ -144,61 +123,55 @@ where
 	match config(base, cut) {
 		Config::LeftFirstNonOverlapping => {
 			result.before_cut = Some(DiscreteBounds {
-				start: base.start().into(),
-				end: base.end().into(),
+				start: base.start(),
+				end: base.end(),
 			});
 		}
 		Config::LeftFirstPartialOverlap => {
 			result.before_cut = Some(DiscreteBounds {
-				start: base.start().into(),
-				end: cut.start().down_if_finite().into(),
+				start: base.start(),
+				end: cut.start().down_if_finite(),
 			});
 			result.inside_cut = Some(DiscreteBounds {
-				start: cut.start().into(),
-				end: base.end().into(),
+				start: cut.start(),
+				end: base.end(),
 			});
 		}
 		Config::LeftContainsRight => {
 			result.before_cut = Some(DiscreteBounds {
-				start: base.start().into(),
-				end: cut.start().down_if_finite().into(),
+				start: base.start(),
+				end: cut.start().down_if_finite(),
 			});
 			result.inside_cut = Some(DiscreteBounds {
-				start: cut.start().into(),
-				end: cut.end().into(),
+				start: cut.start(),
+				end: cut.end(),
 			});
-			// exception for Unbounded-ending things
-			match cut.end() {
-				DiscreteBoundOrd::EndUnbounded => {}
-				_ => {
-					result.after_cut = Some(DiscreteBounds {
-						start: cut.end().up_if_finite().into(),
-						end: base.end().into(),
-					});
-				}
-			}
+			result.after_cut = Some(DiscreteBounds {
+				start: cut.end().up_if_finite(),
+				end: base.end(),
+			});
 		}
 
 		Config::RightFirstNonOverlapping => {
 			result.after_cut = Some(DiscreteBounds {
-				start: base.start().into(),
-				end: base.end().into(),
+				start: base.start(),
+				end: base.end(),
 			});
 		}
 		Config::RightFirstPartialOverlap => {
 			result.after_cut = Some(DiscreteBounds {
-				start: cut.end().up_if_finite().into(),
-				end: base.end().into(),
+				start: cut.end().up_if_finite(),
+				end: base.end(),
 			});
 			result.inside_cut = Some(DiscreteBounds {
-				start: base.start().into(),
-				end: cut.end().into(),
+				start: base.start(),
+				end: cut.end(),
 			});
 		}
 		Config::RightContainsLeft => {
 			result.inside_cut = Some(DiscreteBounds {
-				start: base.start().into(),
-				end: base.end().into(),
+				start: base.start(),
+				end: base.end(),
 			});
 		}
 	}

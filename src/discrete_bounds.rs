@@ -19,6 +19,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::ops::{Bound, RangeBounds};
 
+use crate::range_bounds_map::DiscreteRange;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DiscreteBounds<I> {
 	//both are always included
@@ -32,5 +34,15 @@ impl<I> RangeBounds<I> for DiscreteBounds<I> {
 	}
 	fn end_bound(&self) -> Bound<&I> {
 		Bound::Included(&self.end)
+	}
+}
+
+impl<I> DiscreteRange<I> for DiscreteBounds<I> {
+	fn start(&self) -> I {
+		self.start
+	}
+
+	fn end(&self) -> I {
+		self.end
 	}
 }

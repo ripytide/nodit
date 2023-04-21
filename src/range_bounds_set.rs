@@ -8,10 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::discrete_bounds::DiscreteBounds;
 use crate::range_bounds_map::{DiscreteRange, IntoIter as RangeBoundsMapIntoIter};
 use crate::stepable::Discrete;
-use crate::try_from_discrete_bounds::TryFromDiscreteBounds;
-use crate::{
-	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap, TryFromDiscreteBoundsError,
-};
+use crate::{OverlapError, RangeBoundsMap};
 
 /// An ordered set of non-overlapping ranges based on [`RangeBoundsMap`].
 ///
@@ -87,12 +84,12 @@ where
 	pub fn cut<'a, Q>(
 		&'a mut self,
 		range: Q,
-	) -> Result<impl Iterator<Item = DiscreteBounds<I>> + '_, TryFromDiscreteBoundsError>
+	) -> impl Iterator<Item = DiscreteBounds<I>> + '_
 	where
 		Q: DiscreteRange<I> + Copy + 'a,
-		K: TryFromDiscreteBounds<I>,
+		K: From<DiscreteBounds<I>>,
 	{
-		self.inner.cut(range).map(|x| x.map(first))
+		self.inner.cut(range).map(first)
 	}
 	/// See [`RangeBoundsMap::gaps()`] for more details.
 	pub fn gaps<'a, Q>(
@@ -119,16 +116,16 @@ where
 	pub fn insert_merge_touching(
 		&mut self,
 		range: K,
-	) -> Result<K, OverlapOrTryFromDiscreteBoundsError>
+	) -> Result<K, OverlapError>
 	where
-		K: TryFromDiscreteBounds<I>,
+		K: From<DiscreteBounds<I>>,
 	{
 		self.inner.insert_merge_touching(range, ())
 	}
 	/// See [`RangeBoundsMap::insert_merge_overlapping()`] for more details.
-	pub fn insert_merge_overlapping(&mut self, range: K) -> Result<K, TryFromDiscreteBoundsError>
+	pub fn insert_merge_overlapping(&mut self, range: K) -> K
 	where
-		K: TryFromDiscreteBounds<I>,
+		K: From<DiscreteBounds<I>>,
 	{
 		self.inner.insert_merge_overlapping(range, ())
 	}
@@ -136,16 +133,16 @@ where
 	pub fn insert_merge_touching_or_overlapping(
 		&mut self,
 		range: K,
-	) -> Result<K, TryFromDiscreteBoundsError>
+	) -> K
 	where
-		K: TryFromDiscreteBounds<I>,
+		K: From<DiscreteBounds<I>>,
 	{
 		self.inner.insert_merge_touching_or_overlapping(range, ())
 	}
 	/// See [`RangeBoundsMap::insert_overwrite()`] for more details.
-	pub fn insert_overwrite(&mut self, range: K) -> Result<(), TryFromDiscreteBoundsError>
+	pub fn insert_overwrite(&mut self, range: K)
 	where
-		K: TryFromDiscreteBounds<I>,
+		K: From<DiscreteBounds<I>>,
 	{
 		self.inner.insert_overwrite(range, ())
 	}
