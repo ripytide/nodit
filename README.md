@@ -1,12 +1,12 @@
-# range_bounds_map
+# discrete_range_map
 
-[![License](https://img.shields.io/github/license/ripytide/range_bounds_map)](https://www.gnu.org/licenses/agpl-3.0.en.html)
-[![Docs](https://docs.rs/range_bounds_map/badge.svg)](https://docs.rs/range_bounds_map)
+[![License](https://img.shields.io/github/license/ripytide/discrete_range_map)](https://www.gnu.org/licenses/agpl-3.0.en.html)
+[![Docs](https://docs.rs/discrete_range_map/badge.svg)](https://docs.rs/discrete_range_map)
 [![Maintained](https://img.shields.io/maintenance/yes/2023)](https://github.com/ripytide)
-[![Crates.io](https://img.shields.io/crates/v/range_bounds_map)](https://crates.io/crates/range_bounds_map)
+[![Crates.io](https://img.shields.io/crates/v/discrete_range_map)](https://crates.io/crates/discrete_range_map)
 
 <p align="center">
-<img src="logo.png" alt="range_bounds_map_logo" width="350">
+<img src="logo.png" alt="discrete_range_map_logo" width="350">
 </p>
 
 This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`], Data
@@ -21,8 +21,8 @@ the ranges are over to be `Copy`.
 ## Example using an Inclusive-Exclusive range
 
 ```rust
-use range_bounds_map::test_ranges::ie;
-use range_bounds_map::DiscreteRangeMap;
+use discrete_range_map::test_ranges::ie;
+use discrete_range_map::DiscreteRangeMap;
 
 let mut map = DiscreteRangeMap::new();
 
@@ -37,9 +37,9 @@ assert_eq!(map.contains_point(5), true);
 ## Example using a custom range type
 
 ```rust
-use range_bounds_map::test_ranges::ie;
-use range_bounds_map::DiscreteRangeMap;
-use range_bounds_map::FiniteRange;
+use discrete_range_map::test_ranges::ie;
+use discrete_range_map::DiscreteRangeMap;
+use discrete_range_map::FiniteRange;
 
 #[derive(Debug, Copy, Clone)]
 enum Reservation {
@@ -223,8 +223,8 @@ topic area:
 [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
 [`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
-[`discreteboundsmap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.DiscreteRangeMap.html
-[`discreteboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.DiscreteRangeSet.html
+[`discreteboundsmap`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html
+[`discreteboundsset`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/range_bounds_set/struct.DiscreteRangeSet.html
 [`copse`]: https://github.com/eggyal/copse
 [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
 [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics

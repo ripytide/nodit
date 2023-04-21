@@ -1,5 +1,5 @@
 [package]
-name = "range_bounds_map"
+name = "discrete_range_map"
 version = "0.3.2"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
@@ -7,10 +7,10 @@ description = """
 This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`], Data
 Structures for storing non-overlapping intervals based of [`BTreeMap`].
 """
-documentation = "https://docs.rs/range_bounds_map"
+documentation = "https://docs.rs/discrete_range_map"
 readme = "README.md"
-homepage = "https://github.com/ripytide/range_bounds_map"
-repository = "https://github.com/ripytide/range_bounds_map"
+homepage = "https://github.com/ripytide/discrete_range_map"
+repository = "https://github.com/ripytide/discrete_range_map"
 license = "AGPL-3.0-or-later"
 keywords = ["data-structures", "map", "data", "library"]
 categories = ["data-structures"]

@@ -1,20 +1,20 @@
 /*
 Copyright 2022 James Forster
 
-This file is part of range_bounds_map.
+This file is part of discrete_range_map.
 
-range_bounds_map is free software: you can redistribute it and/or
+discrete_range_map is free software: you can redistribute it and/or
 modify it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
-range_bounds_map is distributed in the hope that it will be useful,
+discrete_range_map is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
+along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 //! This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`], Data
@@ -29,8 +29,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! ## Example using an Inclusive-Exclusive range
 //!
 //! ```rust
-//! use range_bounds_map::test_ranges::ie;
-//! use range_bounds_map::DiscreteRangeMap;
+//! use discrete_range_map::test_ranges::ie;
+//! use discrete_range_map::DiscreteRangeMap;
 //!
 //! let mut map = DiscreteRangeMap::new();
 //!
@@ -45,9 +45,9 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! ## Example using a custom range type
 //!
 //! ```rust
-//! use range_bounds_map::test_ranges::ie;
-//! use range_bounds_map::DiscreteRangeMap;
-//! use range_bounds_map::FiniteRange;
+//! use discrete_range_map::test_ranges::ie;
+//! use discrete_range_map::DiscreteRangeMap;
+//! use discrete_range_map::FiniteRange;
 //!
 //! #[derive(Debug, Copy, Clone)]
 //! enum Reservation {
@@ -231,8 +231,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 //! [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
 //! [`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
-//! [`discreteboundsmap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.DiscreteRangeMap.html
-//! [`discreteboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.DiscreteRangeSet.html
+//! [`discreteboundsmap`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html
+//! [`discreteboundsset`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/range_bounds_set/struct.DiscreteRangeSet.html
 //! [`copse`]: https://github.com/eggyal/copse
 //! [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
 //! [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics

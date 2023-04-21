@@ -1,20 +1,20 @@
 /*
 Copyright 2022 James Forster
 
-This file is part of range_bounds_map.
+This file is part of discrete_range_map.
 
-range_bounds_map is free software: you can redistribute it and/or
+discrete_range_map is free software: you can redistribute it and/or
 modify it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
-range_bounds_map is distributed in the hope that it will be useful,
+discrete_range_map is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
+along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::cmp::Ordering;
@@ -48,8 +48,8 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 ///
 /// # Examples
 /// ```
-/// use range_bounds_map::test_ranges::ie;
-/// use range_bounds_map::DiscreteRangeMap;
+/// use discrete_range_map::test_ranges::ie;
+/// use discrete_range_map::DiscreteRangeMap;
 ///
 /// // Make a map of ranges to booleans
 /// let mut map = DiscreteRangeMap::from_slice_strict([
@@ -73,8 +73,8 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// ```
 /// Example using a custom range type:
 /// ```
-/// use range_bounds_map::DiscreteRangeMap;
-/// use range_bounds_map::FiniteRange;
+/// use discrete_range_map::DiscreteRangeMap;
+/// use discrete_range_map::FiniteRange;
 ///
 /// // An Exclusive-Exclusive range is not provided by any
 /// // std::ops ranges so let't make our own!.
@@ -146,8 +146,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::DiscreteRangeMap;
-	/// use range_bounds_map::DiscreteFiniteBounds;
+	/// use discrete_range_map::DiscreteRangeMap;
+	/// use discrete_range_map::DiscreteFiniteBounds;
 	///
 	/// let map: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool> =
 	/// 	DiscreteRangeMap::new();
@@ -163,8 +163,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::new();
 	///
@@ -181,8 +181,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::new();
 	///
@@ -200,13 +200,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::{ie, ii};
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::{ie, ii};
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::new();
 	///
@@ -233,13 +233,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -277,13 +277,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -321,8 +321,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -344,8 +344,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	/// let mut map =
 	/// 	DiscreteRangeMap::from_slice_strict([(ie(1, 4), false)])
 	/// 		.unwrap();
@@ -365,8 +365,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -391,8 +391,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::{ie, iu};
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::{ie, iu};
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -440,8 +440,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -466,8 +466,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -494,13 +494,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -545,13 +545,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::{ie, ii};
-	/// use range_bounds_map::{DiscreteRangeMap};
+	/// use discrete_range_map::test_ranges::{ie, ii};
+	/// use discrete_range_map::{DiscreteRangeMap};
 	///
 	/// let mut base = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -703,13 +703,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::{ie, iu};
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::{ie, iu};
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 3), false),
@@ -806,13 +806,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 3), false),
@@ -844,13 +844,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{OverlapError, DiscreteRangeMap};
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::{OverlapError, DiscreteRangeMap};
 	///
 	/// let mut map = DiscreteRangeMap::new();
 	///
@@ -936,13 +936,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::{
 	/// 	OverlapError, DiscreteRangeMap,
 	/// };
 	///
@@ -1025,13 +1025,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::{
 	/// 	OverlapError, DiscreteRangeMap,
 	/// };
 	///
@@ -1125,13 +1125,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::{
 	/// 	OverlapError, DiscreteRangeMap,
 	/// };
 	///
@@ -1203,13 +1203,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::{
 	/// 	OverlapError, DiscreteRangeMap,
 	/// };
 	///
@@ -1292,13 +1292,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map =
 	/// 	DiscreteRangeMap::from_slice_strict([(ie(2, 8), false)])
@@ -1326,8 +1326,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -1346,8 +1346,8 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::DiscreteRangeMap;
-	/// use range_bounds_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
+	/// use discrete_range_map::test_ranges::ie;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -1374,13 +1374,13 @@ where
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/range_bounds_map/latest/range_bounds_map/index.html#invalid-ranges)
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{DiscreteRangeMap};
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::{DiscreteRangeMap};
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -1409,7 +1409,7 @@ where
 {
 	if !is_valid_range(range) {
 		panic!(
-			"invalid range given to function see here for more details: https://docs.rs/range_bounds_map/latest/range_bounds_map/#invalid-ranges"
+			"invalid range given to function see here for more details: https://docs.rs/discrete_range_map/latest/discrete_range_map/#invalid-ranges"
 		);
 	}
 }

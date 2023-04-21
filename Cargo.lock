@@ -80,7 +80,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "range_bounds_map"
+name = "discrete_range_map"
 version = "0.3.2"
 dependencies = [
  "btree_monstrousity",
