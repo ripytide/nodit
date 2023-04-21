@@ -116,8 +116,9 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! ### Finite-ness
 //!
 //! This crate is also designed to work with [`Finite`] types since it is
-//! much easy to implement and it is not restrictive to users since you
-//! can still represent `Infinite` numbers in `Finite` types paradoxically.
+//! much easier to implement and it is not restrictive to users since you
+//! can still represent `Infinite` numbers in `Finite` types paradoxically
+//! using the concept of [`Actual Infinity`].
 //!
 //! For example you could define `Infinite` for `u8` as `u8::MAX` or if
 //! you still want to use `u8::MAX` as a `Finite` number you could define
@@ -209,10 +210,10 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!   for [`Range`]s and not [`RangeInclusive`]s. And also no fancy
 //!   merging functions.
 //! - <https://docs.rs/unbounded-interval-tree>
-//!   A data structure based off of a 2007 published paper! It supports any
-//!   DiscreteRange as keys too, except it is implemented with a non-balancing
-//!   `Box<Node>` based tree, however it also supports overlapping
-//!   DiscreteRange which my library does not.
+//!   A data structure based off of a 2007 published paper! It supports
+//!   any range as keys, unfortunately, it is implemented with a
+//!   non-balancing `Box<Node>` based tree, however it also supports
+//!   overlapping ranges which my library does not.
 //! - <https://docs.rs/rangetree>
 //!   I'm not entirely sure what this library is or isn't, but it looks like
 //!   a custom red-black tree/BTree implementation used specifically for a

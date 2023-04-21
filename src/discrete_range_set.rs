@@ -256,7 +256,7 @@ where
 		let mut set = DiscreteRangeSet::new();
 		while let Some(range_bounds) = access.next_element()? {
 			set.insert_strict(range_bounds)
-				.map_err(|_| serde::de::Error::custom("DiscreteRange overlap"))?;
+				.map_err(|_| serde::de::Error::custom("ranges overlap"))?;
 		}
 		Ok(set)
 	}

@@ -746,7 +746,7 @@ where
 			.map(|(key, _)| (key.start(), key.end()));
 
 		// If the start or end point of outer_range is not
-		// contained within a DiscreteRange in the map then we need to
+		// contained within a range in the map then we need to
 		// generate the gaps.
 		let start_gap = (!self
 			.inner
@@ -1455,9 +1455,7 @@ where
 	}
 }
 
-/// A simple helper trait to make my implemtation nicer, if you
-/// already implement DiscreteRange and Copy on your type then this will
-/// also be implemted.
+/// A range that has Finite **Inclusive** end-points.
 pub trait FiniteRange<I> {
 	fn start(&self) -> I;
 	fn end(&self) -> I;
@@ -1564,7 +1562,7 @@ where
 		let mut map = DiscreteRangeMap::new();
 		while let Some((range_bounds, value)) = access.next_entry()? {
 			map.insert_strict(range_bounds, value)
-				.map_err(|_| serde::de::Error::custom("DiscreteRange overlap"))?;
+				.map_err(|_| serde::de::Error::custom("ranges overlap"))?;
 		}
 		Ok(map)
 	}
