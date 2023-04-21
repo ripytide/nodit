@@ -12,7 +12,13 @@
 This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`], Data
 Structures for storing non-overlapping intervals based of [`BTreeMap`].
 
-## Example using [`Range`]s
+## You must implement `Copy`
+
+Due to implementation complications with non-`Copy` types the
+datastructures currently require both the range type and the points
+the ranges are over to be `Copy`.
+
+## Example using an Inclusive-Exclusive range
 
 ```rust
 use range_bounds_map::test_ranges::ie;
