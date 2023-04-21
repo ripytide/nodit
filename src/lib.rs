@@ -215,7 +215,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 //! [`btreeset`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
-//! [`rangebounds`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html
 //! [`start_bound()`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html#tymethod.start_bound
 //! [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html#tymethod.end_bound
 //! [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
@@ -224,8 +223,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 //! [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
 //! [`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
-//! [`rangeboundsmap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.DiscreteRangeMap.html
-//! [`rangeboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.DiscreteRangeSet.html
+//! [`discreteboundsmap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.DiscreteRangeMap.html
+//! [`discreteboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.DiscreteRangeSet.html
 //! [`copse`]: https://github.com/eggyal/copse
 //! [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
 //! [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics
@@ -250,5 +249,5 @@ pub mod discrete_range_set;
 
 pub use crate::discrete_finite::DiscreteFinite;
 pub use crate::discrete_finite_bounds::DiscreteFiniteBounds;
-pub use crate::discrete_range_map::{FiniteRange, OverlapError, DiscreteRangeMap};
+pub use crate::discrete_range_map::{DiscreteRangeMap, FiniteRange, OverlapError};
 pub use crate::discrete_range_set::DiscreteRangeSet;

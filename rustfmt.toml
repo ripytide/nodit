@@ -3,6 +3,8 @@
 # - rename crate too
 # - add link to previous crate on readme
 # - update shared descriptions to note the discreteness
+# - fix doc.rs rs in docs to print at new crate name
+# - fix doc warnings
 hard_tabs=true
 imports_granularity="Module"
 group_imports="StdExternalCrate"
