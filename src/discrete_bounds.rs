@@ -37,7 +37,10 @@ impl<I> RangeBounds<I> for FiniteBounds<I> {
 	}
 }
 
-impl<I> FiniteRange<I> for FiniteBounds<I> {
+impl<I> FiniteRange<I> for FiniteBounds<I>
+where
+	I: Copy,
+{
 	fn start(&self) -> I {
 		self.start
 	}

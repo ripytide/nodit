@@ -628,14 +628,9 @@ where
 		invalid_range_panic(range);
 
 		let cut_result = cut_range(single_overlapping_range, range);
-		let returning_before_cut = match cut_result.before_cut {
-			Some(before_cut) => Some(K::from(before_cut)),
-			None => None,
-		};
-		let returning_after_cut = match cut_result.after_cut {
-			Some(after_cut) => Some(K::from(after_cut)),
-			None => None,
-		};
+
+		let returning_before_cut = cut_result.before_cut.map(K::from);
+		let returning_after_cut = cut_result.after_cut.map(K::from);
 
 		let value = self.inner.remove(overlapping_comp(range.start())).unwrap();
 
@@ -661,61 +656,49 @@ where
 	{
 		invalid_range_panic(range);
 
-		let before_config = match left_overlapping {
+		let (returning_before_cut, keeping_before) = match left_overlapping {
 			Some(before) => {
 				let cut_result = cut_range(before, range);
 
-				Some((
-					match cut_result.before_cut {
-						Some(before_cut) => Some(K::from(before_cut)),
-						None => None,
-					},
-					cut_result.inside_cut.unwrap(),
-				))
+				(cut_result.before_cut.map(K::from), cut_result.inside_cut)
 			}
-			None => None,
+			None => (None, None),
 		};
-		let after_config = match right_overlapping {
+		let (returning_after_cut, keeping_after) = match right_overlapping {
 			Some(after) => {
 				let cut_result = cut_range(after, range);
 
-				Some((
-					match cut_result.after_cut {
-						Some(after_cut) => Some(K::from(after_cut)),
-						None => None,
-					},
-					cut_result.inside_cut.unwrap(),
-				))
+				(cut_result.after_cut.map(K::from), cut_result.inside_cut)
 			}
-			None => None,
+			None => (None, None),
 		};
 
 		let before_value = self.inner.remove(overlapping_comp(range.start()));
 		let after_value = self.inner.remove(overlapping_comp(range.end()));
 
-		if let Some((Some(returning_before_cut), _)) = before_config {
+		if let Some(returning_before_cut) = returning_before_cut {
 			self.insert_unchecked(
 				returning_before_cut,
 				before_value.as_ref().cloned().unwrap(),
 			);
 		}
-		if let Some((Some(returning_after_cut), _)) = after_config {
+		if let Some(returning_after_cut) = returning_after_cut {
 			self.insert_unchecked(returning_after_cut, after_value.as_ref().cloned().unwrap());
 		}
 
-		let keeping_before_entry = before_config
-			.map(|(_, keeping_before_entry)| (keeping_before_entry, before_value.unwrap()));
-		let keeping_after_entry = after_config
-			.map(|(_, keeping_after_entry)| (keeping_after_entry, after_value.unwrap()));
+		let keeping_before_entry =
+			keeping_before.map(|keeping_before| (keeping_before, before_value.unwrap()));
+		let keeping_after_entry =
+			keeping_after.map(|keeping_after| (keeping_after, after_value.unwrap()));
 
 		return keeping_before_entry
 			.into_iter()
 			.chain(self.remove_overlapping(range).map(|(key, value)| {
 				(
-					(FiniteBounds {
+					FiniteBounds {
 						start: key.start(),
 						end: key.end(),
-					}),
+					},
 					value,
 				)
 			}))
@@ -1743,7 +1726,7 @@ mod tests {
 
 	#[test]
 	fn remove_overlapping_tests() {
-		assert_remove_overlapping(basic(), ii(5, 5), [], None::<[_; 0]>);
+		assert_remove_overlapping(basic(), ii(5, 5), [], basic_slice());
 		assert_remove_overlapping(
 			basic(),
 			uu(),
@@ -1753,38 +1736,32 @@ mod tests {
 				(ii(7, 7), false),
 				(ie(14, 16), true),
 			],
-			Some([]),
+			[],
 		);
 		assert_remove_overlapping(
 			basic(),
 			ii(6, 7),
 			[(ee(5, 7), true), (ii(7, 7), false)],
-			Some([(ui(4), false), (ie(14, 16), true)]),
+			[(ui(4), false), (ie(14, 16), true)],
 		);
 		assert_remove_overlapping(
 			basic(),
 			iu(6),
 			[(ee(5, 7), true), (ii(7, 7), false), (ie(14, 16), true)],
-			Some([(ui(4), false)]),
+			[(ui(4), false)],
 		);
 	}
 	fn assert_remove_overlapping<const N: usize, const Y: usize>(
 		mut before: RangeBoundsMap<i8, FiniteBounds<i8>, bool>,
 		to_remove: FiniteBounds<i8>,
 		result: [(FiniteBounds<i8>, bool); N],
-		after: Option<[(FiniteBounds<i8>, bool); Y]>,
+		after: [(FiniteBounds<i8>, bool); Y],
 	) {
-		let clone = before.clone();
 		assert_eq!(
 			before.remove_overlapping(to_remove).collect::<Vec<_>>(),
 			result
 		);
-		match after {
-			Some(after) => {
-				assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
-			}
-			None => assert_eq!(before, clone),
-		}
+		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -1830,7 +1807,6 @@ mod tests {
 		result: [(FiniteBounds<i8>, bool); Y],
 		after: [(FiniteBounds<i8>, bool); N],
 	) {
-		let clone = before.clone();
 		assert_eq!(before.cut(to_cut).collect::<Vec<_>>(), result);
 		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap());
 	}

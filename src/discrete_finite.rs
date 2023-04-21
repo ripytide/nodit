@@ -18,8 +18,8 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 pub trait DiscreteFinite {
-    const MIN: Self;
-    const MAX: Self;
+	const MIN: Self;
+	const MAX: Self;
 
 	fn up(self) -> Option<Self>
 	where
@@ -29,10 +29,23 @@ pub trait DiscreteFinite {
 		Self: Sized;
 }
 
-macro_rules! discrete_finite_impl_macro {
-    ($structname: ident, Default, $($t:tt)*) => {
-          fn default() -> Self {
-              Self {$($t)*}
-          }
-    };
+macro_rules! foo {
+    () => {};
+	($ident:ident, $($t:tt)*) => {
+		impl DiscreteFinite for $ident {
+			const MIN: Self = $ident::MIN;
+			const MAX: Self = $ident::MAX;
+
+			fn up(self) -> Option<Self> {
+				self.checked_add(1)
+			}
+			fn down(self) -> Option<Self> {
+				self.checked_sub(1)
+			}
+		}
+
+        foo!($($t)*);
+	};
 }
+
+foo!(u8, i8, u16, i16, u32, i32, u64, i64, u128, i128,);
