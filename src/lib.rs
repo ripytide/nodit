@@ -225,6 +225,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 //! [`btreeset`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
+//! [`rangebounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 //! [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
 //! [`range()`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 //! [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
