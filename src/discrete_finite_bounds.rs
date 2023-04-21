@@ -17,8 +17,6 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::ops::{Bound, RangeBounds};
-
 use crate::range_bounds_map::FiniteRange;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,15 +24,6 @@ pub struct DiscreteFiniteBounds<I> {
 	//both are always included
 	pub start: I,
 	pub end: I,
-}
-
-impl<I> RangeBounds<I> for DiscreteFiniteBounds<I> {
-	fn start_bound(&self) -> Bound<&I> {
-		Bound::Included(&self.start)
-	}
-	fn end_bound(&self) -> Bound<&I> {
-		Bound::Included(&self.end)
-	}
 }
 
 impl<I> FiniteRange<I> for DiscreteFiniteBounds<I>

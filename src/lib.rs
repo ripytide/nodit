@@ -43,33 +43,32 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! use range_bounds_map::test_ranges::ie;
 //! use range_bounds_map::RangeBoundsMap;
+//! use range_bounds_map::FiniteRange;
 //!
 //! #[derive(Debug, Copy, Clone)]
 //! enum Reservation {
-//! 	// Start, End (Inclusive-Inclusive)
+//! 	// Start, End (Inclusive-Exclusive)
 //! 	Finite(i8, i8),
-//! 	// Start (Exclusive)
+//! 	// Start (Inclusive-Forever)
 //! 	Infinite(i8),
 //! }
 //!
-//! // First, we need to implement RangeBounds
-//! impl RangeBounds<i8> for Reservation {
-//! 	fn start_bound(&self) -> Bound<&i8> {
-//! 		match self {
-//! 			Reservation::Finite(start, _) => {
-//! 				Bound::Included(start)
-//! 			}
-//! 			Reservation::Infinite(start) => {
-//! 				Bound::Excluded(start)
-//! 			}
-//! 		}
-//! 	}
-//! 	fn end_bound(&self) -> Bound<&i8> {
-//! 		match self {
-//! 			Reservation::Finite(_, end) => Bound::Included(end),
-//! 			Reservation::Infinite(_) => Bound::Unbounded,
-//! 		}
-//! 	}
+//! // First, we need to implement FiniteRange
+//! impl FiniteRange<i8> for Reservation {
+//!     fn start(&self) -> i8 {
+//!         match self {
+//!             Reservation::Finite(start, _) => *start,
+//!             Reservation::Infinite(start) => *start,
+//!         }
+//!     }
+//!     fn end(&self) -> i8 {
+//!         match self {
+//!             //the end is exclusive so we take off 1 with checking
+//!             //for compile time error overflow detection
+//!             Reservation::Finite(_, end) => end.checked_sub(1).unwrap(),
+//!             Reservation::Infinite(_) => i8::MAX,
+//!         }
+//!     }
 //! }
 //!
 //! // Next we can create a custom typed RangeBoundsMap
@@ -220,13 +219,13 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 pub mod test_ranges;
 pub(crate) mod utils;
 
-pub mod discrete_finite_bounds;
 pub mod discrete_finite;
+pub mod discrete_finite_bounds;
 
 pub mod range_bounds_map;
 pub mod range_bounds_set;
 
-pub use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 pub use crate::discrete_finite::DiscreteFinite;
-pub use crate::range_bounds_map::{OverlapError, RangeBoundsMap};
+pub use crate::discrete_finite_bounds::DiscreteFiniteBounds;
+pub use crate::range_bounds_map::{FiniteRange, OverlapError, RangeBoundsMap};
 pub use crate::range_bounds_set::RangeBoundsSet;

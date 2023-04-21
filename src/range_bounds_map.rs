@@ -76,6 +76,7 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// use std::ops::{Bound, RangeBounds};
 ///
 /// use range_bounds_map::RangeBoundsMap;
+/// use range_bounds_map::FiniteRange;
 ///
 /// // An Exclusive-Exclusive range is not provided by any
 /// // std::ops ranges so let't make our own!.
@@ -94,13 +95,15 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 ///     }
 /// }
 ///
-/// // Implement RangeBounds<u8> on our new type
-/// impl RangeBounds<u8> for ExEx {
-/// 	fn start_bound(&self) -> Bound<&u8> {
-/// 	    Bound::Excluded(&self.start)
+/// // Implement FiniteRange<u8> on our new type
+/// impl FiniteRange<u8> for ExEx {
+/// 	fn start(&self) -> u8 {
+/// 	    //we are exclusive so need to step the values up
+/// 	    self.start.checked_add(1).unwrap()
 /// 	}
-/// 	fn end_bound(&self) -> Bound<&u8> {
-/// 		Bound::Excluded(&self.end)
+/// 	fn end(&self) -> u8 {
+/// 	    //we are exclusive so need to step the values down
+/// 		self.end.checked_sub(1).unwrap()
 /// 	}
 /// }
 ///
@@ -541,11 +544,6 @@ where
 	/// Cuts a given range out of the map and returns an iterator of
 	/// the full or partial ranges that were cut.
 	///
-	/// If the remaining ranges left in the map after the cut would
-	/// not be able be created with the [`TryFromDiscreteFiniteBounds`] trait then a
-	/// [`TryFromDiscreteFiniteBoundsError`] will be returned and the map will not
-	/// be cut at all.
-	///
 	/// `V` must implement `Clone` as if you try to cut out the center
 	/// of a range in the map it will split into two different entries
 	/// using `Clone`. Or if you partially cut a range then
@@ -561,24 +559,24 @@ where
 	/// ```
 	/// use std::ops::Bound;
 	///
-	/// use range_bounds_map::test_ranges::{ie, ie_strict, ii};
-	/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteFiniteBoundsError};
+	/// use range_bounds_map::test_ranges::{ie, ii};
+	/// use range_bounds_map::{RangeBoundsMap};
 	///
 	/// let mut base = RangeBoundsMap::from_slice_strict([
-	/// 	(ie_strict(1, 4), false),
-	/// 	(ie_strict(4, 8), true),
-	/// 	(ie_strict(8, 100), false),
+	/// 	(ie(1, 4), false),
+	/// 	(ie(4, 8), true),
+	/// 	(ie(8, 100), false),
 	/// ])
 	/// .unwrap();
 	///
 	/// let after_cut = RangeBoundsMap::from_slice_strict([
-	/// 	(ie_strict(1, 2), false),
-	/// 	(ie_strict(40, 100), false),
+	/// 	(ie(1, 2), false),
+	/// 	(ie(40, 100), false),
 	/// ])
 	/// .unwrap();
 	///
 	/// assert_eq!(
-	/// 	base.cut(ie(2, 40)).unwrap().collect::<Vec<_>>(),
+	/// 	base.cut(ie(2, 40)).collect::<Vec<_>>(),
 	/// 	[
 	/// 		(ie(2, 4), false),
 	/// 		(ie(4, 8), true),
@@ -943,11 +941,6 @@ where
 	/// map, then an [`OverlapError`] is returned and the map is not
 	/// updated.
 	///
-	/// If the range merges with one or two touching ranges and the
-	/// merged-together range cannot be created with the
-	/// [`TryFromDiscreteFiniteBounds`] trait then a [`TryFromDiscreteFiniteBoundsError`] will be
-	/// returned.
-	///
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
@@ -958,7 +951,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromDiscreteFiniteBoundsError, RangeBoundsMap,
+	/// 	OverlapError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -976,7 +969,7 @@ where
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching(ie(4, 8), false),
-	/// 	Err(OverlapOrTryFromDiscreteFiniteBoundsError::Overlap(OverlapError)),
+	/// 	Err(OverlapError),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -1037,11 +1030,6 @@ where
 	/// map, then an [`OverlapError`] is returned and the map is not
 	/// updated.
 	///
-	/// If the range merges with one or two touching ranges and the
-	/// merged-together range cannot be created with the
-	/// [`TryFromDiscreteFiniteBounds`] trait then a [`TryFromDiscreteFiniteBoundsError`] will be
-	/// returned.
-	///
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
@@ -1052,7 +1040,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromDiscreteFiniteBoundsError, RangeBoundsMap,
+	/// 	OverlapError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1070,7 +1058,7 @@ where
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching_if_values_equal(ie(4, 8), false),
-	/// 	Err(OverlapOrTryFromDiscreteFiniteBoundsError::Overlap(OverlapError)),
+	/// 	Err(OverlapError),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -1143,10 +1131,6 @@ where
 	/// If successful then the newly inserted (possibly merged) range is
 	/// returned.
 	///
-	/// If the range merges other ranges and the merged-together range
-	/// cannot be created with the [`TryFromDiscreteFiniteBounds`] trait then a
-	/// [`TryFromDiscreteFiniteBoundsError`] will be returned.
-	///
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
@@ -1157,7 +1141,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromDiscreteFiniteBoundsError, RangeBoundsMap,
+	/// 	OverlapError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1169,19 +1153,19 @@ where
 	/// // Touching
 	/// assert_eq!(
 	/// 	map.insert_merge_overlapping(ie(4, 6), true),
-	/// 	Ok(ie(4, 6))
+	/// 	ie(4, 6)
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_overlapping(ie(4, 8), false),
-	/// 	Ok(ie(4, 8))
+	/// 	ie(4, 8)
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_overlapping(ie(10, 16), false),
-	/// 	Ok(ie(10, 16))
+	/// 	ie(10, 16)
 	/// );
 	///
 	/// assert_eq!(
@@ -1226,10 +1210,6 @@ where
 	/// If successful then the newly inserted (possibly merged) range is
 	/// returned.
 	///
-	/// If the range merges other ranges and the merged-together range
-	/// cannot be created with the [`TryFromDiscreteFiniteBounds`] trait then a
-	/// [`TryFromDiscreteFiniteBoundsError`] will be returned.
-	///
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
@@ -1240,7 +1220,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromDiscreteFiniteBoundsError, RangeBoundsMap,
+	/// 	OverlapError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1252,19 +1232,19 @@ where
 	/// // Touching
 	/// assert_eq!(
 	/// 	map.insert_merge_touching_or_overlapping(ie(4, 6), true),
-	/// 	Ok(ie(1, 8))
+	/// 	ie(1, 8)
 	/// );
 	///
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching_or_overlapping(ie(4, 8), false),
-	/// 	Ok(ie(1, 8))
+	/// 	ie(1, 8)
 	/// );
 	///
 	/// // Neither Touching or Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching_or_overlapping(ie(10, 16), false),
-	/// 	Ok(ie(10, 16))
+	/// 	ie(10, 16)
 	/// );
 	///
 	/// assert_eq!(
@@ -1319,10 +1299,6 @@ where
 	/// followed by [`RangeBoundsMap::insert_strict()`]. Hence the
 	/// same `V: Clone` trait bound applies.
 	///
-	/// If the remaining ranges left after the cut are not able to be
-	/// created with the [`TryFromDiscreteFiniteBounds`] trait then a
-	/// [`TryFromDiscreteFiniteBoundsError`] will be returned.
-	///
 	/// # Panics
 	///
 	/// Panics if the given range is an invalid range. See [`Invalid
@@ -1338,7 +1314,7 @@ where
 	/// 	RangeBoundsMap::from_slice_strict([(ie(2, 8), false)])
 	/// 		.unwrap();
 	///
-	/// assert_eq!(map.insert_overwrite(ie(4, 6), true), Ok(()));
+	/// map.insert_overwrite(ie(4, 6), true);
 	///
 	/// assert_eq!(
 	/// 	map.into_iter().collect::<Vec<_>>(),
@@ -1414,7 +1390,7 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteFiniteBoundsError};
+	/// use range_bounds_map::{RangeBoundsMap};
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
