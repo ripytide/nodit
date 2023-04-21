@@ -1467,14 +1467,20 @@ where
 	I: Ord + Copy + DiscreteFinite,
 	K: FiniteRange<I>,
 {
-	move |inner_range: &K| start.cmp(&inner_range.end().up().unwrap())
+	move |inner_range: &K| match inner_range.end().up() {
+		Some(touching_position) => start.cmp(&touching_position),
+		None => Ordering::Less,
+	}
 }
 fn touching_end_comp<I, K>(end: I) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy + DiscreteFinite,
 	K: FiniteRange<I>,
 {
-	move |inner_range: &K| end.cmp(&inner_range.start().down().unwrap())
+	move |inner_range: &K| match inner_range.start().down() {
+		Some(touching_position) => end.cmp(&touching_position),
+		None => Ordering::Greater,
+	}
 }
 
 /// A simple helper trait to make my implemtation nicer, if you
@@ -1834,7 +1840,7 @@ mod tests {
 				.unwrap()
 				.gaps(uu())
 				.collect::<Vec<_>>(),
-			[ui(i8::MIN), iu(i8::MAX)]
+			[]
 		);
 	}
 	fn assert_gaps<const N: usize>(
@@ -1907,6 +1913,7 @@ mod tests {
 			Err(OverlapError),
 			basic_slice(),
 		);
+		dbg!("hererere");
 		assert_insert_merge_touching_if_values_equal(
 			basic(),
 			(ee(7, 10), false),
@@ -2127,7 +2134,7 @@ mod tests {
 				// The definition of a cut is: A && NOT B
 				for x in NUMBERS_DOMAIN {
 					let base_contains = contains_point(base, *x);
-					let cut_contains = contains_point(base, *x);
+					let cut_contains = contains_point(cut, *x);
 
 					if cut_contains {
 						on_left = false;

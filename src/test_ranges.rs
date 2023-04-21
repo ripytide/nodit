@@ -33,7 +33,7 @@ pub fn ii(x1: i8, x2: i8) -> FiniteBounds<i8> {
 }
 pub fn ie(x1: i8, x2: i8) -> FiniteBounds<i8> {
 	FiniteBounds {
-		start: x1.up().unwrap(),
+		start: x1,
 		end: x2.down().unwrap(),
 	}
 }
