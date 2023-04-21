@@ -1,5 +1,5 @@
 # todo put back to normal
-# - rename RangeBounds{Set,Map} to DiscreteRange{Set,Map}
+# - rename DiscreteRange{Set,Map} to DiscreteRange{Set,Map}
 # - rename crate too
 # - add link to previous crate on readme
 # - update shared descriptions to note the discreteness

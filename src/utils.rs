@@ -21,7 +21,7 @@ use std::cmp::Ordering;
 
 use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_finite::DiscreteFinite;
-use crate::range_bounds_map::FiniteRange;
+use crate::discrete_range_map::FiniteRange;
 
 pub(crate) fn cmp_point_with_range<I, K>(point: I, range: K) -> Ordering
 where

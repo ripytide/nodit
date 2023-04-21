@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use crate::range_bounds_map::FiniteRange;
+use crate::discrete_range_map::FiniteRange;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DiscreteFiniteBounds<I> {

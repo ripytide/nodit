@@ -36,9 +36,9 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
 ///
 /// `I` is the generic type parameter for the [`Ord`] type the `K` type
-/// is [`RangeBounds`] over.
+/// is [`DiscreteRange`] over.
 ///
-/// `K` is the generic type parameter for the [`RangeBounds`]
+/// `K` is the generic type parameter for the [`DiscreteRange`]
 /// implementing type stored as the keys in the map.
 ///
 /// `V` is the generic type parameter for the values associated with the
@@ -49,10 +49,10 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// # Examples
 /// ```
 /// use range_bounds_map::test_ranges::ie;
-/// use range_bounds_map::RangeBoundsMap;
+/// use range_bounds_map::DiscreteRangeMap;
 ///
 /// // Make a map of ranges to booleans
-/// let mut map = RangeBoundsMap::from_slice_strict([
+/// let mut map = DiscreteRangeMap::from_slice_strict([
 /// 	(ie(4, 8), false),
 /// 	(ie(8, 18), true),
 /// 	(ie(20, 100), false),
@@ -71,11 +71,9 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// 	println!("{range:?}, {value:?}");
 /// }
 /// ```
-/// Example using a custom [`RangeBounds`] type:
+/// Example using a custom [`DiscreteRange`] type:
 /// ```
-/// use std::ops::{Bound, RangeBounds};
-///
-/// use range_bounds_map::RangeBoundsMap;
+/// use range_bounds_map::DiscreteRangeMap;
 /// use range_bounds_map::FiniteRange;
 ///
 /// // An Exclusive-Exclusive range is not provided by any
@@ -107,8 +105,8 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// 	}
 /// }
 ///
-/// // Now we can make a [`RangeBoundsMap`] of [`ExEx`]s to `i8`
-/// let mut map = RangeBoundsMap::new();
+/// // Now we can make a [`DiscreteRangeMap`] of [`ExEx`]s to `i8`
+/// let mut map = DiscreteRangeMap::new();
 ///
 /// map.insert_strict(ExEx::new(0, 5), 8).unwrap();
 /// map.insert_strict(ExEx::new(5, 7), 32).unwrap();
@@ -127,10 +125,10 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// );
 /// ```
 ///
-/// [`RangeBounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
+/// [`DiscreteRange`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RangeBoundsMap<I, K, V> {
+pub struct DiscreteRangeMap<I, K, V> {
 	inner: BTreeMap<K, V>,
 	phantom: PhantomData<I>,
 }
@@ -140,25 +138,23 @@ pub struct RangeBoundsMap<I, K, V> {
 #[derive(PartialEq, Debug)]
 pub struct OverlapError;
 
-impl<I, K, V> RangeBoundsMap<I, K, V>
+impl<I, K, V> DiscreteRangeMap<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
 	K: FiniteRange<I> + Copy,
 {
-	/// Makes a new, empty `RangeBoundsMap`.
+	/// Makes a new, empty `DiscreteRangeMap`.
 	///
 	/// # Examples
 	/// ```
-	/// use std::ops::Range;
-	///
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	/// use range_bounds_map::DiscreteFiniteBounds;
 	///
-	/// let map: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool> =
-	/// 	RangeBoundsMap::new();
+	/// let map: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool> =
+	/// 	DiscreteRangeMap::new();
 	/// ```
 	pub fn new() -> Self {
-		RangeBoundsMap {
+		DiscreteRangeMap {
 			inner: BTreeMap::new(),
 			phantom: PhantomData,
 		}
@@ -169,9 +165,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let mut map = RangeBoundsMap::new();
+	/// let mut map = DiscreteRangeMap::new();
 	///
 	/// assert_eq!(map.len(), 0);
 	/// map.insert_strict(ie(0, 1), false).unwrap();
@@ -187,9 +183,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let mut map = RangeBoundsMap::new();
+	/// let mut map = DiscreteRangeMap::new();
 	///
 	/// assert_eq!(map.is_empty(), true);
 	/// map.insert_strict(ie(0, 1), false).unwrap();
@@ -211,9 +207,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::{ie, ii};
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let mut map = RangeBoundsMap::new();
+	/// let mut map = DiscreteRangeMap::new();
 	///
 	/// map.insert_strict(ie(5, 10), false);
 	///
@@ -244,9 +240,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -288,9 +284,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -327,9 +323,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -350,9 +346,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(1, 4), false)])
+	/// 	DiscreteRangeMap::from_slice_strict([(ie(1, 4), false)])
 	/// 		.unwrap();
 	///
 	/// if let Some(x) = map.get_at_point_mut(2) {
@@ -371,9 +367,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -396,12 +392,10 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use std::ops::Bound;
-	///
 	/// use range_bounds_map::test_ranges::{ie, iu};
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 6), true),
 	/// 	(ie(8, 100), false),
@@ -448,9 +442,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -474,9 +468,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -507,9 +501,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -557,19 +551,17 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use std::ops::Bound;
-	///
 	/// use range_bounds_map::test_ranges::{ie, ii};
-	/// use range_bounds_map::{RangeBoundsMap};
+	/// use range_bounds_map::{DiscreteRangeMap};
 	///
-	/// let mut base = RangeBoundsMap::from_slice_strict([
+	/// let mut base = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
 	/// ])
 	/// .unwrap();
 	///
-	/// let after_cut = RangeBoundsMap::from_slice_strict([
+	/// let after_cut = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 2), false),
 	/// 	(ie(40, 100), false),
 	/// ])
@@ -720,12 +712,10 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use std::ops::Bound;
-	///
 	/// use range_bounds_map::test_ranges::{ie, iu};
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 3), false),
 	/// 	(ie(5, 7), true),
 	/// 	(ie(9, 100), false),
@@ -756,7 +746,7 @@ where
 			.map(|(key, _)| (key.start(), key.end()));
 
 		// If the start or end point of outer_range is not
-		// contained within a RangeBounds in the map then we need to
+		// contained within a DiscreteRange in the map then we need to
 		// generate the gaps.
 		let start_gap = (!self
 			.inner
@@ -826,9 +816,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 3), false),
 	/// 	(ie(5, 8), true),
 	/// 	(ie(8, 100), false),
@@ -864,9 +854,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{OverlapError, RangeBoundsMap};
+	/// use range_bounds_map::{OverlapError, DiscreteRangeMap};
 	///
-	/// let mut map = RangeBoundsMap::new();
+	/// let mut map = DiscreteRangeMap::new();
 	///
 	/// assert_eq!(map.insert_strict(ie(5, 10), 9), Ok(()));
 	/// assert_eq!(map.insert_strict(ie(5, 10), 2), Err(OverlapError));
@@ -957,10 +947,10 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, RangeBoundsMap,
+	/// 	OverlapError, DiscreteRangeMap,
 	/// };
 	///
-	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(6, 8), true),
 	/// ])
@@ -1046,10 +1036,10 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, RangeBoundsMap,
+	/// 	OverlapError, DiscreteRangeMap,
 	/// };
 	///
-	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(6, 8), true),
 	/// ])
@@ -1147,10 +1137,10 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, RangeBoundsMap,
+	/// 	OverlapError, DiscreteRangeMap,
 	/// };
 	///
-	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(6, 8), true),
 	/// ])
@@ -1226,10 +1216,10 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, RangeBoundsMap,
+	/// 	OverlapError, DiscreteRangeMap,
 	/// };
 	///
-	/// let mut map = RangeBoundsMap::from_slice_strict([
+	/// let mut map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(6, 8), true),
 	/// ])
@@ -1301,8 +1291,8 @@ where
 	/// Adds a new entry to the map and overwrites any other ranges
 	/// that overlap the new range.
 	///
-	/// This is equivalent to using [`RangeBoundsMap::cut()`]
-	/// followed by [`RangeBoundsMap::insert_strict()`]. Hence the
+	/// This is equivalent to using [`DiscreteRangeMap::cut()`]
+	/// followed by [`DiscreteRangeMap::insert_strict()`]. Hence the
 	/// same `V: Clone` trait bound applies.
 	///
 	/// # Panics
@@ -1314,10 +1304,10 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
 	/// let mut map =
-	/// 	RangeBoundsMap::from_slice_strict([(ie(2, 8), false)])
+	/// 	DiscreteRangeMap::from_slice_strict([(ie(2, 8), false)])
 	/// 		.unwrap();
 	///
 	/// map.insert_overwrite(ie(4, 6), true);
@@ -1343,9 +1333,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -1362,10 +1352,10 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use range_bounds_map::RangeBoundsMap;
+	/// use range_bounds_map::DiscreteRangeMap;
 	/// use range_bounds_map::test_ranges::ie;
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -1380,12 +1370,12 @@ where
 		self.inner.last_key_value()
 	}
 
-	/// Allocates a `RangeBoundsMap` and moves the given entries from
+	/// Allocates a `DiscreteRangeMap` and moves the given entries from
 	/// the given slice into the map using
-	/// [`RangeBoundsMap::insert_strict()`].
+	/// [`DiscreteRangeMap::insert_strict()`].
 	///
 	/// May return an `Err` while inserting. See
-	/// [`RangeBoundsMap::insert_strict()`] for details.
+	/// [`DiscreteRangeMap::insert_strict()`] for details.
 	///
 	/// # Panics
 	///
@@ -1396,9 +1386,9 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{RangeBoundsMap};
+	/// use range_bounds_map::{DiscreteRangeMap};
 	///
-	/// let map = RangeBoundsMap::from_slice_strict([
+	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -1407,8 +1397,8 @@ where
 	/// ```
 	pub fn from_slice_strict<const N: usize>(
 		slice: [(K, V); N],
-	) -> Result<RangeBoundsMap<I, K, V>, OverlapError> {
-		let mut map = RangeBoundsMap::new();
+	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError> {
+		let mut map = DiscreteRangeMap::new();
 		for (range, value) in slice {
 			map.insert_strict(range, value)?;
 		}
@@ -1466,7 +1456,7 @@ where
 }
 
 /// A simple helper trait to make my implemtation nicer, if you
-/// already implement RangeBounds and Copy on your type then this will
+/// already implement DiscreteRange and Copy on your type then this will
 /// also be implemted.
 pub trait FiniteRange<I> {
 	fn start(&self) -> I;
@@ -1475,7 +1465,7 @@ pub trait FiniteRange<I> {
 
 // Trait Impls ==========================
 
-impl<I, K, V> IntoIterator for RangeBoundsMap<I, K, V> {
+impl<I, K, V> IntoIterator for DiscreteRangeMap<I, K, V> {
 	type Item = (K, V);
 	type IntoIter = IntoIter<I, K, V>;
 	fn into_iter(self) -> Self::IntoIter {
@@ -1485,10 +1475,10 @@ impl<I, K, V> IntoIterator for RangeBoundsMap<I, K, V> {
 		};
 	}
 }
-/// An owning iterator over the entries of a [`RangeBoundsMap`].
+/// An owning iterator over the entries of a [`DiscreteRangeMap`].
 ///
 /// This `struct` is created by the [`into_iter`] method on
-/// [`RangeBoundsMap`] (provided by the [`IntoIterator`] trait). See
+/// [`DiscreteRangeMap`] (provided by the [`IntoIterator`] trait). See
 /// its documentation for more.
 ///
 /// [`into_iter`]: IntoIterator::into_iter
@@ -1504,16 +1494,16 @@ impl<I, K, V> Iterator for IntoIter<I, K, V> {
 	}
 }
 
-impl<I, K, V> Default for RangeBoundsMap<I, K, V> {
+impl<I, K, V> Default for DiscreteRangeMap<I, K, V> {
 	fn default() -> Self {
-		RangeBoundsMap {
+		DiscreteRangeMap {
 			inner: BTreeMap::default(),
 			phantom: PhantomData,
 		}
 	}
 }
 
-impl<I, K, V> Serialize for RangeBoundsMap<I, K, V>
+impl<I, K, V> Serialize for DiscreteRangeMap<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
 	K: FiniteRange<I> + Copy + Serialize,
@@ -1531,7 +1521,7 @@ where
 	}
 }
 
-impl<'de, I, K, V> Deserialize<'de> for RangeBoundsMap<I, K, V>
+impl<'de, I, K, V> Deserialize<'de> for DiscreteRangeMap<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
 	K: FiniteRange<I> + Copy + Deserialize<'de>,
@@ -1541,7 +1531,7 @@ where
 	where
 		D: Deserializer<'de>,
 	{
-		deserializer.deserialize_map(RangeBoundsMapVisitor {
+		deserializer.deserialize_map(DiscreteRangeMapVisitor {
 			i: PhantomData,
 			k: PhantomData,
 			v: PhantomData,
@@ -1549,32 +1539,32 @@ where
 	}
 }
 
-struct RangeBoundsMapVisitor<I, K, V> {
+struct DiscreteRangeMapVisitor<I, K, V> {
 	i: PhantomData<I>,
 	k: PhantomData<K>,
 	v: PhantomData<V>,
 }
 
-impl<'de, I, K, V> Visitor<'de> for RangeBoundsMapVisitor<I, K, V>
+impl<'de, I, K, V> Visitor<'de> for DiscreteRangeMapVisitor<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
 	K: FiniteRange<I> + Copy + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
-	type Value = RangeBoundsMap<I, K, V>;
+	type Value = DiscreteRangeMap<I, K, V>;
 
 	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		formatter.write_str("a RangeBoundsMap")
+		formatter.write_str("a DiscreteRangeMap")
 	}
 
 	fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
 	where
 		A: MapAccess<'de>,
 	{
-		let mut map = RangeBoundsMap::new();
+		let mut map = DiscreteRangeMap::new();
 		while let Some((range_bounds, value)) = access.next_entry()? {
 			map.insert_strict(range_bounds, value)
-				.map_err(|_| serde::de::Error::custom("RangeBounds overlap"))?;
+				.map_err(|_| serde::de::Error::custom("DiscreteRange overlap"))?;
 		}
 		Ok(map)
 	}
@@ -1594,8 +1584,8 @@ mod tests {
 	//go a bit around on either side to compensate for Unbounded
 	pub(crate) const NUMBERS_DOMAIN: &'static [i8] = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-	fn basic() -> RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool> {
-		RangeBoundsMap::from_slice_strict([
+	fn basic() -> DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool> {
+		DiscreteRangeMap::from_slice_strict([
 			(ui(4), false),
 			(ee(5, 7), true),
 			(ii(7, 7), false),
@@ -1631,13 +1621,13 @@ mod tests {
 		);
 	}
 	fn assert_insert_strict<const N: usize>(
-		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
 		to_insert: (DiscreteFiniteBounds<i8>, bool),
 		result: Result<(), OverlapError>,
 		after: [(DiscreteFiniteBounds<i8>, bool); N],
 	) {
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
-		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -1645,7 +1635,7 @@ mod tests {
 		//case zero
 		for overlap_range in all_valid_test_bounds() {
 			//you can't overlap nothing
-			assert!(RangeBoundsMap::<i8, DiscreteFiniteBounds<i8>, ()>::new()
+			assert!(DiscreteRangeMap::<i8, DiscreteFiniteBounds<i8>, ()>::new()
 				.overlapping(overlap_range)
 				.next()
 				.is_none());
@@ -1654,7 +1644,7 @@ mod tests {
 		//case one
 		for overlap_range in all_valid_test_bounds() {
 			for inside_range in all_valid_test_bounds() {
-				let mut map = RangeBoundsMap::new();
+				let mut map = DiscreteRangeMap::new();
 				map.insert_strict(inside_range, ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
@@ -1679,7 +1669,7 @@ mod tests {
 		//case two
 		for overlap_range in all_valid_test_bounds() {
 			for (inside_range1, inside_range2) in all_non_overlapping_test_bound_entries() {
-				let mut map = RangeBoundsMap::new();
+				let mut map = DiscreteRangeMap::new();
 				map.insert_strict(inside_range1, ()).unwrap();
 				map.insert_strict(inside_range2, ()).unwrap();
 
@@ -1740,7 +1730,7 @@ mod tests {
 		);
 	}
 	fn assert_remove_overlapping<const N: usize, const Y: usize>(
-		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
 		to_remove: DiscreteFiniteBounds<i8>,
 		result: [(DiscreteFiniteBounds<i8>, bool); N],
 		after: [(DiscreteFiniteBounds<i8>, bool); Y],
@@ -1749,7 +1739,7 @@ mod tests {
 			before.remove_overlapping(to_remove).collect::<Vec<_>>(),
 			result
 		);
-		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -1790,13 +1780,13 @@ mod tests {
 		);
 	}
 	fn assert_cut<const N: usize, const Y: usize>(
-		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
 		to_cut: DiscreteFiniteBounds<i8>,
 		result: [(DiscreteFiniteBounds<i8>, bool); Y],
 		after: [(DiscreteFiniteBounds<i8>, bool); N],
 	) {
 		assert_eq!(before.cut(to_cut).collect::<Vec<_>>(), result);
-		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap());
+		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap());
 	}
 
 	#[test]
@@ -1818,7 +1808,7 @@ mod tests {
 			[ei(4, 5), ee(7, 14), ii(16, i8::MAX)],
 		);
 		assert_eq!(
-			RangeBoundsMap::from_slice_strict([(ii(i8::MIN, i8::MAX), false)])
+			DiscreteRangeMap::from_slice_strict([(ii(i8::MIN, i8::MAX), false)])
 				.unwrap()
 				.gaps(uu())
 				.collect::<Vec<_>>(),
@@ -1826,7 +1816,7 @@ mod tests {
 		);
 	}
 	fn assert_gaps<const N: usize>(
-		map: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		map: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
 		outer_range: DiscreteFiniteBounds<i8>,
 		result: [DiscreteFiniteBounds<i8>; N],
 	) {
@@ -1876,7 +1866,7 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching<const N: usize>(
-		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
 		to_insert: (DiscreteFiniteBounds<i8>, bool),
 		result: Result<DiscreteFiniteBounds<i8>, OverlapError>,
 		after: [(DiscreteFiniteBounds<i8>, bool); N],
@@ -1885,7 +1875,7 @@ mod tests {
 			before.insert_merge_touching(to_insert.0, to_insert.1),
 			result
 		);
-		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
 	}
 	#[test]
 	fn insert_merge_touching_if_values_equal_tests() {
@@ -1932,7 +1922,7 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_if_values_equal<const N: usize>(
-		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
 		to_insert: (DiscreteFiniteBounds<i8>, bool),
 		result: Result<DiscreteFiniteBounds<i8>, OverlapError>,
 		after: [(DiscreteFiniteBounds<i8>, bool); N],
@@ -1941,7 +1931,7 @@ mod tests {
 			before.insert_merge_touching_if_values_equal(to_insert.0, to_insert.1),
 			result
 		);
-		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -1988,7 +1978,7 @@ mod tests {
 		assert_insert_merge_overlapping(basic(), (uu(), false), uu(), [(uu(), false)]);
 	}
 	fn assert_insert_merge_overlapping<const N: usize>(
-		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
 		to_insert: (DiscreteFiniteBounds<i8>, bool),
 		result: DiscreteFiniteBounds<i8>,
 		after: [(DiscreteFiniteBounds<i8>, bool); N],
@@ -1997,13 +1987,13 @@ mod tests {
 			before.insert_merge_overlapping(to_insert.0, to_insert.1),
 			result
 		);
-		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
 	fn insert_merge_touching_or_overlapping_tests() {
 		assert_insert_merge_touching_or_overlapping(
-			RangeBoundsMap::from_slice_strict([(ie(1, 4), false)]).unwrap(),
+			DiscreteRangeMap::from_slice_strict([(ie(1, 4), false)]).unwrap(),
 			(ie(0, 1), true),
 			ie(0, 4),
 			[(ie(0, 4), true)],
@@ -2059,7 +2049,7 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_or_overlapping<const N: usize>(
-		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
 		to_insert: (DiscreteFiniteBounds<i8>, bool),
 		result: DiscreteFiniteBounds<i8>,
 		after: [(DiscreteFiniteBounds<i8>, bool); N],
@@ -2068,7 +2058,7 @@ mod tests {
 			before.insert_merge_touching_or_overlapping(to_insert.0, to_insert.1),
 			result
 		);
-		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]

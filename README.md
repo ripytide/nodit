@@ -9,16 +9,16 @@
 <img src="logo.png" alt="range_bounds_map_logo" width="350">
 </p>
 
-This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`], Data
+This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`], Data
 Structures for storing non-overlapping intervals based of [`BTreeMap`].
 
 ## Example using [`Range`]s
 
 ```rust
 use range_bounds_map::test_ranges::ie;
-use range_bounds_map::RangeBoundsMap;
+use range_bounds_map::DiscreteRangeMap;
 
-let mut map = RangeBoundsMap::new();
+let mut map = DiscreteRangeMap::new();
 
 map.insert_strict(ie(0, 5), true);
 map.insert_strict(ie(5, 10), false);
@@ -28,13 +28,13 @@ assert_eq!(map.contains_point(20), false);
 assert_eq!(map.contains_point(5), true);
 ```
 
-## Example using a custom [`RangeBounds`] type
+## Example using a custom [`DiscreteRange`] type
 
 ```rust
-use std::ops::{Bound, RangeBounds};
+use std::ops::{Bound, DiscreteRange};
 
 use range_bounds_map::test_ranges::ie;
-use range_bounds_map::RangeBoundsMap;
+use range_bounds_map::DiscreteRangeMap;
 use range_bounds_map::FiniteRange;
 
 #[derive(Debug, Copy, Clone)]
@@ -63,8 +63,8 @@ impl FiniteRange<i8> for Reservation {
     }
 }
 
-// Next we can create a custom typed RangeBoundsMap
-let reservation_map = RangeBoundsMap::from_slice_strict([
+// Next we can create a custom typed DiscreteRangeMap
+let reservation_map = DiscreteRangeMap::from_slice_strict([
 	(Reservation::Finite(10, 20), "Ferris".to_string()),
 	(Reservation::Infinite(20), "Corro".to_string()),
 ])
@@ -173,7 +173,7 @@ The aim for this library was to become a more generic superset of
 [`rangemap`], following from [this
 issue](https://github.com/jeffparsons/rangemap/issues/56) and [this
 pull request](https://github.com/jeffparsons/rangemap/pull/57) in
-which I changed [`rangemap`]'s [`RangeMap`] to use [`RangeBounds`]s as
+which I changed [`rangemap`]'s [`RangeMap`] to use [`DiscreteRange`]s as
 keys before I realized it might be easier and simpler to just write it
 all from scratch.
 
@@ -198,9 +198,9 @@ topic area:
   merging functions.
 - <https://docs.rs/unbounded-interval-tree>
   A data structure based off of a 2007 published paper! It supports any
-  RangeBounds as keys too, except it is implemented with a non-balancing
+  DiscreteRange as keys too, except it is implemented with a non-balancing
   `Box<Node>` based tree, however it also supports overlapping
-  RangeBounds which my library does not.
+  DiscreteRange which my library does not.
 - <https://docs.rs/rangetree>
   I'm not entirely sure what this library is or isn't, but it looks like
   a custom red-black tree/BTree implementation used specifically for a
@@ -209,17 +209,17 @@ topic area:
 
 [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 [`btreeset`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
-[`rangebounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
-[`start_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.start_bound
-[`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
+[`rangebounds`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html
+[`start_bound()`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html#tymethod.start_bound
+[`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.DiscreteRange.html#tymethod.end_bound
 [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
 [`range()`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
 [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
 [`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
-[`rangeboundsmap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.RangeBoundsMap.html
-[`rangeboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.RangeBoundsSet.html
+[`rangeboundsmap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.DiscreteRangeMap.html
+[`rangeboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.DiscreteRangeSet.html
 [`copse`]: https://github.com/eggyal/copse
 [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
 [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics
