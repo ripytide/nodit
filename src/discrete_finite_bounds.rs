@@ -22,13 +22,13 @@ use std::ops::{Bound, RangeBounds};
 use crate::range_bounds_map::FiniteRange;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FiniteBounds<I> {
+pub struct DiscreteFiniteBounds<I> {
 	//both are always included
 	pub start: I,
 	pub end: I,
 }
 
-impl<I> RangeBounds<I> for FiniteBounds<I> {
+impl<I> RangeBounds<I> for DiscreteFiniteBounds<I> {
 	fn start_bound(&self) -> Bound<&I> {
 		Bound::Included(&self.start)
 	}
@@ -37,7 +37,7 @@ impl<I> RangeBounds<I> for FiniteBounds<I> {
 	}
 }
 
-impl<I> FiniteRange<I> for FiniteBounds<I>
+impl<I> FiniteRange<I> for DiscreteFiniteBounds<I>
 where
 	I: Copy,
 {

@@ -29,7 +29,7 @@ use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::discrete_bounds::FiniteBounds;
+use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_finite::DiscreteFinite;
 use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 
@@ -149,9 +149,9 @@ where
 	/// use std::ops::Range;
 	///
 	/// use range_bounds_map::RangeBoundsMap;
-	/// use range_bounds_map::DiscreteBounds;
+	/// use range_bounds_map::DiscreteFiniteBounds;
 	///
-	/// let map: RangeBoundsMap<i8, DiscreteBounds<i8>, bool> =
+	/// let map: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool> =
 	/// 	RangeBoundsMap::new();
 	/// ```
 	pub fn new() -> Self {
@@ -416,12 +416,12 @@ where
 	/// 	Err(iu(100))
 	/// );
 	/// ```
-	pub fn get_entry_at_point(&self, point: I) -> Result<(&K, &V), FiniteBounds<I>> {
+	pub fn get_entry_at_point(&self, point: I) -> Result<(&K, &V), DiscreteFiniteBounds<I>> {
 		self.inner
 			.get_key_value(overlapping_comp(point))
 			.ok_or_else(|| self.get_gap_at_raw(point))
 	}
-	fn get_gap_at_raw(&self, point: I) -> FiniteBounds<I> {
+	fn get_gap_at_raw(&self, point: I) -> DiscreteFiniteBounds<I> {
 		let lower = self
 			.inner
 			.upper_bound(overlapping_comp(point), SearchBoundCustom::Included);
@@ -429,7 +429,7 @@ where
 			.inner
 			.lower_bound(overlapping_comp(point), SearchBoundCustom::Included);
 
-		FiniteBounds {
+		DiscreteFiniteBounds {
 			start: lower
 				.key()
 				.map_or(I::MIN, |lower| lower.end().up().unwrap()),
@@ -542,8 +542,8 @@ where
 	/// the full or partial ranges that were cut.
 	///
 	/// If the remaining ranges left in the map after the cut would
-	/// not be able be created with the [`TryFromDiscreteBounds`] trait then a
-	/// [`TryFromDiscreteBoundsError`] will be returned and the map will not
+	/// not be able be created with the [`TryFromDiscreteFiniteBounds`] trait then a
+	/// [`TryFromDiscreteFiniteBoundsError`] will be returned and the map will not
 	/// be cut at all.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
@@ -562,7 +562,7 @@ where
 	/// use std::ops::Bound;
 	///
 	/// use range_bounds_map::test_ranges::{ie, ie_strict, ii};
-	/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteBoundsError};
+	/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteFiniteBoundsError};
 	///
 	/// let mut base = RangeBoundsMap::from_slice_strict([
 	/// 	(ie_strict(1, 4), false),
@@ -587,10 +587,10 @@ where
 	/// );
 	/// assert_eq!(base, after_cut);
 	/// ```
-	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = (FiniteBounds<I>, V)> + '_
+	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = (DiscreteFiniteBounds<I>, V)> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -619,10 +619,10 @@ where
 		&mut self,
 		range: Q,
 		single_overlapping_range: K,
-	) -> impl Iterator<Item = (FiniteBounds<I>, V)>
+	) -> impl Iterator<Item = (DiscreteFiniteBounds<I>, V)>
 	where
 		Q: FiniteRange<I> + Copy,
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -648,10 +648,10 @@ where
 		range: Q,
 		left_overlapping: Option<K>,
 		right_overlapping: Option<K>,
-	) -> impl Iterator<Item = (FiniteBounds<I>, V)> + '_
+	) -> impl Iterator<Item = (DiscreteFiniteBounds<I>, V)> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -695,7 +695,7 @@ where
 			.into_iter()
 			.chain(self.remove_overlapping(range).map(|(key, value)| {
 				(
-					FiniteBounds {
+					DiscreteFiniteBounds {
 						start: key.start(),
 						end: key.end(),
 					},
@@ -740,7 +740,7 @@ where
 	/// 	]
 	/// );
 	/// ```
-	pub fn gaps<Q>(&self, outer_range: Q) -> impl DoubleEndedIterator<Item = FiniteBounds<I>>
+	pub fn gaps<Q>(&self, outer_range: Q) -> impl DoubleEndedIterator<Item = DiscreteFiniteBounds<I>>
 	where
 		Q: FiniteRange<I> + Copy,
 	{
@@ -794,7 +794,7 @@ where
 			//find one at the time of writing
 			.collect::<Vec<_>>()
 			.windows(2)
-			.map(|windows| FiniteBounds {
+			.map(|windows| DiscreteFiniteBounds {
 				start: windows[0].1.up().unwrap(),
 				end: windows[1].0.down().unwrap(),
 			})
@@ -893,7 +893,7 @@ where
 		remove_end: R2,
 	) -> K
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 		G1: FnOnce(&Self, &V) -> Option<K>,
 		G2: FnOnce(&Self, &V) -> Option<K>,
 		R1: FnOnce(&mut Self, &V),
@@ -905,15 +905,15 @@ where
 		let matching_end = get_end(self, &value);
 
 		let returning = match (matching_start, matching_end) {
-			(Some(matching_start), Some(matching_end)) => K::from(FiniteBounds {
+			(Some(matching_start), Some(matching_end)) => K::from(DiscreteFiniteBounds {
 				start: matching_start.start(),
 				end: matching_end.end(),
 			}),
-			(Some(matching_start), None) => K::from(FiniteBounds {
+			(Some(matching_start), None) => K::from(DiscreteFiniteBounds {
 				start: matching_start.start(),
 				end: range.end(),
 			}),
-			(None, Some(matching_end)) => K::from(FiniteBounds {
+			(None, Some(matching_end)) => K::from(DiscreteFiniteBounds {
 				start: range.start(),
 				end: matching_end.end(),
 			}),
@@ -945,7 +945,7 @@ where
 	///
 	/// If the range merges with one or two touching ranges and the
 	/// merged-together range cannot be created with the
-	/// [`TryFromDiscreteBounds`] trait then a [`TryFromDiscreteBoundsError`] will be
+	/// [`TryFromDiscreteFiniteBounds`] trait then a [`TryFromDiscreteFiniteBoundsError`] will be
 	/// returned.
 	///
 	/// # Panics
@@ -958,7 +958,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
+	/// 	OverlapError, OverlapOrTryFromDiscreteFiniteBoundsError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -976,7 +976,7 @@ where
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching(ie(4, 8), false),
-	/// 	Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
+	/// 	Err(OverlapOrTryFromDiscreteFiniteBoundsError::Overlap(OverlapError)),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -992,7 +992,7 @@ where
 	/// ```
 	pub fn insert_merge_touching(&mut self, range: K, value: V) -> Result<K, OverlapError>
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 	{
 		invalid_range_panic(range);
 
@@ -1039,7 +1039,7 @@ where
 	///
 	/// If the range merges with one or two touching ranges and the
 	/// merged-together range cannot be created with the
-	/// [`TryFromDiscreteBounds`] trait then a [`TryFromDiscreteBoundsError`] will be
+	/// [`TryFromDiscreteFiniteBounds`] trait then a [`TryFromDiscreteFiniteBoundsError`] will be
 	/// returned.
 	///
 	/// # Panics
@@ -1052,7 +1052,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
+	/// 	OverlapError, OverlapOrTryFromDiscreteFiniteBoundsError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1070,7 +1070,7 @@ where
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching_if_values_equal(ie(4, 8), false),
-	/// 	Err(OverlapOrTryFromDiscreteBoundsError::Overlap(OverlapError)),
+	/// 	Err(OverlapOrTryFromDiscreteFiniteBoundsError::Overlap(OverlapError)),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -1090,7 +1090,7 @@ where
 		value: V,
 	) -> Result<K, OverlapError>
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 		V: Eq,
 	{
 		invalid_range_panic(range);
@@ -1144,8 +1144,8 @@ where
 	/// returned.
 	///
 	/// If the range merges other ranges and the merged-together range
-	/// cannot be created with the [`TryFromDiscreteBounds`] trait then a
-	/// [`TryFromDiscreteBoundsError`] will be returned.
+	/// cannot be created with the [`TryFromDiscreteFiniteBounds`] trait then a
+	/// [`TryFromDiscreteFiniteBoundsError`] will be returned.
 	///
 	/// # Panics
 	///
@@ -1157,7 +1157,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
+	/// 	OverlapError, OverlapOrTryFromDiscreteFiniteBoundsError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1191,7 +1191,7 @@ where
 	/// ```
 	pub fn insert_merge_overlapping(&mut self, range: K, value: V) -> K
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 	{
 		invalid_range_panic(range);
 
@@ -1227,8 +1227,8 @@ where
 	/// returned.
 	///
 	/// If the range merges other ranges and the merged-together range
-	/// cannot be created with the [`TryFromDiscreteBounds`] trait then a
-	/// [`TryFromDiscreteBoundsError`] will be returned.
+	/// cannot be created with the [`TryFromDiscreteFiniteBounds`] trait then a
+	/// [`TryFromDiscreteFiniteBoundsError`] will be returned.
 	///
 	/// # Panics
 	///
@@ -1240,7 +1240,7 @@ where
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
 	/// use range_bounds_map::{
-	/// 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
+	/// 	OverlapError, OverlapOrTryFromDiscreteFiniteBoundsError, RangeBoundsMap,
 	/// };
 	///
 	/// let mut map = RangeBoundsMap::from_slice_strict([
@@ -1274,7 +1274,7 @@ where
 	/// ```
 	pub fn insert_merge_touching_or_overlapping(&mut self, range: K, value: V) -> K
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 	{
 		invalid_range_panic(range);
 
@@ -1320,8 +1320,8 @@ where
 	/// same `V: Clone` trait bound applies.
 	///
 	/// If the remaining ranges left after the cut are not able to be
-	/// created with the [`TryFromDiscreteBounds`] trait then a
-	/// [`TryFromDiscreteBoundsError`] will be returned.
+	/// created with the [`TryFromDiscreteFiniteBounds`] trait then a
+	/// [`TryFromDiscreteFiniteBoundsError`] will be returned.
 	///
 	/// # Panics
 	///
@@ -1347,7 +1347,7 @@ where
 	/// ```
 	pub fn insert_overwrite(&mut self, range: K, value: V)
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -1414,7 +1414,7 @@ where
 	/// # Examples
 	/// ```
 	/// use range_bounds_map::test_ranges::ie;
-	/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteBoundsError};
+	/// use range_bounds_map::{RangeBoundsMap, TryFromDiscreteFiniteBoundsError};
 	///
 	/// let map = RangeBoundsMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -1612,7 +1612,7 @@ mod tests {
 	//go a bit around on either side to compensate for Unbounded
 	pub(crate) const NUMBERS_DOMAIN: &'static [i8] = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-	fn basic() -> RangeBoundsMap<i8, FiniteBounds<i8>, bool> {
+	fn basic() -> RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool> {
 		RangeBoundsMap::from_slice_strict([
 			(ui(4), false),
 			(ee(5, 7), true),
@@ -1621,7 +1621,7 @@ mod tests {
 		])
 		.unwrap()
 	}
-	fn basic_slice() -> [(FiniteBounds<i8>, bool); 4] {
+	fn basic_slice() -> [(DiscreteFiniteBounds<i8>, bool); 4] {
 		[
 			(ui(4), false),
 			(ee(5, 7), true),
@@ -1649,10 +1649,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_strict<const N: usize>(
-		mut before: RangeBoundsMap<i8, FiniteBounds<i8>, bool>,
-		to_insert: (FiniteBounds<i8>, bool),
+		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		to_insert: (DiscreteFiniteBounds<i8>, bool),
 		result: Result<(), OverlapError>,
-		after: [(FiniteBounds<i8>, bool); N],
+		after: [(DiscreteFiniteBounds<i8>, bool); N],
 	) {
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
 		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap())
@@ -1663,7 +1663,7 @@ mod tests {
 		//case zero
 		for overlap_range in all_valid_test_bounds() {
 			//you can't overlap nothing
-			assert!(RangeBoundsMap::<i8, FiniteBounds<i8>, ()>::new()
+			assert!(RangeBoundsMap::<i8, DiscreteFiniteBounds<i8>, ()>::new()
 				.overlapping(overlap_range)
 				.next()
 				.is_none());
@@ -1758,10 +1758,10 @@ mod tests {
 		);
 	}
 	fn assert_remove_overlapping<const N: usize, const Y: usize>(
-		mut before: RangeBoundsMap<i8, FiniteBounds<i8>, bool>,
-		to_remove: FiniteBounds<i8>,
-		result: [(FiniteBounds<i8>, bool); N],
-		after: [(FiniteBounds<i8>, bool); Y],
+		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		to_remove: DiscreteFiniteBounds<i8>,
+		result: [(DiscreteFiniteBounds<i8>, bool); N],
+		after: [(DiscreteFiniteBounds<i8>, bool); Y],
 	) {
 		assert_eq!(
 			before.remove_overlapping(to_remove).collect::<Vec<_>>(),
@@ -1808,10 +1808,10 @@ mod tests {
 		);
 	}
 	fn assert_cut<const N: usize, const Y: usize>(
-		mut before: RangeBoundsMap<i8, FiniteBounds<i8>, bool>,
-		to_cut: FiniteBounds<i8>,
-		result: [(FiniteBounds<i8>, bool); Y],
-		after: [(FiniteBounds<i8>, bool); N],
+		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		to_cut: DiscreteFiniteBounds<i8>,
+		result: [(DiscreteFiniteBounds<i8>, bool); Y],
+		after: [(DiscreteFiniteBounds<i8>, bool); N],
 	) {
 		assert_eq!(before.cut(to_cut).collect::<Vec<_>>(), result);
 		assert_eq!(before, RangeBoundsMap::from_slice_strict(after).unwrap());
@@ -1844,9 +1844,9 @@ mod tests {
 		);
 	}
 	fn assert_gaps<const N: usize>(
-		map: RangeBoundsMap<i8, FiniteBounds<i8>, bool>,
-		outer_range: FiniteBounds<i8>,
-		result: [FiniteBounds<i8>; N],
+		map: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		outer_range: DiscreteFiniteBounds<i8>,
+		result: [DiscreteFiniteBounds<i8>; N],
 	) {
 		assert_eq!(map.gaps(outer_range).collect::<Vec<_>>(), result);
 	}
@@ -1894,10 +1894,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching<const N: usize>(
-		mut before: RangeBoundsMap<i8, FiniteBounds<i8>, bool>,
-		to_insert: (FiniteBounds<i8>, bool),
-		result: Result<FiniteBounds<i8>, OverlapError>,
-		after: [(FiniteBounds<i8>, bool); N],
+		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		to_insert: (DiscreteFiniteBounds<i8>, bool),
+		result: Result<DiscreteFiniteBounds<i8>, OverlapError>,
+		after: [(DiscreteFiniteBounds<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_touching(to_insert.0, to_insert.1),
@@ -1950,10 +1950,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_if_values_equal<const N: usize>(
-		mut before: RangeBoundsMap<i8, FiniteBounds<i8>, bool>,
-		to_insert: (FiniteBounds<i8>, bool),
-		result: Result<FiniteBounds<i8>, OverlapError>,
-		after: [(FiniteBounds<i8>, bool); N],
+		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		to_insert: (DiscreteFiniteBounds<i8>, bool),
+		result: Result<DiscreteFiniteBounds<i8>, OverlapError>,
+		after: [(DiscreteFiniteBounds<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_touching_if_values_equal(to_insert.0, to_insert.1),
@@ -2006,10 +2006,10 @@ mod tests {
 		assert_insert_merge_overlapping(basic(), (uu(), false), uu(), [(uu(), false)]);
 	}
 	fn assert_insert_merge_overlapping<const N: usize>(
-		mut before: RangeBoundsMap<i8, FiniteBounds<i8>, bool>,
-		to_insert: (FiniteBounds<i8>, bool),
-		result: FiniteBounds<i8>,
-		after: [(FiniteBounds<i8>, bool); N],
+		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		to_insert: (DiscreteFiniteBounds<i8>, bool),
+		result: DiscreteFiniteBounds<i8>,
+		after: [(DiscreteFiniteBounds<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_overlapping(to_insert.0, to_insert.1),
@@ -2077,10 +2077,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_or_overlapping<const N: usize>(
-		mut before: RangeBoundsMap<i8, FiniteBounds<i8>, bool>,
-		to_insert: (FiniteBounds<i8>, bool),
-		result: FiniteBounds<i8>,
-		after: [(FiniteBounds<i8>, bool); N],
+		mut before: RangeBoundsMap<i8, DiscreteFiniteBounds<i8>, bool>,
+		to_insert: (DiscreteFiniteBounds<i8>, bool),
+		result: DiscreteFiniteBounds<i8>,
+		after: [(DiscreteFiniteBounds<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_touching_or_overlapping(to_insert.0, to_insert.1),
@@ -2170,7 +2170,7 @@ mod tests {
 			}
 		}
 	}
-	fn con(x: Option<FiniteBounds<i8>>, point: &i8) -> bool {
+	fn con(x: Option<DiscreteFiniteBounds<i8>>, point: &i8) -> bool {
 		match x {
 			Some(y) => contains_point(y, *point),
 			None => false,
@@ -2203,7 +2203,7 @@ mod tests {
 
 	// Test Helper Functions
 	//======================
-	fn all_non_overlapping_test_bound_entries() -> Vec<(FiniteBounds<i8>, FiniteBounds<i8>)> {
+	fn all_non_overlapping_test_bound_entries() -> Vec<(DiscreteFiniteBounds<i8>, DiscreteFiniteBounds<i8>)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
@@ -2216,12 +2216,12 @@ mod tests {
 		return output;
 	}
 
-	fn all_valid_test_bounds() -> Vec<FiniteBounds<i8>> {
+	fn all_valid_test_bounds() -> Vec<DiscreteFiniteBounds<i8>> {
 		let mut output = Vec::new();
 		for i in NUMBERS {
 			for j in NUMBERS {
 				if i <= j {
-					output.push(FiniteBounds { start: *i, end: *j });
+					output.push(DiscreteFiniteBounds { start: *i, end: *j });
 				}
 			}
 		}

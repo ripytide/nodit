@@ -5,7 +5,7 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::discrete_bounds::FiniteBounds;
+use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_finite::DiscreteFinite;
 use crate::range_bounds_map::{FiniteRange, IntoIter as RangeBoundsMapIntoIter};
 use crate::{OverlapError, RangeBoundsMap};
@@ -62,7 +62,7 @@ where
 		self.inner.overlapping(range).map(first)
 	}
 	/// See [`RangeBoundsMap::get_entry_at_point()`] for more details.
-	pub fn get_at_point(&self, point: I) -> Result<K, FiniteBounds<I>> {
+	pub fn get_at_point(&self, point: I) -> Result<K, DiscreteFiniteBounds<I>> {
 		self.inner.get_entry_at_point(point).map(first).copied()
 	}
 	/// See [`RangeBoundsMap::contains_point()`] for more details.
@@ -81,15 +81,15 @@ where
 		self.inner.remove_overlapping(range).map(first)
 	}
 	/// See [`RangeBoundsMap::cut()`] for more details.
-	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = FiniteBounds<I>> + '_
+	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = DiscreteFiniteBounds<I>> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 	{
 		self.inner.cut(range).map(first)
 	}
 	/// See [`RangeBoundsMap::gaps()`] for more details.
-	pub fn gaps<'a, Q>(&'a self, range: Q) -> impl DoubleEndedIterator<Item = FiniteBounds<I>> + '_
+	pub fn gaps<'a, Q>(&'a self, range: Q) -> impl DoubleEndedIterator<Item = DiscreteFiniteBounds<I>> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
 	{
@@ -109,28 +109,28 @@ where
 	/// See [`RangeBoundsMap::insert_merge_touching()`] for more details.
 	pub fn insert_merge_touching(&mut self, range: K) -> Result<K, OverlapError>
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 	{
 		self.inner.insert_merge_touching(range, ())
 	}
 	/// See [`RangeBoundsMap::insert_merge_overlapping()`] for more details.
 	pub fn insert_merge_overlapping(&mut self, range: K) -> K
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 	{
 		self.inner.insert_merge_overlapping(range, ())
 	}
 	/// See [`RangeBoundsMap::insert_merge_touching_or_overlapping()`] for more details.
 	pub fn insert_merge_touching_or_overlapping(&mut self, range: K) -> K
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 	{
 		self.inner.insert_merge_touching_or_overlapping(range, ())
 	}
 	/// See [`RangeBoundsMap::insert_overwrite()`] for more details.
 	pub fn insert_overwrite(&mut self, range: K)
 	where
-		K: From<FiniteBounds<I>>,
+		K: From<DiscreteFiniteBounds<I>>,
 	{
 		self.inner.insert_overwrite(range, ())
 	}

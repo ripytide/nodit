@@ -220,13 +220,13 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 pub mod test_ranges;
 pub(crate) mod utils;
 
-pub mod discrete_bounds;
+pub mod discrete_finite_bounds;
 pub mod discrete_finite;
 
 pub mod range_bounds_map;
 pub mod range_bounds_set;
 
-pub use crate::discrete_bounds::FiniteBounds;
+pub use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 pub use crate::discrete_finite::DiscreteFinite;
 pub use crate::range_bounds_map::{OverlapError, RangeBoundsMap};
 pub use crate::range_bounds_set::RangeBoundsSet;
