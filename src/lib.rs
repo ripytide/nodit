@@ -233,6 +233,7 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics
 //! [`interval-mathematics`]: https://en.wikipedia.org/wiki/Interval_(mathematics)
 //! [`actual infinity`]: https://en.wikipedia.org/wiki/Actual_infinity
+//! [`finite`]: https://en.wiktionary.org/wiki/finite#Adjective
 
 #![feature(let_chains)]
 #![feature(btree_cursors)]

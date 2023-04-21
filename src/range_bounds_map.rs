@@ -29,8 +29,8 @@ use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_finite::DiscreteFinite;
+use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
@@ -135,8 +135,8 @@ pub struct RangeBoundsMap<I, K, V> {
 	phantom: PhantomData<I>,
 }
 
-/// An error type to represent a [`RangeBounds`] overlapping another
-/// [`RangeBounds`] when it should not have.
+/// An error type to represent a range overlapping another range when
+/// it should not have.
 #[derive(PartialEq, Debug)]
 pub struct OverlapError;
 
@@ -585,7 +585,10 @@ where
 	/// );
 	/// assert_eq!(base, after_cut);
 	/// ```
-	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = (DiscreteFiniteBounds<I>, V)> + '_
+	pub fn cut<'a, Q>(
+		&'a mut self,
+		range: Q,
+	) -> impl Iterator<Item = (DiscreteFiniteBounds<I>, V)> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
 		K: From<DiscreteFiniteBounds<I>>,
@@ -738,7 +741,10 @@ where
 	/// 	]
 	/// );
 	/// ```
-	pub fn gaps<Q>(&self, outer_range: Q) -> impl DoubleEndedIterator<Item = DiscreteFiniteBounds<I>>
+	pub fn gaps<Q>(
+		&self,
+		outer_range: Q,
+	) -> impl DoubleEndedIterator<Item = DiscreteFiniteBounds<I>>
 	where
 		Q: FiniteRange<I> + Copy,
 	{
@@ -2179,7 +2185,8 @@ mod tests {
 
 	// Test Helper Functions
 	//======================
-	fn all_non_overlapping_test_bound_entries() -> Vec<(DiscreteFiniteBounds<i8>, DiscreteFiniteBounds<i8>)> {
+	fn all_non_overlapping_test_bound_entries(
+	) -> Vec<(DiscreteFiniteBounds<i8>, DiscreteFiniteBounds<i8>)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
