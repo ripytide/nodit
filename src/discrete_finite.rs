@@ -17,9 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::iter::Step;
-
-pub trait Discrete {
+pub trait DiscreteFinite {
     const MIN: Self;
     const MAX: Self;
 
@@ -31,14 +29,10 @@ pub trait Discrete {
 		Self: Sized;
 }
 
-impl<T> Discrete for T
-where
-	T: Sized + Step,
-{
-	fn up(self) -> Option<Self> {
-		<T as Step>::forward_checked(self, 1)
-	}
-	fn down(self) -> Option<Self> {
-		<T as Step>::backward_checked(self, 1)
-	}
+macro_rules! discrete_finite_impl_macro {
+    ($structname: ident, Default, $($t:tt)*) => {
+          fn default() -> Self {
+              Self {$($t)*}
+          }
+    };
 }
