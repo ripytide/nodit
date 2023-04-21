@@ -19,87 +19,18 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::ops::{Bound, RangeBounds};
 
-use crate::discrete_bound_ord::DiscreteBoundOrd;
-use crate::stepable::Stepable;
-use crate::try_from_discrete_bounds::TryFromDiscreteBounds;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DiscreteBounds<I> {
-	pub start: DiscreteBound<I>,
-	pub end: DiscreteBound<I>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DiscreteBound<I> {
-	Included(I),
-	Unbounded,
-}
-
-impl<I> DiscreteBound<I>
-where
-	I: Stepable + Copy,
-{
-	pub fn start(bound: Bound<I>) -> Self {
-		match bound {
-			Bound::Included(x) => DiscreteBound::Included(x),
-			Bound::Excluded(x) => DiscreteBound::Included(x.up().unwrap()),
-			Bound::Unbounded => DiscreteBound::Unbounded,
-		}
-	}
-	pub fn end(bound: Bound<I>) -> Self {
-		match bound {
-			Bound::Included(x) => DiscreteBound::Included(x),
-			Bound::Excluded(x) => DiscreteBound::Included(x.down().unwrap()),
-			Bound::Unbounded => DiscreteBound::Unbounded,
-		}
-	}
-
-	pub fn up_if_finite(&self) -> DiscreteBound<I> {
-		match self {
-			DiscreteBound::Included(x) => DiscreteBound::Included(x.up().unwrap()),
-			DiscreteBound::Unbounded => DiscreteBound::Unbounded,
-		}
-	}
-	pub fn down_if_finite(&self) -> DiscreteBound<I> {
-		match self {
-			DiscreteBound::Included(x) => DiscreteBound::Included(x.down().unwrap()),
-			DiscreteBound::Unbounded => DiscreteBound::Unbounded,
-		}
-	}
-}
-
-impl<I> From<DiscreteBoundOrd<I>> for DiscreteBound<I> {
-	fn from(discrete_bound_ord: DiscreteBoundOrd<I>) -> Self {
-		match discrete_bound_ord {
-			DiscreteBoundOrd::Included(x) => DiscreteBound::Included(x),
-			DiscreteBoundOrd::StartUnbounded => DiscreteBound::Unbounded,
-			DiscreteBoundOrd::EndUnbounded => DiscreteBound::Unbounded,
-		}
-	}
+	//both are always included
+	pub start: I,
+	pub end: I,
 }
 
 impl<I> RangeBounds<I> for DiscreteBounds<I> {
 	fn start_bound(&self) -> Bound<&I> {
-		match self.start {
-			DiscreteBound::Included(ref x) => Bound::Included(x),
-			DiscreteBound::Unbounded => Bound::Unbounded,
-		}
+		Bound::Included(&self.start)
 	}
 	fn end_bound(&self) -> Bound<&I> {
-		match self.end {
-			DiscreteBound::Included(ref x) => Bound::Included(x),
-			DiscreteBound::Unbounded => Bound::Unbounded,
-		}
-	}
-}
-
-impl<I> TryFromDiscreteBounds<I> for DiscreteBounds<I> {
-	fn try_from_discrete_bounds(
-		discrete_bounds: DiscreteBounds<I>,
-	) -> Result<Self, crate::TryFromDiscreteBoundsError>
-	where
-		Self: Sized,
-	{
-		Ok(discrete_bounds)
+		Bound::Included(&self.end)
 	}
 }

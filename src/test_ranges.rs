@@ -1,7 +1,7 @@
 use std::ops::{Bound, RangeBounds};
 
 use crate::discrete_bounds::{DiscreteBound, DiscreteBounds};
-use crate::stepable::Stepable;
+use crate::stepable::Discrete;
 use crate::{TryFromDiscreteBounds, TryFromDiscreteBoundsError};
 
 pub fn uu() -> DiscreteBounds<i8> {

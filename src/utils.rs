@@ -19,22 +19,21 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::cmp::Ordering;
 
-use crate::discrete_bound_ord::DiscreteBoundOrd;
 use crate::discrete_bounds::DiscreteBounds;
 use crate::range_bounds_map::DiscreteRange;
-use crate::stepable::Stepable;
+use crate::stepable::Discrete;
 
-pub(crate) fn cmp_discrete_bound_ord_with_range<A, B>(
-	discrete_bound_ord: DiscreteBoundOrd<B>,
-	range: A,
+pub(crate) fn cmp_point_with_range<I, K>(
+    point: I,
+	range: K,
 ) -> Ordering
 where
-	A: DiscreteRange<B>,
-	B: Ord,
+    I: Ord,
+	K: DiscreteRange<I>,
 {
-	if discrete_bound_ord < range.start() {
+	if point < range.start() {
 		Ordering::Less
-	} else if discrete_bound_ord > range.end() {
+	} else if point > range.end() {
 		Ordering::Greater
 	} else {
 		Ordering::Equal
@@ -121,7 +120,7 @@ where
 	A: DiscreteRange<I>,
 	I: Ord,
 {
-	cmp_discrete_bound_ord_with_range(discrete_bound_ord, range).is_eq()
+	cmp_point_with_range(discrete_bound_ord, range).is_eq()
 }
 
 #[derive(Debug)]
@@ -134,7 +133,7 @@ pub(crate) fn cut_range<I, B, C>(base: B, cut: C) -> CutResult<I>
 where
 	B: DiscreteRange<I> + Copy,
 	C: DiscreteRange<I> + Copy,
-	I: Ord + Copy + Stepable,
+	I: Ord + Copy + Discrete,
 {
 	let mut result = CutResult {
 		before_cut: None,

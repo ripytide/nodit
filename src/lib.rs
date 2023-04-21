@@ -220,18 +220,14 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 pub mod test_ranges;
 pub(crate) mod utils;
 
-pub(crate) mod discrete_bound_ord;
 pub mod discrete_bounds;
-
 pub mod stepable;
-pub mod try_from_discrete_bounds;
 
 pub mod range_bounds_map;
 pub mod range_bounds_set;
 
+pub use crate::discrete_bounds::DiscreteBounds;
 pub use crate::range_bounds_map::{
 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap,
 };
 pub use crate::range_bounds_set::RangeBoundsSet;
-pub use crate::try_from_discrete_bounds::{TryFromDiscreteBounds, TryFromDiscreteBoundsError};
-pub use crate::discrete_bounds::DiscreteBounds;

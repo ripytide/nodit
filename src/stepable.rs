@@ -19,7 +19,10 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::iter::Step;
 
-pub trait Stepable {
+pub trait Discrete {
+    const MIN: Self;
+    const MAX: Self;
+
 	fn up(self) -> Option<Self>
 	where
 		Self: Sized;
@@ -28,7 +31,7 @@ pub trait Stepable {
 		Self: Sized;
 }
 
-impl<T> Stepable for T
+impl<T> Discrete for T
 where
 	T: Sized + Step,
 {

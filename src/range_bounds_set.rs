@@ -7,7 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::discrete_bounds::DiscreteBounds;
 use crate::range_bounds_map::{DiscreteRange, IntoIter as RangeBoundsMapIntoIter};
-use crate::stepable::Stepable;
+use crate::stepable::Discrete;
 use crate::try_from_discrete_bounds::TryFromDiscreteBounds;
 use crate::{
 	OverlapError, OverlapOrTryFromDiscreteBoundsError, RangeBoundsMap, TryFromDiscreteBoundsError,
@@ -33,7 +33,7 @@ pub struct RangeBoundsSet<I, K> {
 
 impl<I, K> RangeBoundsSet<I, K>
 where
-	I: Ord + Copy + Stepable,
+	I: Ord + Copy + Discrete,
 	K: DiscreteRange<I> + Copy,
 {
 	/// See [`RangeBoundsMap::new()`] for more details.
@@ -217,7 +217,7 @@ where
 
 impl<I, K> Serialize for RangeBoundsSet<I, K>
 where
-	I: Ord + Copy + Stepable,
+	I: Ord + Copy + Discrete,
 	K: DiscreteRange<I> + Copy + Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -234,7 +234,7 @@ where
 
 impl<'de, I, K> Deserialize<'de> for RangeBoundsSet<I, K>
 where
-	I: Ord + Copy + Stepable,
+	I: Ord + Copy + Discrete,
 	K: DiscreteRange<I> + Copy + Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -255,7 +255,7 @@ struct RangeBoundsSetVisitor<I, K> {
 
 impl<'de, I, K> Visitor<'de> for RangeBoundsSetVisitor<I, K>
 where
-	I: Ord + Copy + Stepable,
+	I: Ord + Copy + Discrete,
 	K: DiscreteRange<I> + Copy + Deserialize<'de>,
 {
 	type Value = RangeBoundsSet<I, K>;
