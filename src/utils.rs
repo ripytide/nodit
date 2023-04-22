@@ -19,8 +19,8 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 
 use std::cmp::Ordering;
 
-use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_finite::DiscreteFinite;
+use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_range_map::FiniteRange;
 
 pub(crate) fn cmp_point_with_range<I, K>(point: I, range: K) -> Ordering
@@ -94,8 +94,12 @@ where
 		Config::LeftFirstPartialOverlap => SortedConfig::Swallowed(ae, be),
 		Config::LeftContainsRight => SortedConfig::Swallowed(ae, be),
 
-		Config::RightFirstNonOverlapping => SortedConfig::NonOverlapping(be, ae),
-		Config::RightFirstPartialOverlap => SortedConfig::PartialOverlap(be, ae),
+		Config::RightFirstNonOverlapping => {
+			SortedConfig::NonOverlapping(be, ae)
+		}
+		Config::RightFirstPartialOverlap => {
+			SortedConfig::PartialOverlap(be, ae)
+		}
 		Config::RightContainsLeft => SortedConfig::Swallowed(be, ae),
 	}
 }
@@ -152,10 +156,14 @@ where
 				start: cut.start(),
 				end: cut.end(),
 			});
-			result.after_cut = Some(DiscreteFiniteBounds {
-				start: cut.end().up().unwrap(),
-				end: base.end(),
-			});
+			//if cut is already max then we don't need to have an
+			//after_cut
+			if let Some(upped_end) = cut.end().up() {
+				result.after_cut = Some(DiscreteFiniteBounds {
+					start: upped_end,
+					end: base.end(),
+				});
+			}
 		}
 
 		Config::RightFirstNonOverlapping => {
