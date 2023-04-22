@@ -573,7 +573,7 @@ where
 	pub fn cut<'a, Q>(
 		&'a mut self,
 		range: Q,
-	) -> impl Iterator<Item = (DiscreteFiniteBounds<I>, V)> + '_
+	) -> impl Iterator<Item = (K, V)> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
 		V: Clone,
@@ -604,7 +604,7 @@ where
 		&mut self,
 		range: Q,
 		single_overlapping_range: K,
-	) -> impl Iterator<Item = (DiscreteFiniteBounds<I>, V)>
+	) -> impl Iterator<Item = (K, V)>
 	where
 		Q: FiniteRange<I> + Copy,
 		V: Clone,
@@ -625,14 +625,14 @@ where
 			self.insert_unchecked(after, value.clone());
 		}
 
-		once((cut_result.inside_cut.unwrap(), value))
+		once((cut_result.inside_cut.map(K::from).unwrap(), value))
 	}
 	fn cut_non_single_overlapping<'a, Q>(
 		&'a mut self,
 		range: Q,
 		left_overlapping: Option<K>,
 		right_overlapping: Option<K>,
-	) -> impl Iterator<Item = (DiscreteFiniteBounds<I>, V)> + '_
+	) -> impl Iterator<Item = (K, V)> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
 		V: Clone,
@@ -643,7 +643,7 @@ where
 			Some(before) => {
 				let cut_result = cut_range(before, range);
 
-				(cut_result.before_cut.map(K::from), cut_result.inside_cut)
+				(cut_result.before_cut.map(K::from), cut_result.inside_cut.map(K::from))
 			}
 			None => (None, None),
 		};
@@ -651,7 +651,7 @@ where
 			Some(after) => {
 				let cut_result = cut_range(after, range);
 
-				(cut_result.after_cut.map(K::from), cut_result.inside_cut)
+				(cut_result.after_cut.map(K::from), cut_result.inside_cut.map(K::from))
 			}
 			None => (None, None),
 		};
@@ -681,10 +681,10 @@ where
 			.into_iter()
 			.chain(self.remove_overlapping(range).map(|(key, value)| {
 				(
-					DiscreteFiniteBounds {
+					K::from(DiscreteFiniteBounds {
 						start: key.start(),
 						end: key.end(),
-					},
+					}),
 					value,
 				)
 			}))

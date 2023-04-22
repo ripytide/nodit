@@ -87,10 +87,7 @@ where
 		self.inner.remove_overlapping(range).map(first)
 	}
 	/// See [`DiscreteRangeMap::cut()`] for more details.
-	pub fn cut<'a, Q>(
-		&'a mut self,
-		range: Q,
-	) -> impl Iterator<Item = DiscreteFiniteBounds<I>> + '_
+	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = K> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
 	{
