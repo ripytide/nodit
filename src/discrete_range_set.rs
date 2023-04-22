@@ -5,10 +5,12 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_finite::DiscreteFinite;
-use crate::discrete_range_map::{FiniteRange, IntoIter as DiscreteRangeMapIntoIter};
-use crate::{OverlapError, DiscreteRangeMap};
+use crate::discrete_finite_bounds::DiscreteFiniteBounds;
+use crate::discrete_range_map::{
+	FiniteRange, IntoIter as DiscreteRangeMapIntoIter,
+};
+use crate::{DiscreteRangeMap, OverlapError};
 
 /// An ordered set of non-overlapping ranges based on [`DiscreteRangeMap`].
 ///
@@ -29,7 +31,7 @@ pub struct DiscreteRangeSet<I, K> {
 impl<I, K> DiscreteRangeSet<I, K>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy,
+	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>>,
 {
 	/// See [`DiscreteRangeMap::new()`] for more details.
 	pub fn new() -> Self {
@@ -53,15 +55,18 @@ where
 		self.inner.overlaps(range)
 	}
 	/// See [`DiscreteRangeMap::overlapping()`] for more details.
-	pub fn overlapping<Q>(&self, range: Q) -> impl DoubleEndedIterator<Item = &K>
+	pub fn overlapping<Q>(
+		&self,
+		range: Q,
+	) -> impl DoubleEndedIterator<Item = &K>
 	where
 		Q: FiniteRange<I> + Copy,
 	{
 		self.inner.overlapping(range).map(first)
 	}
 	/// See [`DiscreteRangeMap::get_entry_at_point()`] for more details.
-	pub fn get_at_point(&self, point: I) -> Result<K, DiscreteFiniteBounds<I>> {
-		self.inner.get_entry_at_point(point).map(first).copied()
+	pub fn get_at_point(&self, point: I) -> Result<&K, K> {
+		self.inner.get_entry_at_point(point).map(first)
 	}
 	/// See [`DiscreteRangeMap::contains_point()`] for more details.
 	pub fn contains_point(&self, point: I) -> bool {
@@ -72,22 +77,30 @@ where
 		self.inner.iter().map(first)
 	}
 	/// See [`DiscreteRangeMap::remove_overlapping()`] for more details.
-	pub fn remove_overlapping<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = K> + '_
+	pub fn remove_overlapping<'a, Q>(
+		&'a mut self,
+		range: Q,
+	) -> impl Iterator<Item = K> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
 	{
 		self.inner.remove_overlapping(range).map(first)
 	}
 	/// See [`DiscreteRangeMap::cut()`] for more details.
-	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = DiscreteFiniteBounds<I>> + '_
+	pub fn cut<'a, Q>(
+		&'a mut self,
+		range: Q,
+	) -> impl Iterator<Item = DiscreteFiniteBounds<I>> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
-		K: From<DiscreteFiniteBounds<I>>,
 	{
 		self.inner.cut(range).map(first)
 	}
 	/// See [`DiscreteRangeMap::gaps()`] for more details.
-	pub fn gaps<'a, Q>(&'a self, range: Q) -> impl DoubleEndedIterator<Item = DiscreteFiniteBounds<I>> + '_
+	pub fn gaps<'a, Q>(
+		&'a self,
+		range: Q,
+	) -> impl DoubleEndedIterator<Item = K> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
 	{
@@ -105,31 +118,22 @@ where
 		self.inner.insert_strict(range, ())
 	}
 	/// See [`DiscreteRangeMap::insert_merge_touching()`] for more details.
-	pub fn insert_merge_touching(&mut self, range: K) -> Result<K, OverlapError>
-	where
-		K: From<DiscreteFiniteBounds<I>>,
-	{
+	pub fn insert_merge_touching(
+		&mut self,
+		range: K,
+	) -> Result<K, OverlapError> {
 		self.inner.insert_merge_touching(range, ())
 	}
 	/// See [`DiscreteRangeMap::insert_merge_overlapping()`] for more details.
-	pub fn insert_merge_overlapping(&mut self, range: K) -> K
-	where
-		K: From<DiscreteFiniteBounds<I>>,
-	{
+	pub fn insert_merge_overlapping(&mut self, range: K) -> K {
 		self.inner.insert_merge_overlapping(range, ())
 	}
 	/// See [`DiscreteRangeMap::insert_merge_touching_or_overlapping()`] for more details.
-	pub fn insert_merge_touching_or_overlapping(&mut self, range: K) -> K
-	where
-		K: From<DiscreteFiniteBounds<I>>,
-	{
+	pub fn insert_merge_touching_or_overlapping(&mut self, range: K) -> K {
 		self.inner.insert_merge_touching_or_overlapping(range, ())
 	}
 	/// See [`DiscreteRangeMap::insert_overwrite()`] for more details.
-	pub fn insert_overwrite(&mut self, range: K)
-	where
-		K: From<DiscreteFiniteBounds<I>>,
-	{
+	pub fn insert_overwrite(&mut self, range: K) {
 		self.inner.insert_overwrite(range, ())
 	}
 	/// See [`DiscreteRangeMap::first_entry()`] for more details.
@@ -201,7 +205,7 @@ where
 impl<I, K> Serialize for DiscreteRangeSet<I, K>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + Serialize,
+	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>> + Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -218,7 +222,7 @@ where
 impl<'de, I, K> Deserialize<'de> for DiscreteRangeSet<I, K>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + Deserialize<'de>,
+	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>> + Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
@@ -239,7 +243,7 @@ struct DiscreteRangeSetVisitor<I, K> {
 impl<'de, I, K> Visitor<'de> for DiscreteRangeSetVisitor<I, K>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + Deserialize<'de>,
+	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>> + Deserialize<'de>,
 {
 	type Value = DiscreteRangeSet<I, K>;
 
