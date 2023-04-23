@@ -94,10 +94,7 @@ where
 		self.inner.cut(range).map(first)
 	}
 	/// See [`DiscreteRangeMap::gaps()`] for more details.
-	pub fn gaps<'a, Q>(
-		&'a self,
-		range: Q,
-	) -> impl DoubleEndedIterator<Item = K> + '_
+	pub fn gaps<'a, Q>(&'a self, range: Q) -> impl Iterator<Item = K> + '_
 	where
 		Q: FiniteRange<I> + Copy + 'a,
 	{

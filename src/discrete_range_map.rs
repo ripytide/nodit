@@ -27,6 +27,7 @@ use btree_monstrousity::btree_map::{
 };
 use btree_monstrousity::BTreeMap;
 use either::Either;
+use itertools::Itertools;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -643,7 +644,10 @@ where
 			Some(before) => {
 				let cut_result = cut_range(before, range);
 
-				(cut_result.before_cut.map(K::from), cut_result.inside_cut.map(K::from))
+				(
+					cut_result.before_cut.map(K::from),
+					cut_result.inside_cut.map(K::from),
+				)
 			}
 			None => (None, None),
 		};
@@ -651,7 +655,10 @@ where
 			Some(after) => {
 				let cut_result = cut_range(after, range);
 
-				(cut_result.after_cut.map(K::from), cut_result.inside_cut.map(K::from))
+				(
+					cut_result.after_cut.map(K::from),
+					cut_result.inside_cut.map(K::from),
+				)
 			}
 			None => (None, None),
 		};
@@ -719,16 +726,11 @@ where
 	/// 	[ie(3, 5), ie(7, 9), iu(100)]
 	/// );
 	/// ```
-	pub fn gaps<Q>(&self, outer_range: Q) -> impl DoubleEndedIterator<Item = K>
+	pub fn gaps<'a, Q>(&'a self, outer_range: Q) -> impl Iterator<Item = K> + '_
 	where
-		Q: FiniteRange<I> + Copy,
+		Q: FiniteRange<I> + Copy + 'a,
 	{
 		invalid_range_panic(outer_range);
-
-		// I'm in love with how clean/mindblowing this entire function is
-		let overlapping = self
-			.overlapping(outer_range)
-			.map(|(key, _)| (key.start(), key.end()));
 
 		// If the start or end point of outer_range is not
 		// contained within a range in the map then we need to
@@ -768,22 +770,19 @@ where
 			(None, None) => (None, None),
 		};
 
+		let overlapping = self
+			.overlapping(outer_range)
+			.map(|(key, _)| (key.start(), key.end()));
+
 		let inner_gaps = overlapping
-			//optimisation find an implementation of windows()
-			//somewhere that supports DoubleEndedIterator, I couldn't
-			//find one at the time of writing
-			.collect::<Vec<_>>()
-			.windows(2)
-			.map(|windows| {
+			.tuple_windows()
+			.map(|(first, second)| {
 				K::from(DiscreteFiniteBounds {
-					start: windows[0].1.up().unwrap(),
-					end: windows[1].0.down().unwrap(),
+					start: first.1.up().unwrap(),
+					end: second.0.down().unwrap(),
 				})
 			})
-			.filter(|range| is_valid_range(*range))
-			//optimisation this would also then be unneccessary
-			.collect::<Vec<_>>()
-			.into_iter();
+			.filter(|range| is_valid_range(*range));
 
 		//possibly add the trimmed start and end gaps
 		return trimmed_start_gap
