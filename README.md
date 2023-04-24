@@ -11,7 +11,7 @@
 
 This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
 Data Structures for storing non-overlapping discrete intervals based
-of [`BTreeMap`].
+off [`BTreeMap`].
 
 ## You must implement `Copy`
 
