@@ -1,11 +1,11 @@
 [package]
 name = "range_bounds_map"
-version = "0.3.2"
+version = "0.4.0"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
-This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`], Data
-Structures for storing non-overlapping intervals based of [`BTreeMap`].
+This crate provides RangeBoundsMap and RangeBoundsSet, Data
+Structures for storing non-overlapping intervals based of BTreeMap.
 """
 documentation = "https://docs.rs/range_bounds_map"
 readme = "README.md"

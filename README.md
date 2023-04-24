@@ -9,8 +9,9 @@
 <img src="logo.png" alt="range_bounds_map_logo" width="350">
 </p>
 
-This crate provides [`RangeBoundsMap`] and [`RangeBoundsSet`], Data
-Structures for storing non-overlapping intervals based of [`BTreeMap`].
+This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
+Data Structures for storing non-overlapping discrete intervals based
+off [`BTreeMap`].
 
 ## Example using [`Range`]s
 
