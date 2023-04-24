@@ -1,33 +1,39 @@
 /*
 Copyright 2022 James Forster
 
-This file is part of range_bounds_map.
+This file is part of discrete_range_map.
 
-range_bounds_map is free software: you can redistribute it and/or
+discrete_range_map is free software: you can redistribute it and/or
 modify it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
-range_bounds_map is distributed in the hope that it will be useful,
+discrete_range_map is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
+along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 //! This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
 //! Data Structures for storing non-overlapping discrete intervals based
 //! off [`BTreeMap`].
 //!
-//! ## Example using [`Range`]s
+//! ## You must implement `Copy`
+//!
+//! Due to implementation complications with non-`Copy` types the
+//! datastructures currently require both the range type and the points
+//! the ranges are over to be `Copy`.
+//!
+//! ## Example using an Inclusive-Exclusive range
 //!
 //! ```rust
-//! use range_bounds_map::test_ranges::ie;
-//! use range_bounds_map::RangeBoundsMap;
+//! use discrete_range_map::test_ranges::ie;
+//! use discrete_range_map::DiscreteRangeMap;
 //!
-//! let mut map = RangeBoundsMap::new();
+//! let mut map = DiscreteRangeMap::new();
 //!
 //! map.insert_strict(ie(0, 5), true);
 //! map.insert_strict(ie(5, 10), false);
@@ -37,44 +43,41 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! assert_eq!(map.contains_point(5), true);
 //! ```
 //!
-//! ## Example using a custom [`RangeBounds`] type
+//! ## Example using a custom range type
 //!
 //! ```rust
-//! use std::ops::{Bound, RangeBounds};
-//!
-//! use range_bounds_map::test_ranges::ie;
-//! use range_bounds_map::RangeBoundsMap;
+//! use discrete_range_map::test_ranges::ie;
+//! use discrete_range_map::DiscreteRangeMap;
+//! use discrete_range_map::FiniteRange;
 //!
 //! #[derive(Debug, Copy, Clone)]
 //! enum Reservation {
-//! 	// Start, End (Inclusive-Inclusive)
+//! 	// Start, End (Inclusive-Exclusive)
 //! 	Finite(i8, i8),
-//! 	// Start (Exclusive)
+//! 	// Start (Inclusive-Forever)
 //! 	Infinite(i8),
 //! }
 //!
-//! // First, we need to implement RangeBounds
-//! impl RangeBounds<i8> for Reservation {
-//! 	fn start_bound(&self) -> Bound<&i8> {
-//! 		match self {
-//! 			Reservation::Finite(start, _) => {
-//! 				Bound::Included(start)
-//! 			}
-//! 			Reservation::Infinite(start) => {
-//! 				Bound::Excluded(start)
-//! 			}
-//! 		}
-//! 	}
-//! 	fn end_bound(&self) -> Bound<&i8> {
-//! 		match self {
-//! 			Reservation::Finite(_, end) => Bound::Included(end),
-//! 			Reservation::Infinite(_) => Bound::Unbounded,
-//! 		}
-//! 	}
+//! // First, we need to implement FiniteRange
+//! impl FiniteRange<i8> for Reservation {
+//!     fn start(&self) -> i8 {
+//!         match self {
+//!             Reservation::Finite(start, _) => *start,
+//!             Reservation::Infinite(start) => *start,
+//!         }
+//!     }
+//!     fn end(&self) -> i8 {
+//!         match self {
+//!             //the end is exclusive so we take off 1 with checking
+//!             //for compile time error overflow detection
+//!             Reservation::Finite(_, end) => end.checked_sub(1).unwrap(),
+//!             Reservation::Infinite(_) => i8::MAX,
+//!         }
+//!     }
 //! }
 //!
-//! // Next we can create a custom typed RangeBoundsMap
-//! let reservation_map = RangeBoundsMap::from_slice_strict([
+//! // Next we can create a custom typed DiscreteRangeMap
+//! let reservation_map = DiscreteRangeMap::from_slice_strict([
 //! 	(Reservation::Finite(10, 20), "Ferris".to_string()),
 //! 	(Reservation::Infinite(20), "Corro".to_string()),
 //! ])
@@ -97,7 +100,31 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! );
 //! ```
 //!
-//! ## Key Definitions:
+//! ## Key Understandings and Philosophies:
+//!
+//! ### Discrete-ness
+//!
+//! This crate is designed to work with [`Discrete`] types as compared to
+//! [`Continuous`] types. For example, `u8` is a `Discrete` type, but
+//! `String` is a `Continuous` if you try to parse it as a decimal value.
+//!
+//! The reason for this is that common [`interval-Mathematics`] operations
+//! differ depending on wether the underlying type is `Discrete` or
+//! `Continuous`. For example `5..=6` touches `7..=8` since integers are
+//! `Discrete` but `5.0..=6.0` does **not** touch `7.0..=8.0` since the
+//! value `6.5` exists.
+//!
+//! ### Finite-ness
+//!
+//! This crate is also designed to work with [`Finite`] types since it is
+//! much easier to implement and it is not restrictive to users since you
+//! can still represent `Infinite` numbers in `Finite` types paradoxically
+//! using the concept of [`Actual Infinity`].
+//!
+//! For example you could define `Infinite` for `u8` as `u8::MAX` or if
+//! you still want to use `u8::MAX` as a `Finite` number you could define
+//! a wrapper type for `u8` that adds an [`Actual Infinity`] value to the
+//! `u8` set.
 //!
 //! ### Invalid Ranges
 //!
@@ -114,17 +141,14 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! Here are a few examples of ranges and whether they are valid:
 //!
-//! | range          | valid |
-//! | -------------- | ----- |
-//! | 0..=0          | YES   |
-//! | 0..0           | NO    |
-//! | 0..1           | YES   |
-//! | 9..8           | NO    |
-//! | (0.4)..=(-0.2) | NO    |
-//! | ..(-3)         | YES   |
-//! | 0.0003..       | YES   |
-//! | ..             | YES   |
-//! | 400..=400      | YES   |
+//! | range                                  | valid |
+//! | -------------------------------------- | ----- |
+//! | 0..=0                                  | YES   |
+//! | 0..0                                   | NO    |
+//! | 0..1                                   | YES   |
+//! | 9..8                                   | NO    |
+//! | (Bound::Exluded(3), Bound::Exluded(4)) | NO    |
+//! | 400..=400                              | YES   |
 //!
 //! ### Overlap
 //!
@@ -145,12 +169,6 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! See Wikipedia's article on mathematical Intervals:
 //! <https://en.wikipedia.org/wiki/Interval_(mathematics)>
-//!
-//! # Improvements/Caveats
-//!
-//! - I had to create a new trait: [`TryFromBounds`] rather than using
-//!   `TryFrom<(Bound, Bound)>` (relys on upstream to impl, see [this
-//!   thread](https://internals.rust-lang.org/t/range-should-impl-tryfrom-bound-bound))
 //!
 //! # Credit
 //!
@@ -173,6 +191,11 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! keys before I realized it might be easier and simpler to just write it
 //! all from scratch.
 //!
+//! It is however worth noting the library eventually expanded and evolved
+//! from it's origins.
+//!
+//! This crate was previously named [`range_bounds_map`].
+//!
 //! # Similar Crates
 //!
 //! Here are some relevant crates I found whilst searching around the
@@ -193,10 +216,10 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //!   for [`Range`]s and not [`RangeInclusive`]s. And also no fancy
 //!   merging functions.
 //! - <https://docs.rs/unbounded-interval-tree>
-//!   A data structure based off of a 2007 published paper! It supports any
-//!   RangeBounds as keys too, except it is implemented with a non-balancing
-//!   `Box<Node>` based tree, however it also supports overlapping
-//!   RangeBounds which my library does not.
+//!   A data structure based off of a 2007 published paper! It supports
+//!   any range as keys, unfortunately, it is implemented with a
+//!   non-balancing `Box<Node>` based tree, however it also supports
+//!   overlapping ranges which my library does not.
 //! - <https://docs.rs/rangetree>
 //!   I'm not entirely sure what this library is or isn't, but it looks like
 //!   a custom red-black tree/BTree implementation used specifically for a
@@ -206,34 +229,38 @@ along with range_bounds_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 //! [`btreeset`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
 //! [`rangebounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
-//! [`start_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.start_bound
-//! [`end_bound()`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html#tymethod.end_bound
 //! [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
 //! [`range()`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 //! [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
 //! [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 //! [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
 //! [`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
-//! [`rangeboundsmap`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_map/struct.RangeBoundsMap.html
-//! [`rangeboundsset`]: https://docs.rs/range_bounds_map/latest/range_bounds_map/range_bounds_set/struct.RangeBoundsSet.html
+//! [`discreteboundsmap`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html
+//! [`discreteboundsset`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/range_bounds_set/struct.DiscreteRangeSet.html
 //! [`copse`]: https://github.com/eggyal/copse
+//! [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
+//! [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics
+//! [`interval-mathematics`]: https://en.wikipedia.org/wiki/Interval_(mathematics)
+//! [`actual infinity`]: https://en.wikipedia.org/wiki/Actual_infinity
+//! [`finite`]: https://en.wiktionary.org/wiki/finite#Adjective
+//! [`range_bounds_map`]: https://docs.rs/range_bounds_map
 
 #![feature(let_chains)]
 #![feature(btree_cursors)]
+#![feature(step_trait)]
 #![allow(clippy::tabs_in_doc_comments)]
 #![allow(clippy::needless_return)]
 
-pub(crate) mod bound_ord;
 pub mod test_ranges;
 pub(crate) mod utils;
 
-pub mod range_bounds_map;
-pub mod range_bounds_set;
-pub mod try_from_bounds;
+pub mod discrete_finite;
+pub mod discrete_finite_bounds;
 
-pub use crate::range_bounds_map::{
-	OverlapError, OverlapOrTryFromBoundsError, RangeBoundsMap,
-	TryFromBoundsError,
-};
-pub use crate::range_bounds_set::RangeBoundsSet;
-pub use crate::try_from_bounds::TryFromBounds;
+pub mod discrete_range_map;
+pub mod discrete_range_set;
+
+pub use crate::discrete_finite::DiscreteFinite;
+pub use crate::discrete_finite_bounds::DiscreteFiniteBounds;
+pub use crate::discrete_range_map::{DiscreteRangeMap, FiniteRange, OverlapError};
+pub use crate::discrete_range_set::DiscreteRangeSet;

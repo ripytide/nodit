@@ -1,16 +1,17 @@
 [package]
-name = "range_bounds_map"
+name = "discrete_range_map"
 version = "0.4.0"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
-This crate provides RangeBoundsMap and RangeBoundsSet, Data
-Structures for storing non-overlapping intervals based of BTreeMap.
+This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
+Data Structures for storing non-overlapping discrete intervals based
+of [`BTreeMap`].
 """
-documentation = "https://docs.rs/range_bounds_map"
+documentation = "https://docs.rs/discrete_range_map"
 readme = "README.md"
-homepage = "https://github.com/ripytide/range_bounds_map"
-repository = "https://github.com/ripytide/range_bounds_map"
+homepage = "https://github.com/ripytide/discrete_range_map"
+repository = "https://github.com/ripytide/discrete_range_map"
 license = "AGPL-3.0-or-later"
 keywords = ["data-structures", "map", "data", "library"]
 categories = ["data-structures"]
@@ -19,7 +20,7 @@ categories = ["data-structures"]
 serde = {version = "1.0.148", features = ["derive"]}
 btree_monstrousity = {version ="0.0.4", features = ["btree_drain_filter", "btree_cursors"]}
 either = "1.8.1"
+itertools = "0.10.5"
 
 [dev-dependencies]
-ordered-float = "3.4.0"
 pretty_assertions = "1.3.0"
