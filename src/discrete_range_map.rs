@@ -23,7 +23,7 @@ use std::iter::once;
 use std::marker::PhantomData;
 
 use btree_monstrousity::btree_map::{
-	IntoIter as BTreeMapIntoIter, SearchBoundCustom,
+	IntoIter as BTreeMapIntoIter, Iter as BTreeMapIter, SearchBoundCustom,
 };
 use btree_monstrousity::BTreeMap;
 use either::Either;
@@ -451,7 +451,7 @@ where
 	/// assert_eq!(iter.next(), Some((&ie(8, 100), &false)));
 	/// assert_eq!(iter.next(), None);
 	/// ```
-	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
+	pub fn iter(&self) -> Iter<'_, K, V> {
 		self.inner.iter()
 	}
 
@@ -1475,6 +1475,8 @@ impl<I, K, V> Iterator for IntoIter<I, K, V> {
 		self.inner.next()
 	}
 }
+
+pub type Iter<'a, K, V> = BTreeMapIter<'a, K, V>;
 
 impl<I, K, V> Default for DiscreteRangeMap<I, K, V> {
 	fn default() -> Self {
