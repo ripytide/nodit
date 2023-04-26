@@ -110,14 +110,14 @@ where
 		self.inner.contains_range(range)
 	}
 	/// See [`DiscreteRangeMap::insert_strict()`] for more details.
-	pub fn insert_strict(&mut self, range: K) -> Result<(), OverlapError> {
+	pub fn insert_strict(&mut self, range: K) -> Result<(), OverlapError<()>> {
 		self.inner.insert_strict(range, ())
 	}
 	/// See [`DiscreteRangeMap::insert_merge_touching()`] for more details.
 	pub fn insert_merge_touching(
 		&mut self,
 		range: K,
-	) -> Result<K, OverlapError> {
+	) -> Result<K, OverlapError<()>> {
 		self.inner.insert_merge_touching(range, ())
 	}
 	/// See [`DiscreteRangeMap::insert_merge_overlapping()`] for more details.
@@ -135,7 +135,7 @@ where
 	/// See [`DiscreteRangeMap::from_slice_strict()`] for more details.
 	pub fn from_slice_strict<const N: usize>(
 		slice: [K; N],
-	) -> Result<DiscreteRangeSet<I, K>, OverlapError> {
+	) -> Result<DiscreteRangeSet<I, K>, OverlapError<()>> {
 		let mut set = DiscreteRangeSet::new();
 		for range in slice {
 			set.insert_strict(range)?;
