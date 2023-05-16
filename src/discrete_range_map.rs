@@ -483,12 +483,6 @@ where
 	{
 		invalid_range_panic(range);
 
-		//optimisation, switch to BTreeMap::drain_range if it ever gets
-		//implemented
-		//return self
-		//.inner
-		//.drain_filter(move |inner_range, _| overlaps(*inner_range, range));
-
 		let mut result = Vec::new();
 
 		let mut leftmost_cursor = self.inner.lower_bound_mut(
