@@ -74,49 +74,6 @@ use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 /// 	println!("{range:?}, {value:?}");
 /// }
 /// ```
-/// Example using a custom range type:
-/// ```
-/// use discrete_range_map::{DiscreteRangeMap, FiniteRange};
-///
-/// // An Exclusive-Exclusive range is not provided by any
-/// // std::ops ranges so let't make our own!.
-///
-/// #[derive(Debug, Copy, Clone, PartialEq)]
-/// struct ExEx {
-/// 	start: u8,
-/// 	end: u8,
-/// }
-/// impl ExEx {
-/// 	fn new(start: u8, end: u8) -> ExEx {
-/// 		ExEx { start, end }
-/// 	}
-/// }
-///
-/// // Implement FiniteRange<u8> on our new type
-/// impl FiniteRange<u8> for ExEx {
-/// 	fn start(&self) -> u8 {
-/// 		//we are exclusive so need to step the values up
-/// 		self.start.checked_add(1).unwrap()
-/// 	}
-/// 	fn end(&self) -> u8 {
-/// 		//we are exclusive so need to step the values down
-/// 		self.end.checked_sub(1).unwrap()
-/// 	}
-/// }
-///
-/// // Now we can make a [`DiscreteRangeMap`] of [`ExEx`]s to `i8`
-/// let mut map = DiscreteRangeMap::new();
-///
-/// map.insert_strict(ExEx::new(0, 5), 8).unwrap();
-/// map.insert_strict(ExEx::new(5, 7), 32).unwrap();
-///
-/// assert_eq!(map.contains_point(5), false);
-///
-/// assert_eq!(map.get_at_point(9), None);
-/// assert_eq!(map.get_at_point(6), Some(&32));
-///
-/// assert_eq!(map.get_entry_at_point(2), Ok((&ExEx::new(0, 5), &8)));
-/// ```
 ///
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -528,9 +485,25 @@ where
 
 		//optimisation, switch to BTreeMap::drain_range if it ever gets
 		//implemented
-		return self
-			.inner
-			.drain_filter(move |inner_range, _| overlaps(*inner_range, range));
+		//return self
+		//.inner
+		//.drain_filter(move |inner_range, _| overlaps(*inner_range, range));
+
+		let mut result = Vec::new();
+
+		let mut leftmost_cursor = self.inner.lower_bound_mut(
+			overlapping_comp(range.start()),
+			SearchBoundCustom::Included,
+		);
+
+		while leftmost_cursor
+			.key()
+			.is_some_and(|inner_range| overlaps(*inner_range, range))
+		{
+			result.push(leftmost_cursor.remove_current().unwrap());
+		}
+
+		return result.into_iter();
 	}
 
 	/// Cuts a given range out of the map and returns an iterator of

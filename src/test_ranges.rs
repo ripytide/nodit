@@ -1,5 +1,5 @@
-use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_finite::DiscreteFinite;
+use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 
 pub fn uu() -> DiscreteFiniteBounds<i8> {
 	DiscreteFiniteBounds {

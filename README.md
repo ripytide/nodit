@@ -39,8 +39,10 @@ assert_eq!(map.contains_point(5), true);
 
 ```rust
 use discrete_range_map::test_ranges::ie;
-use discrete_range_map::DiscreteRangeMap;
-use discrete_range_map::FiniteRange;
+use discrete_range_map::{
+	DiscreteFinite, DiscreteFiniteBounds, DiscreteRangeMap,
+	FiniteRange,
+};
 
 #[derive(Debug, Copy, Clone)]
 enum Reservation {
@@ -52,20 +54,34 @@ enum Reservation {
 
 // First, we need to implement FiniteRange
 impl FiniteRange<i8> for Reservation {
-    fn start(&self) -> i8 {
-        match self {
-            Reservation::Finite(start, _) => *start,
-            Reservation::Infinite(start) => *start,
-        }
-    }
-    fn end(&self) -> i8 {
-        match self {
-            //the end is exclusive so we take off 1 with checking
-            //for compile time error overflow detection
-            Reservation::Finite(_, end) => end.checked_sub(1).unwrap(),
-            Reservation::Infinite(_) => i8::MAX,
-        }
-    }
+	fn start(&self) -> i8 {
+		match self {
+			Reservation::Finite(start, _) => *start,
+			Reservation::Infinite(start) => *start,
+		}
+	}
+	fn end(&self) -> i8 {
+		match self {
+			//the end is exclusive so we take off 1 with checking
+			//for compile time error overflow detection
+			Reservation::Finite(_, end) => end.down().unwrap(),
+			Reservation::Infinite(_) => i8::MAX,
+		}
+	}
+}
+
+// Second, we need to implement From<DiscreteFiniteBounds<i8>>
+impl From<DiscreteFiniteBounds<i8>> for Reservation {
+	fn from(bounds: DiscreteFiniteBounds<i8>) -> Self {
+		if bounds.end == i8::MAX {
+			Reservation::Infinite(bounds.start)
+		} else {
+			Reservation::Finite(
+				bounds.start,
+				bounds.end.up().unwrap(),
+			)
+		}
+	}
 }
 
 // Next we can create a custom typed DiscreteRangeMap
