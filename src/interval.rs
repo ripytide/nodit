@@ -1,5 +1,5 @@
 /*
-Copyright 2022 James Forster
+Copyright 2022,2023 James Forster
 
 This file is part of discrete_range_map.
 
@@ -18,12 +18,40 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use crate::discrete_range_map::FiniteRange;
+use crate::DiscreteFinite;
 
 ///both ends are always included
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Interval<I> {
 	pub start: I,
 	pub end: I,
+}
+
+impl<I> Interval<I>
+where
+	I: Ord + DiscreteFinite + Copy,
+{
+	pub fn contains(&self, point: I) -> bool {
+		point >= self.start && point <= self.end
+	}
+
+	///requires that self comes before other and they don't overlap
+	pub fn touches_ordered(&self, other: &Self) -> bool {
+		self.end == other.start.down().unwrap()
+	}
+
+	///requires that self comes before other
+	pub fn overlaps_ordered(&self, other: &Self) -> bool {
+		self.contains(other.start) || self.contains(other.end)
+	}
+
+	///requires that self comes before other
+	pub fn merge_ordered(self, other: &Self) -> Self {
+		Interval {
+			start: self.start,
+			end: other.end,
+		}
+	}
 }
 
 impl<I> FiniteRange<I> for Interval<I>

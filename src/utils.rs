@@ -1,5 +1,5 @@
 /*
-Copyright 2022 James Forster
+Copyright 2022,2023 James Forster
 
 This file is part of discrete_range_map.
 
