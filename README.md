@@ -40,7 +40,7 @@ assert_eq!(map.contains_point(5), true);
 ```rust
 use discrete_range_map::test_ranges::ie;
 use discrete_range_map::{
-	DiscreteFinite, DiscreteFiniteBounds, DiscreteRangeMap,
+	DiscreteFinite, Interval, DiscreteRangeMap,
 	FiniteRange,
 };
 
@@ -70,9 +70,9 @@ impl FiniteRange<i8> for Reservation {
 	}
 }
 
-// Second, we need to implement From<DiscreteFiniteBounds<i8>>
-impl From<DiscreteFiniteBounds<i8>> for Reservation {
-	fn from(bounds: DiscreteFiniteBounds<i8>) -> Self {
+// Second, we need to implement From<Interval<i8>>
+impl From<Interval<i8>> for Reservation {
+	fn from(bounds: Interval<i8>) -> Self {
 		if bounds.end == i8::MAX {
 			Reservation::Infinite(bounds.start)
 		} else {

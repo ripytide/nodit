@@ -6,10 +6,10 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::discrete_finite::DiscreteFinite;
-use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_range_map::{
 	FiniteRange, IntoIter as DiscreteRangeMapIntoIter,
 };
+use crate::interval::Interval;
 use crate::{DiscreteRangeMap, OverlapError};
 
 /// An ordered set of non-overlapping ranges based on [`DiscreteRangeMap`].
@@ -31,7 +31,7 @@ pub struct DiscreteRangeSet<I, K> {
 impl<I, K> DiscreteRangeSet<I, K>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>>,
+	K: FiniteRange<I> + Copy + From<Interval<I>>,
 {
 	/// See [`DiscreteRangeMap::new()`] for more details.
 	pub fn new() -> Self {
@@ -199,7 +199,7 @@ where
 impl<I, K> Serialize for DiscreteRangeSet<I, K>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>> + Serialize,
+	K: FiniteRange<I> + Copy + From<Interval<I>> + Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -216,7 +216,7 @@ where
 impl<'de, I, K> Deserialize<'de> for DiscreteRangeSet<I, K>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>> + Deserialize<'de>,
+	K: FiniteRange<I> + Copy + From<Interval<I>> + Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
@@ -237,7 +237,7 @@ struct DiscreteRangeSetVisitor<I, K> {
 impl<'de, I, K> Visitor<'de> for DiscreteRangeSetVisitor<I, K>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>> + Deserialize<'de>,
+	K: FiniteRange<I> + Copy + From<Interval<I>> + Deserialize<'de>,
 {
 	type Value = DiscreteRangeSet<I, K>;
 

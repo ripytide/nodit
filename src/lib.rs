@@ -48,8 +48,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! ```rust
 //! use discrete_range_map::test_ranges::ie;
 //! use discrete_range_map::{
-//! 	DiscreteFinite, DiscreteFiniteBounds, DiscreteRangeMap,
-//! 	FiniteRange,
+//! 	DiscreteFinite, DiscreteRangeMap, FiniteRange, Interval,
 //! };
 //!
 //! #[derive(Debug, Copy, Clone)]
@@ -78,9 +77,9 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! 	}
 //! }
 //!
-//! // Second, we need to implement From<DiscreteFiniteBounds<i8>>
-//! impl From<DiscreteFiniteBounds<i8>> for Reservation {
-//! 	fn from(bounds: DiscreteFiniteBounds<i8>) -> Self {
+//! // Second, we need to implement From<Interval<i8>>
+//! impl From<Interval<i8>> for Reservation {
+//! 	fn from(bounds: Interval<i8>) -> Self {
 //! 		if bounds.end == i8::MAX {
 //! 			Reservation::Infinite(bounds.start)
 //! 		} else {
@@ -271,14 +270,14 @@ pub mod test_ranges;
 pub(crate) mod utils;
 
 pub mod discrete_finite;
-pub mod discrete_finite_bounds;
+pub mod interval;
 
 pub mod discrete_range_map;
 pub mod discrete_range_set;
 
 pub use crate::discrete_finite::DiscreteFinite;
-pub use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 pub use crate::discrete_range_map::{
 	DiscreteRangeMap, FiniteRange, OverlapError,
 };
 pub use crate::discrete_range_set::DiscreteRangeSet;
+pub use crate::interval::Interval;

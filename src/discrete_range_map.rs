@@ -33,7 +33,7 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::discrete_finite::DiscreteFinite;
-use crate::discrete_finite_bounds::DiscreteFiniteBounds;
+use crate::interval::Interval;
 use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
@@ -90,17 +90,15 @@ pub struct OverlapError;
 impl<I, K, V> DiscreteRangeMap<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>>,
+	K: FiniteRange<I> + Copy + From<Interval<I>>,
 {
 	/// Makes a new, empty `DiscreteRangeMap`.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::{
-	/// 	DiscreteFiniteBounds, DiscreteRangeMap,
-	/// };
+	/// use discrete_range_map::{DiscreteRangeMap, Interval};
 	///
-	/// let map: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool> =
+	/// let map: DiscreteRangeMap<i8, Interval<i8>, bool> =
 	/// 	DiscreteRangeMap::new();
 	/// ```
 	pub fn new() -> Self {
@@ -368,7 +366,7 @@ where
 			.get_key_value(overlapping_comp(point))
 			.ok_or_else(|| K::from(self.get_gap_at_raw(point)))
 	}
-	fn get_gap_at_raw(&self, point: I) -> DiscreteFiniteBounds<I> {
+	fn get_gap_at_raw(&self, point: I) -> Interval<I> {
 		let lower = self
 			.inner
 			.upper_bound(overlapping_comp(point), SearchBoundCustom::Included);
@@ -376,7 +374,7 @@ where
 			.inner
 			.lower_bound(overlapping_comp(point), SearchBoundCustom::Included);
 
-		DiscreteFiniteBounds {
+		Interval {
 			start: lower
 				.key()
 				.map_or(I::MIN, |lower| lower.end().up().unwrap()),
@@ -655,7 +653,7 @@ where
 			.into_iter()
 			.chain(self.remove_overlapping(range).map(|(key, value)| {
 				(
-					K::from(DiscreteFiniteBounds {
+					K::from(Interval {
 						start: key.start(),
 						end: key.end(),
 					}),
@@ -744,7 +742,7 @@ where
 		let inner_gaps = overlapping
 			.tuple_windows()
 			.map(|(first, second)| {
-				K::from(DiscreteFiniteBounds {
+				K::from(Interval {
 					start: first.1.up().unwrap(),
 					end: second.0.down().unwrap(),
 				})
@@ -857,17 +855,15 @@ where
 		let matching_end = get_end(self, &value);
 
 		let returning = match (matching_start, matching_end) {
-			(Some(matching_start), Some(matching_end)) => {
-				K::from(DiscreteFiniteBounds {
-					start: matching_start.start(),
-					end: matching_end.end(),
-				})
-			}
-			(Some(matching_start), None) => K::from(DiscreteFiniteBounds {
+			(Some(matching_start), Some(matching_end)) => K::from(Interval {
+				start: matching_start.start(),
+				end: matching_end.end(),
+			}),
+			(Some(matching_start), None) => K::from(Interval {
 				start: matching_start.start(),
 				end: range.end(),
 			}),
-			(None, Some(matching_end)) => K::from(DiscreteFiniteBounds {
+			(None, Some(matching_end)) => K::from(Interval {
 				start: range.start(),
 				end: matching_end.end(),
 			}),
@@ -1455,7 +1451,7 @@ impl<I, K, V> Default for DiscreteRangeMap<I, K, V> {
 impl<I, K, V> Serialize for DiscreteRangeMap<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>> + Serialize,
+	K: FiniteRange<I> + Copy + From<Interval<I>> + Serialize,
 	V: Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -1473,7 +1469,7 @@ where
 impl<'de, I, K, V> Deserialize<'de> for DiscreteRangeMap<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>> + Deserialize<'de>,
+	K: FiniteRange<I> + Copy + From<Interval<I>> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -1497,7 +1493,7 @@ struct DiscreteRangeMapVisitor<I, K, V> {
 impl<'de, I, K, V> Visitor<'de> for DiscreteRangeMapVisitor<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<DiscreteFiniteBounds<I>> + Deserialize<'de>,
+	K: FiniteRange<I> + Copy + From<Interval<I>> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
 	type Value = DiscreteRangeMap<I, K, V>;
@@ -1534,7 +1530,7 @@ mod tests {
 	pub(crate) const NUMBERS_DOMAIN: &'static [i8] =
 		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-	fn basic() -> DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool> {
+	fn basic() -> DiscreteRangeMap<i8, Interval<i8>, bool> {
 		DiscreteRangeMap::from_slice_strict([
 			(ui(4), false),
 			(ee(5, 7), true),
@@ -1543,7 +1539,7 @@ mod tests {
 		])
 		.unwrap()
 	}
-	fn basic_slice() -> [(DiscreteFiniteBounds<i8>, bool); 4] {
+	fn basic_slice() -> [(Interval<i8>, bool); 4] {
 		[
 			(ui(4), false),
 			(ee(5, 7), true),
@@ -1586,10 +1582,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_strict<const N: usize>(
-		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
-		to_insert: (DiscreteFiniteBounds<i8>, bool),
+		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
 		result: Result<(), OverlapError>,
-		after: [(DiscreteFiniteBounds<i8>, bool); N],
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
 		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
@@ -1601,7 +1597,7 @@ mod tests {
 		for overlap_range in all_valid_test_bounds() {
 			//you can't overlap nothing
 			assert!(
-				DiscreteRangeMap::<i8, DiscreteFiniteBounds<i8>, ()>::new()
+				DiscreteRangeMap::<i8, Interval<i8>, ()>::new()
 					.overlapping(overlap_range)
 					.next()
 					.is_none()
@@ -1705,10 +1701,10 @@ mod tests {
 		);
 	}
 	fn assert_remove_overlapping<const N: usize, const Y: usize>(
-		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
-		to_remove: DiscreteFiniteBounds<i8>,
-		result: [(DiscreteFiniteBounds<i8>, bool); N],
-		after: [(DiscreteFiniteBounds<i8>, bool); Y],
+		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
+		to_remove: Interval<i8>,
+		result: [(Interval<i8>, bool); N],
+		after: [(Interval<i8>, bool); Y],
 	) {
 		assert_eq!(
 			before.remove_overlapping(to_remove).collect::<Vec<_>>(),
@@ -1755,10 +1751,10 @@ mod tests {
 		);
 	}
 	fn assert_cut<const N: usize, const Y: usize>(
-		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
-		to_cut: DiscreteFiniteBounds<i8>,
-		result: [(DiscreteFiniteBounds<i8>, bool); Y],
-		after: [(DiscreteFiniteBounds<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
+		to_cut: Interval<i8>,
+		result: [(Interval<i8>, bool); Y],
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(before.cut(to_cut).collect::<Vec<_>>(), result);
 		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap());
@@ -1794,9 +1790,9 @@ mod tests {
 		);
 	}
 	fn assert_gaps<const N: usize>(
-		map: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
-		outer_range: DiscreteFiniteBounds<i8>,
-		result: [DiscreteFiniteBounds<i8>; N],
+		map: DiscreteRangeMap<i8, Interval<i8>, bool>,
+		outer_range: Interval<i8>,
+		result: [Interval<i8>; N],
 	) {
 		assert_eq!(map.gaps(outer_range).collect::<Vec<_>>(), result);
 	}
@@ -1844,10 +1840,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching<const N: usize>(
-		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
-		to_insert: (DiscreteFiniteBounds<i8>, bool),
-		result: Result<DiscreteFiniteBounds<i8>, OverlapError>,
-		after: [(DiscreteFiniteBounds<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
+		result: Result<Interval<i8>, OverlapError>,
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_touching(to_insert.0, to_insert.1),
@@ -1900,10 +1896,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_if_values_equal<const N: usize>(
-		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
-		to_insert: (DiscreteFiniteBounds<i8>, bool),
-		result: Result<DiscreteFiniteBounds<i8>, OverlapError>,
-		after: [(DiscreteFiniteBounds<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
+		result: Result<Interval<i8>, OverlapError>,
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_touching_if_values_equal(
@@ -1964,10 +1960,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_overlapping<const N: usize>(
-		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
-		to_insert: (DiscreteFiniteBounds<i8>, bool),
-		result: DiscreteFiniteBounds<i8>,
-		after: [(DiscreteFiniteBounds<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
+		result: Interval<i8>,
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_overlapping(to_insert.0, to_insert.1),
@@ -2040,10 +2036,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_or_overlapping<const N: usize>(
-		mut before: DiscreteRangeMap<i8, DiscreteFiniteBounds<i8>, bool>,
-		to_insert: (DiscreteFiniteBounds<i8>, bool),
-		result: DiscreteFiniteBounds<i8>,
-		after: [(DiscreteFiniteBounds<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
+		result: Interval<i8>,
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before
@@ -2141,7 +2137,7 @@ mod tests {
 			}
 		}
 	}
-	fn con(x: Option<DiscreteFiniteBounds<i8>>, point: &i8) -> bool {
+	fn con(x: Option<Interval<i8>>, point: &i8) -> bool {
 		match x {
 			Some(y) => contains_point(y, *point),
 			None => false,
@@ -2175,7 +2171,7 @@ mod tests {
 	// Test Helper Functions
 	//======================
 	fn all_non_overlapping_test_bound_entries()
-	-> Vec<(DiscreteFiniteBounds<i8>, DiscreteFiniteBounds<i8>)> {
+	-> Vec<(Interval<i8>, Interval<i8>)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
@@ -2188,12 +2184,12 @@ mod tests {
 		return output;
 	}
 
-	fn all_valid_test_bounds() -> Vec<DiscreteFiniteBounds<i8>> {
+	fn all_valid_test_bounds() -> Vec<Interval<i8>> {
 		let mut output = Vec::new();
 		for i in NUMBERS {
 			for j in NUMBERS {
 				if i <= j {
-					output.push(DiscreteFiniteBounds { start: *i, end: *j });
+					output.push(Interval { start: *i, end: *j });
 				}
 			}
 		}

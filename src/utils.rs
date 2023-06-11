@@ -20,8 +20,8 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 use std::cmp::Ordering;
 
 use crate::discrete_finite::DiscreteFinite;
-use crate::discrete_finite_bounds::DiscreteFiniteBounds;
 use crate::discrete_range_map::FiniteRange;
+use crate::interval::Interval;
 
 pub(crate) fn cmp_point_with_range<I, K>(point: I, range: K) -> Ordering
 where
@@ -71,9 +71,9 @@ where
 }
 
 enum SortedConfig<I> {
-	NonOverlapping(DiscreteFiniteBounds<I>, DiscreteFiniteBounds<I>),
-	PartialOverlap(DiscreteFiniteBounds<I>, DiscreteFiniteBounds<I>),
-	Swallowed(DiscreteFiniteBounds<I>, DiscreteFiniteBounds<I>),
+	NonOverlapping(Interval<I>, Interval<I>),
+	PartialOverlap(Interval<I>, Interval<I>),
+	Swallowed(Interval<I>, Interval<I>),
 }
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
@@ -81,11 +81,11 @@ where
 	B: FiniteRange<I> + Copy,
 	I: Ord,
 {
-	let ae = DiscreteFiniteBounds {
+	let ae = Interval {
 		start: a.start(),
 		end: a.end(),
 	};
-	let be = DiscreteFiniteBounds {
+	let be = Interval {
 		start: b.start(),
 		end: b.end(),
 	};
@@ -114,9 +114,9 @@ where
 
 #[derive(Debug)]
 pub(crate) struct CutResult<I> {
-	pub(crate) before_cut: Option<DiscreteFiniteBounds<I>>,
-	pub(crate) inside_cut: Option<DiscreteFiniteBounds<I>>,
-	pub(crate) after_cut: Option<DiscreteFiniteBounds<I>>,
+	pub(crate) before_cut: Option<Interval<I>>,
+	pub(crate) inside_cut: Option<Interval<I>>,
+	pub(crate) after_cut: Option<Interval<I>>,
 }
 pub(crate) fn cut_range<I, B, C>(base: B, cut: C) -> CutResult<I>
 where
@@ -132,34 +132,34 @@ where
 
 	match config(base, cut) {
 		Config::LeftFirstNonOverlapping => {
-			result.before_cut = Some(DiscreteFiniteBounds {
+			result.before_cut = Some(Interval {
 				start: base.start(),
 				end: base.end(),
 			});
 		}
 		Config::LeftFirstPartialOverlap => {
-			result.before_cut = Some(DiscreteFiniteBounds {
+			result.before_cut = Some(Interval {
 				start: base.start(),
 				end: cut.start().down().unwrap(),
 			});
-			result.inside_cut = Some(DiscreteFiniteBounds {
+			result.inside_cut = Some(Interval {
 				start: cut.start(),
 				end: base.end(),
 			});
 		}
 		Config::LeftContainsRight => {
-			result.before_cut = Some(DiscreteFiniteBounds {
+			result.before_cut = Some(Interval {
 				start: base.start(),
 				end: cut.start().down().unwrap(),
 			});
-			result.inside_cut = Some(DiscreteFiniteBounds {
+			result.inside_cut = Some(Interval {
 				start: cut.start(),
 				end: cut.end(),
 			});
 			//if cut is already max then we don't need to have an
 			//after_cut
 			if let Some(upped_end) = cut.end().up() {
-				result.after_cut = Some(DiscreteFiniteBounds {
+				result.after_cut = Some(Interval {
 					start: upped_end,
 					end: base.end(),
 				});
@@ -167,23 +167,23 @@ where
 		}
 
 		Config::RightFirstNonOverlapping => {
-			result.after_cut = Some(DiscreteFiniteBounds {
+			result.after_cut = Some(Interval {
 				start: base.start(),
 				end: base.end(),
 			});
 		}
 		Config::RightFirstPartialOverlap => {
-			result.after_cut = Some(DiscreteFiniteBounds {
+			result.after_cut = Some(Interval {
 				start: cut.end().up().unwrap(),
 				end: base.end(),
 			});
-			result.inside_cut = Some(DiscreteFiniteBounds {
+			result.inside_cut = Some(Interval {
 				start: base.start(),
 				end: cut.end(),
 			});
 		}
 		Config::RightContainsLeft => {
-			result.inside_cut = Some(DiscreteFiniteBounds {
+			result.inside_cut = Some(Interval {
 				start: base.start(),
 				end: base.end(),
 			});

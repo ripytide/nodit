@@ -19,14 +19,14 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 
 use crate::discrete_range_map::FiniteRange;
 
+///both ends are always included
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DiscreteFiniteBounds<I> {
-	//both are always included
+pub struct Interval<I> {
 	pub start: I,
 	pub end: I,
 }
 
-impl<I> FiniteRange<I> for DiscreteFiniteBounds<I>
+impl<I> FiniteRange<I> for Interval<I>
 where
 	I: Copy,
 {
