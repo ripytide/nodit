@@ -33,20 +33,6 @@ where
 	I: Ord + Copy + DiscreteFinite,
 	K: FiniteRange<I> + Copy + From<Interval<I>>,
 {
-	/// See [`DiscreteRangeMap::new()`] for more details.
-	pub fn new() -> Self {
-		DiscreteRangeSet {
-			inner: DiscreteRangeMap::new(),
-		}
-	}
-	/// See [`DiscreteRangeMap::len()`] for more details.
-	pub fn len(&self) -> usize {
-		self.inner.len()
-	}
-	/// See [`DiscreteRangeMap::is_empty()`] for more details.
-	pub fn is_empty(&self) -> bool {
-		self.inner.is_empty()
-	}
 	/// See [`DiscreteRangeMap::overlaps()`] for more details.
 	pub fn overlaps<Q>(&self, range: Q) -> bool
 	where
@@ -71,10 +57,6 @@ where
 	/// See [`DiscreteRangeMap::contains_point()`] for more details.
 	pub fn contains_point(&self, point: I) -> bool {
 		self.inner.contains_point(point)
-	}
-	/// See [`DiscreteRangeMap::iter()`] for more details.
-	pub fn iter(&self) -> impl DoubleEndedIterator<Item = &K> {
-		self.inner.iter().map(first)
 	}
 	/// See [`DiscreteRangeMap::remove_overlapping()`] for more details.
 	pub fn remove_overlapping<'a, Q>(
@@ -130,14 +112,6 @@ where
 	pub fn insert_overwrite(&mut self, range: K) {
 		self.inner.insert_overwrite(range, ())
 	}
-	/// See [`DiscreteRangeMap::first_entry()`] for more details.
-	pub fn first(&self) -> Option<&K> {
-		self.inner.first_entry().map(first)
-	}
-	/// See [`DiscreteRangeMap::last_entry()`] for more details.
-	pub fn last(&self) -> Option<&K> {
-		self.inner.last_entry().map(first)
-	}
 	/// See [`DiscreteRangeMap::from_slice_strict()`] for more details.
 	pub fn from_slice_strict<const N: usize>(
 		slice: [K; N],
@@ -147,6 +121,35 @@ where
 			set.insert_strict(range)?;
 		}
 		return Ok(set);
+	}
+}
+
+impl<I, K> DiscreteRangeSet<I, K> {
+	/// See [`DiscreteRangeMap::new()`] for more details.
+	pub fn new() -> Self {
+		DiscreteRangeSet {
+			inner: DiscreteRangeMap::new(),
+		}
+	}
+	/// See [`DiscreteRangeMap::len()`] for more details.
+	pub fn len(&self) -> usize {
+		self.inner.len()
+	}
+	/// See [`DiscreteRangeMap::is_empty()`] for more details.
+	pub fn is_empty(&self) -> bool {
+		self.inner.is_empty()
+	}
+	/// See [`DiscreteRangeMap::iter()`] for more details.
+	pub fn iter(&self) -> impl DoubleEndedIterator<Item = &K> {
+		self.inner.iter().map(first)
+	}
+	/// See [`DiscreteRangeMap::first_entry()`] for more details.
+	pub fn first(&self) -> Option<&K> {
+		self.inner.first_entry().map(first)
+	}
+	/// See [`DiscreteRangeMap::last_entry()`] for more details.
+	pub fn last(&self) -> Option<&K> {
+		self.inner.last_entry().map(first)
 	}
 }
 
@@ -198,8 +201,7 @@ where
 
 impl<I, K> Serialize for DiscreteRangeSet<I, K>
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<Interval<I>> + Serialize,
+	K: Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where

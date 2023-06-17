@@ -28,8 +28,8 @@ use btree_monstrousity::btree_map::{
 use btree_monstrousity::BTreeMap;
 use either::Either;
 use itertools::Itertools;
-use serde::de::{MapAccess, Visitor};
-use serde::ser::SerializeMap;
+use serde::de::{SeqAccess, Visitor};
+use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::discrete_finite::DiscreteFinite;
@@ -92,57 +92,6 @@ where
 	I: Ord + Copy + DiscreteFinite,
 	K: FiniteRange<I> + Copy + From<Interval<I>>,
 {
-	/// Makes a new, empty `DiscreteRangeMap`.
-	///
-	/// # Examples
-	/// ```
-	/// use discrete_range_map::{DiscreteRangeMap, Interval};
-	///
-	/// let map: DiscreteRangeMap<i8, Interval<i8>, bool> =
-	/// 	DiscreteRangeMap::new();
-	/// ```
-	pub fn new() -> Self {
-		DiscreteRangeMap {
-			inner: BTreeMap::new(),
-			phantom: PhantomData,
-		}
-	}
-
-	/// Returns the number of ranges in the map.
-	///
-	/// # Examples
-	/// ```
-	/// use discrete_range_map::test_ranges::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
-	///
-	/// let mut map = DiscreteRangeMap::new();
-	///
-	/// assert_eq!(map.len(), 0);
-	/// map.insert_strict(ie(0, 1), false).unwrap();
-	/// assert_eq!(map.len(), 1);
-	/// ```
-	pub fn len(&self) -> usize {
-		self.inner.len()
-	}
-
-	/// Returns `true` if the map contains no ranges, and
-	/// `false` if it does.
-	///
-	/// # Examples
-	/// ```
-	/// use discrete_range_map::test_ranges::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
-	///
-	/// let mut map = DiscreteRangeMap::new();
-	///
-	/// assert_eq!(map.is_empty(), true);
-	/// map.insert_strict(ie(0, 1), false).unwrap();
-	/// assert_eq!(map.is_empty(), false);
-	/// ```
-	pub fn is_empty(&self) -> bool {
-		self.inner.is_empty()
-	}
-
 	/// Returns `true` if the given range overlaps any of the
 	/// other ranges in the map, and `false` if not.
 	///
@@ -382,61 +331,6 @@ where
 				.key()
 				.map_or(I::MAX, |upper| upper.start().down().unwrap()),
 		}
-	}
-
-	/// Returns an iterator over every entry in the map in ascending
-	/// order.
-	///
-	/// # Examples
-	/// ```
-	/// use discrete_range_map::test_ranges::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
-	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
-	/// 	(ie(1, 4), false),
-	/// 	(ie(4, 8), true),
-	/// 	(ie(8, 100), false),
-	/// ])
-	/// .unwrap();
-	///
-	/// let mut iter = map.iter();
-	///
-	/// assert_eq!(iter.next(), Some((&ie(1, 4), &false)));
-	/// assert_eq!(iter.next(), Some((&ie(4, 8), &true)));
-	/// assert_eq!(iter.next(), Some((&ie(8, 100), &false)));
-	/// assert_eq!(iter.next(), None);
-	/// ```
-	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
-		self.inner.iter()
-	}
-
-	/// Returns an mutable iterator over every entry in the map in
-	/// ascending order.
-	///
-	/// # Examples
-	/// ```
-	/// use discrete_range_map::test_ranges::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
-	///
-	/// let mut map = DiscreteRangeMap::from_slice_strict([
-	/// 	(ie(1, 4), false),
-	/// 	(ie(4, 8), true),
-	/// 	(ie(8, 100), false),
-	/// ])
-	/// .unwrap();
-	///
-	/// for (range, value) in map.iter_mut() {
-	/// 	if *range == ie(4, 8) {
-	/// 		*value = false
-	/// 	} else {
-	/// 		*value = true
-	/// 	}
-	/// }
-	/// ```
-	pub fn iter_mut(
-		&mut self,
-	) -> impl DoubleEndedIterator<Item = (&K, &mut V)> {
-		self.inner.iter_mut()
 	}
 
 	/// Removes every entry in the map which overlaps the given range
@@ -1275,6 +1169,149 @@ where
 		self.insert_unchecked(range, value);
 	}
 
+	/// Allocates a `DiscreteRangeMap` and moves the given entries from
+	/// the given slice into the map using
+	/// [`DiscreteRangeMap::insert_strict()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`DiscreteRangeMap::insert_strict()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
+	///
+	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// 	(ie(1, 4), false),
+	/// 	(ie(4, 8), true),
+	/// 	(ie(8, 100), false),
+	/// ])
+	/// .unwrap();
+	/// ```
+	pub fn from_slice_strict<const N: usize>(
+		slice: [(K, V); N],
+	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError> {
+		let mut map = DiscreteRangeMap::new();
+		for (range, value) in slice {
+			map.insert_strict(range, value)?;
+		}
+		return Ok(map);
+	}
+}
+
+impl<I, K, V> DiscreteRangeMap<I, K, V> {
+	/// Makes a new, empty `DiscreteRangeMap`.
+	///
+	/// # Examples
+	/// ```
+	/// use discrete_range_map::{DiscreteRangeMap, Interval};
+	///
+	/// let map: DiscreteRangeMap<i8, Interval<i8>, bool> =
+	/// 	DiscreteRangeMap::new();
+	/// ```
+	pub fn new() -> Self {
+		DiscreteRangeMap {
+			inner: BTreeMap::new(),
+			phantom: PhantomData,
+		}
+	}
+
+	/// Returns the number of ranges in the map.
+	///
+	/// # Examples
+	/// ```
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
+	///
+	/// let mut map = DiscreteRangeMap::new();
+	///
+	/// assert_eq!(map.len(), 0);
+	/// map.insert_strict(ie(0, 1), false).unwrap();
+	/// assert_eq!(map.len(), 1);
+	/// ```
+	pub fn len(&self) -> usize {
+		self.inner.len()
+	}
+
+	/// Returns `true` if the map contains no ranges, and
+	/// `false` if it does.
+	///
+	/// # Examples
+	/// ```
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
+	///
+	/// let mut map = DiscreteRangeMap::new();
+	///
+	/// assert_eq!(map.is_empty(), true);
+	/// map.insert_strict(ie(0, 1), false).unwrap();
+	/// assert_eq!(map.is_empty(), false);
+	/// ```
+	pub fn is_empty(&self) -> bool {
+		self.inner.is_empty()
+	}
+
+	/// Returns an iterator over every entry in the map in ascending
+	/// order.
+	///
+	/// # Examples
+	/// ```
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
+	///
+	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// 	(ie(1, 4), false),
+	/// 	(ie(4, 8), true),
+	/// 	(ie(8, 100), false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let mut iter = map.iter();
+	///
+	/// assert_eq!(iter.next(), Some((&ie(1, 4), &false)));
+	/// assert_eq!(iter.next(), Some((&ie(4, 8), &true)));
+	/// assert_eq!(iter.next(), Some((&ie(8, 100), &false)));
+	/// assert_eq!(iter.next(), None);
+	/// ```
+	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
+		self.inner.iter()
+	}
+
+	/// Returns an mutable iterator over every entry in the map in
+	/// ascending order.
+	///
+	/// # Examples
+	/// ```
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
+	///
+	/// let mut map = DiscreteRangeMap::from_slice_strict([
+	/// 	(ie(1, 4), false),
+	/// 	(ie(4, 8), true),
+	/// 	(ie(8, 100), false),
+	/// ])
+	/// .unwrap();
+	///
+	/// for (range, value) in map.iter_mut() {
+	/// 	if *range == ie(4, 8) {
+	/// 		*value = false
+	/// 	} else {
+	/// 		*value = true
+	/// 	}
+	/// }
+	/// ```
+	pub fn iter_mut(
+		&mut self,
+	) -> impl DoubleEndedIterator<Item = (&K, &mut V)> {
+		self.inner.iter_mut()
+	}
+
 	/// Returns the first entry in the map, if any.
 	///
 	/// # Examples
@@ -1315,41 +1352,6 @@ where
 	/// );
 	pub fn last_entry(&self) -> Option<(&K, &V)> {
 		self.inner.last_key_value()
-	}
-
-	/// Allocates a `DiscreteRangeMap` and moves the given entries from
-	/// the given slice into the map using
-	/// [`DiscreteRangeMap::insert_strict()`].
-	///
-	/// May return an `Err` while inserting. See
-	/// [`DiscreteRangeMap::insert_strict()`] for details.
-	///
-	/// # Panics
-	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
-	/// for more details.
-	///
-	/// # Examples
-	/// ```
-	/// use discrete_range_map::test_ranges::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
-	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
-	/// 	(ie(1, 4), false),
-	/// 	(ie(4, 8), true),
-	/// 	(ie(8, 100), false),
-	/// ])
-	/// .unwrap();
-	/// ```
-	pub fn from_slice_strict<const N: usize>(
-		slice: [(K, V); N],
-	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError> {
-		let mut map = DiscreteRangeMap::new();
-		for (range, value) in slice {
-			map.insert_strict(range, value)?;
-		}
-		return Ok(map);
 	}
 }
 
@@ -1450,19 +1452,18 @@ impl<I, K, V> Default for DiscreteRangeMap<I, K, V> {
 
 impl<I, K, V> Serialize for DiscreteRangeMap<I, K, V>
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<Interval<I>> + Serialize,
+	K: Serialize,
 	V: Serialize,
 {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: Serializer,
 	{
-		let mut map = serializer.serialize_map(Some(self.len()))?;
+		let mut seq = serializer.serialize_seq(Some(self.len()))?;
 		for (range_bounds, value) in self.iter() {
-			map.serialize_entry(range_bounds, value)?;
+			seq.serialize_element(&(range_bounds, value))?;
 		}
-		map.end()
+		seq.end()
 	}
 }
 
@@ -1476,7 +1477,7 @@ where
 	where
 		D: Deserializer<'de>,
 	{
-		deserializer.deserialize_map(DiscreteRangeMapVisitor {
+		deserializer.deserialize_seq(DiscreteRangeMapVisitor {
 			i: PhantomData,
 			k: PhantomData,
 			v: PhantomData,
@@ -1502,12 +1503,12 @@ where
 		formatter.write_str("a DiscreteRangeMap")
 	}
 
-	fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
+	fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
 	where
-		A: MapAccess<'de>,
+		A: SeqAccess<'de>,
 	{
 		let mut map = DiscreteRangeMap::new();
-		while let Some((range_bounds, value)) = access.next_entry()? {
+		while let Some((range_bounds, value)) = access.next_element()? {
 			map.insert_strict(range_bounds, value)
 				.map_err(|_| serde::de::Error::custom("ranges overlap"))?;
 		}
