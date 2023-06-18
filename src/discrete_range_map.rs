@@ -21,7 +21,6 @@ use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::iter::once;
 use std::marker::PhantomData;
-use std::ops::RangeBounds;
 
 use btree_monstrousity::btree_map::{
 	IntoIter as BTreeMapIntoIter, SearchBoundCustom,
@@ -1408,9 +1407,16 @@ where
 }
 
 /// A range that has **Inclusive** end-points.
-pub trait InclusiveRange<I>: RangeBounds<I> {
+pub trait InclusiveRange<I> {
 	fn start(&self) -> I;
 	fn end(&self) -> I;
+
+	fn contains(&self, point: I) -> bool
+	where
+		I: Ord,
+	{
+		point >= self.start() && point <= self.end()
+	}
 
 	///requires that self comes before other and they don't overlap
 	fn touches_ordered(&self, other: &Self) -> bool
@@ -1425,7 +1431,7 @@ pub trait InclusiveRange<I>: RangeBounds<I> {
 	where
 		I: DiscreteFinite + Ord,
 	{
-		self.contains(&other.start()) || self.contains(&other.end())
+		self.contains(other.start()) || self.contains(other.end())
 	}
 
 	///requires that self comes before other

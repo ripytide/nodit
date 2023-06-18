@@ -47,6 +47,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ```rust
 //! use std::ops::{Bound, RangeBounds};
+//!
 //! use discrete_range_map::test_ranges::ie;
 //! use discrete_range_map::{
 //! 	DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
@@ -59,23 +60,6 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! 	Finite(i8, i8),
 //! 	// Start (Inclusive-Infinity)
 //! 	Infinite(i8),
-//! }
-//!
-//! // First, we need to implement RangeBounds since its a super-trait
-//! // of InclusiveRange
-//! impl RangeBounds<i8> for Reservation {
-//!     fn start_bound(&self) -> Bound<&i8> {
-//! 		match self {
-//! 			Reservation::Finite(start, _) => Bound::Included(start),
-//! 			Reservation::Infinite(start) => Bound::Included(start),
-//! 		}
-//! 	}
-//!     fn end_bound(&self) -> Bound<&i8> {
-//! 		match self {
-//! 			Reservation::Finite(_, end) => Bound::Included(end),
-//! 			Reservation::Infinite(_) => Bound::Included(&i8::MAX),
-//! 		}
-//!     }
 //! }
 //!
 //! // First, we need to implement InclusiveRange
