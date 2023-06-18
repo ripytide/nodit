@@ -21,6 +21,7 @@ use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::iter::once;
 use std::marker::PhantomData;
+use std::ops::RangeBounds;
 
 use btree_monstrousity::btree_map::{
 	IntoIter as BTreeMapIntoIter, SearchBoundCustom,
@@ -33,7 +34,7 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::discrete_finite::DiscreteFinite;
-use crate::interval::Interval;
+use crate::interval::InclusiveInterval;
 use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
@@ -90,7 +91,7 @@ pub struct OverlapError;
 impl<I, K, V> DiscreteRangeMap<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<Interval<I>>,
+	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>>,
 {
 	/// Returns `true` if the given range overlaps any of the
 	/// other ranges in the map, and `false` if not.
@@ -118,7 +119,7 @@ where
 	/// ```
 	pub fn overlaps<Q>(&self, range: Q) -> bool
 	where
-		Q: FiniteRange<I> + Copy,
+		Q: InclusiveRange<I> + Copy,
 	{
 		invalid_range_panic(range);
 
@@ -158,7 +159,7 @@ where
 		range: Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &V)>
 	where
-		Q: FiniteRange<I> + Copy,
+		Q: InclusiveRange<I> + Copy,
 	{
 		invalid_range_panic(range);
 
@@ -206,7 +207,7 @@ where
 		range: Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &mut V)>
 	where
-		Q: FiniteRange<I> + Copy,
+		Q: InclusiveRange<I> + Copy,
 	{
 		invalid_range_panic(range);
 
@@ -315,7 +316,7 @@ where
 			.get_key_value(overlapping_comp(point))
 			.ok_or_else(|| K::from(self.get_gap_at_raw(point)))
 	}
-	fn get_gap_at_raw(&self, point: I) -> Interval<I> {
+	fn get_gap_at_raw(&self, point: I) -> InclusiveInterval<I> {
 		let lower = self
 			.inner
 			.upper_bound(overlapping_comp(point), SearchBoundCustom::Included);
@@ -323,7 +324,7 @@ where
 			.inner
 			.lower_bound(overlapping_comp(point), SearchBoundCustom::Included);
 
-		Interval {
+		InclusiveInterval {
 			start: lower
 				.key()
 				.map_or(I::MIN, |lower| lower.end().up().unwrap()),
@@ -371,7 +372,7 @@ where
 		range: Q,
 	) -> impl Iterator<Item = (K, V)> + '_
 	where
-		Q: FiniteRange<I> + Copy + 'a,
+		Q: InclusiveRange<I> + Copy + 'a,
 	{
 		invalid_range_panic(range);
 
@@ -435,7 +436,7 @@ where
 		range: Q,
 	) -> impl Iterator<Item = (K, V)> + '_
 	where
-		Q: FiniteRange<I> + Copy + 'a,
+		Q: InclusiveRange<I> + Copy + 'a,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -466,7 +467,7 @@ where
 		single_overlapping_range: K,
 	) -> impl Iterator<Item = (K, V)>
 	where
-		Q: FiniteRange<I> + Copy,
+		Q: InclusiveRange<I> + Copy,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -494,7 +495,7 @@ where
 		right_overlapping: Option<K>,
 	) -> impl Iterator<Item = (K, V)> + '_
 	where
-		Q: FiniteRange<I> + Copy + 'a,
+		Q: InclusiveRange<I> + Copy + 'a,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -547,7 +548,7 @@ where
 			.into_iter()
 			.chain(self.remove_overlapping(range).map(|(key, value)| {
 				(
-					K::from(Interval {
+					K::from(InclusiveInterval {
 						start: key.start(),
 						end: key.end(),
 					}),
@@ -587,7 +588,7 @@ where
 	/// ```
 	pub fn gaps<'a, Q>(&'a self, outer_range: Q) -> impl Iterator<Item = K> + '_
 	where
-		Q: FiniteRange<I> + Copy + 'a,
+		Q: InclusiveRange<I> + Copy + 'a,
 	{
 		invalid_range_panic(outer_range);
 
@@ -636,7 +637,7 @@ where
 		let inner_gaps = overlapping
 			.tuple_windows()
 			.map(|(first, second)| {
-				K::from(Interval {
+				K::from(InclusiveInterval {
 					start: first.1.up().unwrap(),
 					end: second.0.down().unwrap(),
 				})
@@ -678,7 +679,7 @@ where
 	/// ```
 	pub fn contains_range<Q>(&self, range: Q) -> bool
 	where
-		Q: FiniteRange<I> + Copy,
+		Q: InclusiveRange<I> + Copy,
 	{
 		invalid_range_panic(range);
 
@@ -749,15 +750,17 @@ where
 		let matching_end = get_end(self, &value);
 
 		let returning = match (matching_start, matching_end) {
-			(Some(matching_start), Some(matching_end)) => K::from(Interval {
-				start: matching_start.start(),
-				end: matching_end.end(),
-			}),
-			(Some(matching_start), None) => K::from(Interval {
+			(Some(matching_start), Some(matching_end)) => {
+				K::from(InclusiveInterval {
+					start: matching_start.start(),
+					end: matching_end.end(),
+				})
+			}
+			(Some(matching_start), None) => K::from(InclusiveInterval {
 				start: matching_start.start(),
 				end: range.end(),
 			}),
-			(None, Some(matching_end)) => K::from(Interval {
+			(None, Some(matching_end)) => K::from(InclusiveInterval {
 				start: range.start(),
 				end: matching_end.end(),
 			}),
@@ -1210,9 +1213,9 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::{DiscreteRangeMap, Interval};
+	/// use discrete_range_map::{DiscreteRangeMap, InclusiveInterval};
 	///
-	/// let map: DiscreteRangeMap<i8, Interval<i8>, bool> =
+	/// let map: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool> =
 	/// 	DiscreteRangeMap::new();
 	/// ```
 	pub fn new() -> Self {
@@ -1359,7 +1362,7 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 
 fn invalid_range_panic<Q, I>(range: Q)
 where
-	Q: FiniteRange<I>,
+	Q: InclusiveRange<I>,
 	I: Ord,
 {
 	if !is_valid_range(range) {
@@ -1371,7 +1374,7 @@ where
 
 fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
 where
-	K: FiniteRange<I>,
+	K: InclusiveRange<I>,
 	I: Ord + DiscreteFinite,
 {
 	|inner_range: &K, new_range: &K| new_range.start().cmp(&inner_range.start())
@@ -1379,14 +1382,14 @@ where
 fn overlapping_comp<I, K>(point: I) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy,
-	K: FiniteRange<I> + Copy,
+	K: InclusiveRange<I> + Copy,
 {
 	move |inner_range: &K| cmp_point_with_range(point, *inner_range)
 }
 fn touching_start_comp<I, K>(start: I) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I>,
+	K: InclusiveRange<I>,
 {
 	move |inner_range: &K| match inner_range.end().up() {
 		Some(touching_position) => start.cmp(&touching_position),
@@ -1396,7 +1399,7 @@ where
 fn touching_end_comp<I, K>(end: I) -> impl FnMut(&K) -> Ordering
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I>,
+	K: InclusiveRange<I>,
 {
 	move |inner_range: &K| match inner_range.start().down() {
 		Some(touching_position) => end.cmp(&touching_position),
@@ -1404,10 +1407,37 @@ where
 	}
 }
 
-/// A range that has Finite **Inclusive** end-points.
-pub trait FiniteRange<I> {
+/// A range that has **Inclusive** end-points.
+pub trait InclusiveRange<I>: RangeBounds<I> {
 	fn start(&self) -> I;
 	fn end(&self) -> I;
+
+	///requires that self comes before other and they don't overlap
+	fn touches_ordered(&self, other: &Self) -> bool
+	where
+		I: DiscreteFinite + Ord,
+	{
+		self.end() == other.start().down().unwrap()
+	}
+
+	///requires that self comes before other
+	fn overlaps_ordered(&self, other: &Self) -> bool
+	where
+		I: DiscreteFinite + Ord,
+	{
+		self.contains(&other.start()) || self.contains(&other.end())
+	}
+
+	///requires that self comes before other
+	fn merge_ordered(&self, other: &Self) -> Self
+	where
+		Self: From<InclusiveInterval<I>>,
+	{
+		Self::from(InclusiveInterval {
+			start: self.start(),
+			end: other.end(),
+		})
+	}
 }
 
 // Trait Impls ==========================
@@ -1470,7 +1500,7 @@ where
 impl<'de, I, K, V> Deserialize<'de> for DiscreteRangeMap<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<Interval<I>> + Deserialize<'de>,
+	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -1494,7 +1524,7 @@ struct DiscreteRangeMapVisitor<I, K, V> {
 impl<'de, I, K, V> Visitor<'de> for DiscreteRangeMapVisitor<I, K, V>
 where
 	I: Ord + Copy + DiscreteFinite,
-	K: FiniteRange<I> + Copy + From<Interval<I>> + Deserialize<'de>,
+	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
 	type Value = DiscreteRangeMap<I, K, V>;
@@ -1531,7 +1561,7 @@ mod tests {
 	pub(crate) const NUMBERS_DOMAIN: &'static [i8] =
 		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-	fn basic() -> DiscreteRangeMap<i8, Interval<i8>, bool> {
+	fn basic() -> DiscreteRangeMap<i8, InclusiveInterval<i8>, bool> {
 		DiscreteRangeMap::from_slice_strict([
 			(ui(4), false),
 			(ee(5, 7), true),
@@ -1540,7 +1570,7 @@ mod tests {
 		])
 		.unwrap()
 	}
-	fn basic_slice() -> [(Interval<i8>, bool); 4] {
+	fn basic_slice() -> [(InclusiveInterval<i8>, bool); 4] {
 		[
 			(ui(4), false),
 			(ee(5, 7), true),
@@ -1583,10 +1613,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_strict<const N: usize>(
-		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
-		to_insert: (Interval<i8>, bool),
+		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
+		to_insert: (InclusiveInterval<i8>, bool),
 		result: Result<(), OverlapError>,
-		after: [(Interval<i8>, bool); N],
+		after: [(InclusiveInterval<i8>, bool); N],
 	) {
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
 		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
@@ -1598,7 +1628,7 @@ mod tests {
 		for overlap_range in all_valid_test_bounds() {
 			//you can't overlap nothing
 			assert!(
-				DiscreteRangeMap::<i8, Interval<i8>, ()>::new()
+				DiscreteRangeMap::<i8, InclusiveInterval<i8>, ()>::new()
 					.overlapping(overlap_range)
 					.next()
 					.is_none()
@@ -1702,10 +1732,10 @@ mod tests {
 		);
 	}
 	fn assert_remove_overlapping<const N: usize, const Y: usize>(
-		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
-		to_remove: Interval<i8>,
-		result: [(Interval<i8>, bool); N],
-		after: [(Interval<i8>, bool); Y],
+		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
+		to_remove: InclusiveInterval<i8>,
+		result: [(InclusiveInterval<i8>, bool); N],
+		after: [(InclusiveInterval<i8>, bool); Y],
 	) {
 		assert_eq!(
 			before.remove_overlapping(to_remove).collect::<Vec<_>>(),
@@ -1752,10 +1782,10 @@ mod tests {
 		);
 	}
 	fn assert_cut<const N: usize, const Y: usize>(
-		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
-		to_cut: Interval<i8>,
-		result: [(Interval<i8>, bool); Y],
-		after: [(Interval<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
+		to_cut: InclusiveInterval<i8>,
+		result: [(InclusiveInterval<i8>, bool); Y],
+		after: [(InclusiveInterval<i8>, bool); N],
 	) {
 		assert_eq!(before.cut(to_cut).collect::<Vec<_>>(), result);
 		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap());
@@ -1791,9 +1821,9 @@ mod tests {
 		);
 	}
 	fn assert_gaps<const N: usize>(
-		map: DiscreteRangeMap<i8, Interval<i8>, bool>,
-		outer_range: Interval<i8>,
-		result: [Interval<i8>; N],
+		map: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
+		outer_range: InclusiveInterval<i8>,
+		result: [InclusiveInterval<i8>; N],
 	) {
 		assert_eq!(map.gaps(outer_range).collect::<Vec<_>>(), result);
 	}
@@ -1841,10 +1871,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching<const N: usize>(
-		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
-		to_insert: (Interval<i8>, bool),
-		result: Result<Interval<i8>, OverlapError>,
-		after: [(Interval<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
+		to_insert: (InclusiveInterval<i8>, bool),
+		result: Result<InclusiveInterval<i8>, OverlapError>,
+		after: [(InclusiveInterval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_touching(to_insert.0, to_insert.1),
@@ -1897,10 +1927,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_if_values_equal<const N: usize>(
-		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
-		to_insert: (Interval<i8>, bool),
-		result: Result<Interval<i8>, OverlapError>,
-		after: [(Interval<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
+		to_insert: (InclusiveInterval<i8>, bool),
+		result: Result<InclusiveInterval<i8>, OverlapError>,
+		after: [(InclusiveInterval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_touching_if_values_equal(
@@ -1961,10 +1991,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_overlapping<const N: usize>(
-		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
-		to_insert: (Interval<i8>, bool),
-		result: Interval<i8>,
-		after: [(Interval<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
+		to_insert: (InclusiveInterval<i8>, bool),
+		result: InclusiveInterval<i8>,
+		after: [(InclusiveInterval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_overlapping(to_insert.0, to_insert.1),
@@ -2037,10 +2067,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_or_overlapping<const N: usize>(
-		mut before: DiscreteRangeMap<i8, Interval<i8>, bool>,
-		to_insert: (Interval<i8>, bool),
-		result: Interval<i8>,
-		after: [(Interval<i8>, bool); N],
+		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
+		to_insert: (InclusiveInterval<i8>, bool),
+		result: InclusiveInterval<i8>,
+		after: [(InclusiveInterval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before
@@ -2138,7 +2168,7 @@ mod tests {
 			}
 		}
 	}
-	fn con(x: Option<Interval<i8>>, point: &i8) -> bool {
+	fn con(x: Option<InclusiveInterval<i8>>, point: &i8) -> bool {
 		match x {
 			Some(y) => contains_point(y, *point),
 			None => false,
@@ -2172,7 +2202,7 @@ mod tests {
 	// Test Helper Functions
 	//======================
 	fn all_non_overlapping_test_bound_entries()
-	-> Vec<(Interval<i8>, Interval<i8>)> {
+	-> Vec<(InclusiveInterval<i8>, InclusiveInterval<i8>)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
@@ -2185,12 +2215,12 @@ mod tests {
 		return output;
 	}
 
-	fn all_valid_test_bounds() -> Vec<Interval<i8>> {
+	fn all_valid_test_bounds() -> Vec<InclusiveInterval<i8>> {
 		let mut output = Vec::new();
 		for i in NUMBERS {
 			for j in NUMBERS {
 				if i <= j {
-					output.push(Interval { start: *i, end: *j });
+					output.push(InclusiveInterval { start: *i, end: *j });
 				}
 			}
 		}

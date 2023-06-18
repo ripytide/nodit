@@ -46,21 +46,40 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! ## Example using a custom range type
 //!
 //! ```rust
+//! use std::ops::{Bound, RangeBounds};
 //! use discrete_range_map::test_ranges::ie;
 //! use discrete_range_map::{
-//! 	DiscreteFinite, DiscreteRangeMap, FiniteRange, Interval,
+//! 	DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
+//! 	InclusiveRange,
 //! };
 //!
 //! #[derive(Debug, Copy, Clone)]
 //! enum Reservation {
-//! 	// Start, End (Inclusive-Exclusive)
+//! 	// Start, End (Inclusive-Inclusive)
 //! 	Finite(i8, i8),
-//! 	// Start (Inclusive-Forever)
+//! 	// Start (Inclusive-Infinity)
 //! 	Infinite(i8),
 //! }
 //!
-//! // First, we need to implement FiniteRange
-//! impl FiniteRange<i8> for Reservation {
+//! // First, we need to implement RangeBounds since its a super-trait
+//! // of InclusiveRange
+//! impl RangeBounds<i8> for Reservation {
+//!     fn start_bound(&self) -> Bound<&i8> {
+//! 		match self {
+//! 			Reservation::Finite(start, _) => Bound::Included(start),
+//! 			Reservation::Infinite(start) => Bound::Included(start),
+//! 		}
+//! 	}
+//!     fn end_bound(&self) -> Bound<&i8> {
+//! 		match self {
+//! 			Reservation::Finite(_, end) => Bound::Included(end),
+//! 			Reservation::Infinite(_) => Bound::Included(&i8::MAX),
+//! 		}
+//!     }
+//! }
+//!
+//! // First, we need to implement InclusiveRange
+//! impl InclusiveRange<i8> for Reservation {
 //! 	fn start(&self) -> i8 {
 //! 		match self {
 //! 			Reservation::Finite(start, _) => *start,
@@ -69,23 +88,21 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! 	}
 //! 	fn end(&self) -> i8 {
 //! 		match self {
-//! 			//the end is exclusive so we take off 1 with checking
-//! 			//for compile time error overflow detection
-//! 			Reservation::Finite(_, end) => end.down().unwrap(),
+//! 			Reservation::Finite(_, end) => *end,
 //! 			Reservation::Infinite(_) => i8::MAX,
 //! 		}
 //! 	}
 //! }
 //!
-//! // Second, we need to implement From<Interval<i8>>
-//! impl From<Interval<i8>> for Reservation {
-//! 	fn from(bounds: Interval<i8>) -> Self {
-//! 		if bounds.end == i8::MAX {
-//! 			Reservation::Infinite(bounds.start)
+//! // Second, we need to implement From<InclusiveInterval<i8>>
+//! impl From<InclusiveInterval<i8>> for Reservation {
+//! 	fn from(value: InclusiveInterval<i8>) -> Self {
+//! 		if value.end == i8::MAX {
+//! 			Reservation::Infinite(value.start)
 //! 		} else {
 //! 			Reservation::Finite(
-//! 				bounds.start,
-//! 				bounds.end.up().unwrap(),
+//! 				value.start,
+//! 				value.end.up().unwrap(),
 //! 			)
 //! 		}
 //! 	}
@@ -94,7 +111,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! // Next we can create a custom typed DiscreteRangeMap
 //! let reservation_map = DiscreteRangeMap::from_slice_strict([
 //! 	(Reservation::Finite(10, 20), "Ferris".to_string()),
-//! 	(Reservation::Infinite(20), "Corro".to_string()),
+//! 	(Reservation::Infinite(21), "Corro".to_string()),
 //! ])
 //! .unwrap();
 //!
@@ -277,7 +294,7 @@ pub mod discrete_range_set;
 
 pub use crate::discrete_finite::DiscreteFinite;
 pub use crate::discrete_range_map::{
-	DiscreteRangeMap, FiniteRange, OverlapError,
+	DiscreteRangeMap, InclusiveRange, OverlapError,
 };
 pub use crate::discrete_range_set::DiscreteRangeSet;
-pub use crate::interval::Interval;
+pub use crate::interval::InclusiveInterval;

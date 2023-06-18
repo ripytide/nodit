@@ -20,13 +20,13 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 use std::cmp::Ordering;
 
 use crate::discrete_finite::DiscreteFinite;
-use crate::discrete_range_map::FiniteRange;
-use crate::interval::Interval;
+use crate::discrete_range_map::InclusiveRange;
+use crate::interval::InclusiveInterval;
 
 pub(crate) fn cmp_point_with_range<I, K>(point: I, range: K) -> Ordering
 where
 	I: Ord,
-	K: FiniteRange<I>,
+	K: InclusiveRange<I>,
 {
 	if point < range.start() {
 		Ordering::Less
@@ -49,8 +49,8 @@ pub(crate) enum Config {
 }
 pub(crate) fn config<I, A, B>(a: A, b: B) -> Config
 where
-	A: FiniteRange<I> + Copy,
-	B: FiniteRange<I> + Copy,
+	A: InclusiveRange<I> + Copy,
+	B: InclusiveRange<I> + Copy,
 	I: Ord,
 {
 	if a.start() < b.start() {
@@ -71,21 +71,21 @@ where
 }
 
 enum SortedConfig<I> {
-	NonOverlapping(Interval<I>, Interval<I>),
-	PartialOverlap(Interval<I>, Interval<I>),
-	Swallowed(Interval<I>, Interval<I>),
+	NonOverlapping(InclusiveInterval<I>, InclusiveInterval<I>),
+	PartialOverlap(InclusiveInterval<I>, InclusiveInterval<I>),
+	Swallowed(InclusiveInterval<I>, InclusiveInterval<I>),
 }
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
-	A: FiniteRange<I> + Copy,
-	B: FiniteRange<I> + Copy,
+	A: InclusiveRange<I> + Copy,
+	B: InclusiveRange<I> + Copy,
 	I: Ord,
 {
-	let ae = Interval {
+	let ae = InclusiveInterval {
 		start: a.start(),
 		end: a.end(),
 	};
-	let be = Interval {
+	let be = InclusiveInterval {
 		start: b.start(),
 		end: b.end(),
 	};
@@ -106,7 +106,7 @@ where
 
 pub(crate) fn contains_point<I, A>(range: A, point: I) -> bool
 where
-	A: FiniteRange<I>,
+	A: InclusiveRange<I>,
 	I: Ord,
 {
 	cmp_point_with_range(point, range).is_eq()
@@ -114,14 +114,14 @@ where
 
 #[derive(Debug)]
 pub(crate) struct CutResult<I> {
-	pub(crate) before_cut: Option<Interval<I>>,
-	pub(crate) inside_cut: Option<Interval<I>>,
-	pub(crate) after_cut: Option<Interval<I>>,
+	pub(crate) before_cut: Option<InclusiveInterval<I>>,
+	pub(crate) inside_cut: Option<InclusiveInterval<I>>,
+	pub(crate) after_cut: Option<InclusiveInterval<I>>,
 }
 pub(crate) fn cut_range<I, B, C>(base: B, cut: C) -> CutResult<I>
 where
-	B: FiniteRange<I> + Copy,
-	C: FiniteRange<I> + Copy,
+	B: InclusiveRange<I> + Copy,
+	C: InclusiveRange<I> + Copy,
 	I: Ord + Copy + DiscreteFinite,
 {
 	let mut result = CutResult {
@@ -132,34 +132,34 @@ where
 
 	match config(base, cut) {
 		Config::LeftFirstNonOverlapping => {
-			result.before_cut = Some(Interval {
+			result.before_cut = Some(InclusiveInterval {
 				start: base.start(),
 				end: base.end(),
 			});
 		}
 		Config::LeftFirstPartialOverlap => {
-			result.before_cut = Some(Interval {
+			result.before_cut = Some(InclusiveInterval {
 				start: base.start(),
 				end: cut.start().down().unwrap(),
 			});
-			result.inside_cut = Some(Interval {
+			result.inside_cut = Some(InclusiveInterval {
 				start: cut.start(),
 				end: base.end(),
 			});
 		}
 		Config::LeftContainsRight => {
-			result.before_cut = Some(Interval {
+			result.before_cut = Some(InclusiveInterval {
 				start: base.start(),
 				end: cut.start().down().unwrap(),
 			});
-			result.inside_cut = Some(Interval {
+			result.inside_cut = Some(InclusiveInterval {
 				start: cut.start(),
 				end: cut.end(),
 			});
 			//if cut is already max then we don't need to have an
 			//after_cut
 			if let Some(upped_end) = cut.end().up() {
-				result.after_cut = Some(Interval {
+				result.after_cut = Some(InclusiveInterval {
 					start: upped_end,
 					end: base.end(),
 				});
@@ -167,23 +167,23 @@ where
 		}
 
 		Config::RightFirstNonOverlapping => {
-			result.after_cut = Some(Interval {
+			result.after_cut = Some(InclusiveInterval {
 				start: base.start(),
 				end: base.end(),
 			});
 		}
 		Config::RightFirstPartialOverlap => {
-			result.after_cut = Some(Interval {
+			result.after_cut = Some(InclusiveInterval {
 				start: cut.end().up().unwrap(),
 				end: base.end(),
 			});
-			result.inside_cut = Some(Interval {
+			result.inside_cut = Some(InclusiveInterval {
 				start: base.start(),
 				end: cut.end(),
 			});
 		}
 		Config::RightContainsLeft => {
-			result.inside_cut = Some(Interval {
+			result.inside_cut = Some(InclusiveInterval {
 				start: base.start(),
 				end: base.end(),
 			});
@@ -201,15 +201,15 @@ where
 pub(crate) fn is_valid_range<I, K>(range: K) -> bool
 where
 	I: Ord,
-	K: FiniteRange<I>,
+	K: InclusiveRange<I>,
 {
 	range.start() <= range.end()
 }
 
 pub(crate) fn overlaps<I, A, B>(a: A, b: B) -> bool
 where
-	A: FiniteRange<I> + Copy,
-	B: FiniteRange<I> + Copy,
+	A: InclusiveRange<I> + Copy,
+	B: InclusiveRange<I> + Copy,
 	I: Ord,
 {
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))

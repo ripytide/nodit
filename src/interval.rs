@@ -17,44 +17,35 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use crate::discrete_range_map::FiniteRange;
+use std::ops::{Bound, RangeBounds};
+
+use serde::{Deserialize, Serialize};
+
+use crate::discrete_range_map::InclusiveRange;
 use crate::DiscreteFinite;
 
-///both ends are always included
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Interval<I> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct InclusiveInterval<I> {
 	pub start: I,
 	pub end: I,
 }
 
-impl<I> Interval<I>
+impl<I> InclusiveInterval<I> where I: Ord + DiscreteFinite + Copy {}
+
+impl<I> RangeBounds<I> for InclusiveInterval<I>
 where
-	I: Ord + DiscreteFinite + Copy,
+	I: Copy,
 {
-	pub fn contains(&self, point: I) -> bool {
-		point >= self.start && point <= self.end
+	fn start_bound(&self) -> Bound<&I> {
+		Bound::Included(&self.start)
 	}
 
-	///requires that self comes before other and they don't overlap
-	pub fn touches_ordered(&self, other: &Self) -> bool {
-		self.end == other.start.down().unwrap()
-	}
-
-	///requires that self comes before other
-	pub fn overlaps_ordered(&self, other: &Self) -> bool {
-		self.contains(other.start) || self.contains(other.end)
-	}
-
-	///requires that self comes before other
-	pub fn merge_ordered(self, other: &Self) -> Self {
-		Interval {
-			start: self.start,
-			end: other.end,
-		}
+	fn end_bound(&self) -> Bound<&I> {
+		Bound::Included(&self.end)
 	}
 }
 
-impl<I> FiniteRange<I> for Interval<I>
+impl<I> InclusiveRange<I> for InclusiveInterval<I>
 where
 	I: Copy,
 {
