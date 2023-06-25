@@ -1418,6 +1418,13 @@ pub trait InclusiveRange<I> {
 		point >= self.start() && point <= self.end()
 	}
 
+	fn is_valid(&self) -> bool
+	where
+		I: Ord,
+	{
+		self.start() <= self.end()
+	}
+
 	///requires that self comes before other and they don't overlap
 	fn touches_ordered(&self, other: &Self) -> bool
 	where
