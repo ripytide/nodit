@@ -12,7 +12,7 @@ jobs:
         with:
           args: "https://gitlab.com/ripytide/discrete_range_map"
         env:
-          FOLLOW_TAGS: "false"
+          FOLLOW_TAGS: "true"
           FORCE_PUSH: "false"
           GITLAB_HOSTNAME: "gitlab.com"
           GITLAB_USERNAME: "ripytide"
