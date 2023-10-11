@@ -1205,6 +1205,42 @@ where
 		}
 		return Ok(map);
 	}
+
+	/// Collects a `DiscreteRangeMap` from an iterator of (range,
+	/// value) tuples using [`DiscreteRangeMap::insert_strict()`].
+	///
+	/// May return an `Err` while inserting. See
+	/// [`DiscreteRangeMap::insert_strict()`] for details.
+	///
+	/// # Panics
+	///
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::DiscreteRangeMap;
+	///
+	/// let slice =
+	/// 	[(ie(1, 4), false), (ie(4, 8), true), (ie(8, 100), false)];
+	///
+	/// let map: DiscreteRangeMap<_, _, _> =
+	/// 	DiscreteRangeMap::from_iter_strict(
+	/// 		slice.into_iter().filter(|(range, _)| range.start > 2),
+	/// 	)
+	/// 	.unwrap();
+	/// ```
+	pub fn from_iter_strict(
+		iter: impl Iterator<Item = (K, V)>,
+	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError> {
+		let mut map = DiscreteRangeMap::new();
+		for (range, value) in iter {
+			map.insert_strict(range, value)?;
+		}
+		return Ok(map);
+	}
 }
 
 impl<I, K, V> DiscreteRangeMap<I, K, V> {

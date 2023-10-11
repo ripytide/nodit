@@ -122,6 +122,16 @@ where
 		}
 		return Ok(set);
 	}
+	/// See [`DiscreteRangeMap::from_iter_strict()`] for more details.
+	pub fn from_iter_strict(
+		iter: impl Iterator<Item = K>,
+	) -> Result<DiscreteRangeSet<I, K>, OverlapError> {
+		let mut set = DiscreteRangeSet::new();
+		for range in iter {
+			set.insert_strict(range)?;
+		}
+		return Ok(set);
+	}
 }
 
 impl<I, K> DiscreteRangeSet<I, K> {
