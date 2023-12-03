@@ -286,7 +286,7 @@ pub mod discrete_range_set;
 
 pub use crate::discrete_finite::DiscreteFinite;
 pub use crate::discrete_range_map::{
-	DiscreteRangeMap, InclusiveRange, OverlapError,
+	DiscreteRangeMap, InclusiveRange, OverlapError, PointType, RangeType,
 };
 pub use crate::discrete_range_set::DiscreteRangeSet;
 pub use crate::interval::InclusiveInterval;
