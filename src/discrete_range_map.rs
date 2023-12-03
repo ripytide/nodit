@@ -87,10 +87,27 @@ pub struct DiscreteRangeMap<I, K, V> {
 #[derive(PartialEq, Debug)]
 pub struct OverlapError;
 
+/// The marker trait for valid point types, a blanket implementation is provided for all types
+/// which implement this traits' super-traits so you shouln't need to implement this yourself.
+pub trait PointType: Ord + Copy + DiscreteFinite {}
+impl<I> PointType for I where I: Ord + Copy + DiscreteFinite {}
+/// The marker trait for valid range types, a blanket implementation is provided for all types
+/// which implement this traits' super-traits so you shouln't need to implement this yourself.
+pub trait RangeType<I>:
+	InclusiveRange<I> + Copy + From<InclusiveInterval<I>>
+{
+}
+impl<I, K> RangeType<I> for K
+where
+	I: PointType,
+	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>>,
+{
+}
+
 impl<I, K, V> DiscreteRangeMap<I, K, V>
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>>,
+	I: PointType,
+	K: RangeType<I>,
 {
 	/// Returns `true` if the given range overlaps any of the
 	/// other ranges in the map, and `false` if not.
@@ -118,7 +135,7 @@ where
 	/// ```
 	pub fn overlaps<Q>(&self, range: Q) -> bool
 	where
-		Q: InclusiveRange<I> + Copy,
+		Q: RangeType<I>,
 	{
 		invalid_range_panic(range);
 
@@ -158,7 +175,7 @@ where
 		range: Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &V)>
 	where
-		Q: InclusiveRange<I> + Copy,
+		Q: RangeType<I>,
 	{
 		invalid_range_panic(range);
 
@@ -206,7 +223,7 @@ where
 		range: Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &mut V)>
 	where
-		Q: InclusiveRange<I> + Copy,
+		Q: RangeType<I>,
 	{
 		invalid_range_panic(range);
 
@@ -371,7 +388,7 @@ where
 		range: Q,
 	) -> impl Iterator<Item = (K, V)> + '_
 	where
-		Q: InclusiveRange<I> + Copy + 'a,
+		Q: RangeType<I> + 'a,
 	{
 		invalid_range_panic(range);
 
@@ -435,7 +452,7 @@ where
 		range: Q,
 	) -> impl Iterator<Item = (K, V)> + '_
 	where
-		Q: InclusiveRange<I> + Copy + 'a,
+		Q: RangeType<I> + 'a,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -454,11 +471,18 @@ where
 			.map(|(key, _)| key)
 			.copied();
 
-		if let Some(left) = left_overlapping && let Some(right) = right_overlapping && left.start() == right.start() {
-            Either::Left(self.cut_single_overlapping(range, left))
-        } else {
-            Either::Right(self.cut_non_single_overlapping(range, left_overlapping, right_overlapping))
-        }
+		if let Some(left) = left_overlapping
+			&& let Some(right) = right_overlapping
+			&& left.start() == right.start()
+		{
+			Either::Left(self.cut_single_overlapping(range, left))
+		} else {
+			Either::Right(self.cut_non_single_overlapping(
+				range,
+				left_overlapping,
+				right_overlapping,
+			))
+		}
 	}
 	fn cut_single_overlapping<Q>(
 		&mut self,
@@ -466,7 +490,7 @@ where
 		single_overlapping_range: K,
 	) -> impl Iterator<Item = (K, V)>
 	where
-		Q: InclusiveRange<I> + Copy,
+		Q: RangeType<I>,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -494,7 +518,7 @@ where
 		right_overlapping: Option<K>,
 	) -> impl Iterator<Item = (K, V)> + '_
 	where
-		Q: InclusiveRange<I> + Copy + 'a,
+		Q: RangeType<I> + 'a,
 		V: Clone,
 	{
 		invalid_range_panic(range);
@@ -554,7 +578,7 @@ where
 					value,
 				)
 			}))
-			.chain(keeping_after_entry.into_iter());
+			.chain(keeping_after_entry);
 	}
 
 	/// Returns an iterator of ranges over all the maximally-sized
@@ -587,7 +611,7 @@ where
 	/// ```
 	pub fn gaps<'a, Q>(&'a self, outer_range: Q) -> impl Iterator<Item = K> + '_
 	where
-		Q: InclusiveRange<I> + Copy + 'a,
+		Q: RangeType<I> + 'a,
 	{
 		invalid_range_panic(outer_range);
 
@@ -648,7 +672,7 @@ where
 			.map(K::from)
 			.into_iter()
 			.chain(inner_gaps)
-			.chain(trimmed_end_gap.map(K::from).into_iter());
+			.chain(trimmed_end_gap.map(K::from));
 	}
 
 	/// Returns `true` if the map covers every point in the given
@@ -678,7 +702,7 @@ where
 	/// ```
 	pub fn contains_range<Q>(&self, range: Q) -> bool
 	where
-		Q: InclusiveRange<I> + Copy,
+		Q: RangeType<I>,
 	{
 		invalid_range_panic(range);
 
@@ -1397,8 +1421,8 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 
 fn invalid_range_panic<Q, I>(range: Q)
 where
-	Q: InclusiveRange<I>,
-	I: Ord,
+	I: PointType,
+	Q: RangeType<I>,
 {
 	if !is_valid_range(range) {
 		panic!(
@@ -1409,22 +1433,22 @@ where
 
 fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
 where
-	K: InclusiveRange<I>,
-	I: Ord + DiscreteFinite,
+	I: PointType,
+	K: RangeType<I>,
 {
 	|inner_range: &K, new_range: &K| new_range.start().cmp(&inner_range.start())
 }
 fn overlapping_comp<I, K>(point: I) -> impl FnMut(&K) -> Ordering
 where
-	I: Ord + Copy,
-	K: InclusiveRange<I> + Copy,
+	I: PointType,
+	K: RangeType<I>,
 {
 	move |inner_range: &K| cmp_point_with_range(point, *inner_range)
 }
 fn touching_start_comp<I, K>(start: I) -> impl FnMut(&K) -> Ordering
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: InclusiveRange<I>,
+	I: PointType,
+	K: RangeType<I>,
 {
 	move |inner_range: &K| match inner_range.end().up() {
 		Some(touching_position) => start.cmp(&touching_position),
@@ -1433,8 +1457,8 @@ where
 }
 fn touching_end_comp<I, K>(end: I) -> impl FnMut(&K) -> Ordering
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: InclusiveRange<I>,
+	I: PointType,
+	K: RangeType<I>,
 {
 	move |inner_range: &K| match inner_range.start().down() {
 		Some(touching_position) => end.cmp(&touching_position),
@@ -1449,14 +1473,14 @@ pub trait InclusiveRange<I> {
 
 	fn contains(&self, point: I) -> bool
 	where
-		I: Ord,
+		I: PointType,
 	{
 		point >= self.start() && point <= self.end()
 	}
 
 	fn is_valid(&self) -> bool
 	where
-		I: Ord,
+		I: PointType,
 	{
 		self.start() <= self.end()
 	}
@@ -1464,7 +1488,7 @@ pub trait InclusiveRange<I> {
 	///requires that self comes before other and they don't overlap
 	fn touches_ordered(&self, other: &Self) -> bool
 	where
-		I: DiscreteFinite + Ord,
+		I: PointType,
 	{
 		self.end() == other.start().down().unwrap()
 	}
@@ -1472,7 +1496,7 @@ pub trait InclusiveRange<I> {
 	///requires that self comes before other
 	fn overlaps_ordered(&self, other: &Self) -> bool
 	where
-		I: DiscreteFinite + Ord,
+		I: PointType,
 	{
 		self.contains(other.start()) || self.contains(other.end())
 	}
@@ -1548,8 +1572,8 @@ where
 
 impl<'de, I, K, V> Deserialize<'de> for DiscreteRangeMap<I, K, V>
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>> + Deserialize<'de>,
+	I: PointType,
+	K: RangeType<I> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -1572,8 +1596,8 @@ struct DiscreteRangeMapVisitor<I, K, V> {
 
 impl<'de, I, K, V> Visitor<'de> for DiscreteRangeMapVisitor<I, K, V>
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>> + Deserialize<'de>,
+	I: PointType,
+	K: RangeType<I> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
 	type Value = DiscreteRangeMap<I, K, V>;
@@ -1605,9 +1629,9 @@ mod tests {
 
 	//only every other number to allow mathematical_overlapping_definition
 	//to test between bounds in finite using smaller intervalled finite
-	pub(crate) const NUMBERS: &'static [i8] = &[2, 4, 6, 8, 10];
+	pub(crate) const NUMBERS: &[i8] = &[2, 4, 6, 8, 10];
 	//go a bit around on either side to compensate for Unbounded
-	pub(crate) const NUMBERS_DOMAIN: &'static [i8] =
+	pub(crate) const NUMBERS_DOMAIN: &[i8] =
 		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 	fn basic() -> DiscreteRangeMap<i8, InclusiveInterval<i8>, bool> {
@@ -1728,12 +1752,11 @@ mod tests {
 					expected_overlapping.push(inside_range2);
 				}
 				//make our expected_overlapping the correct order
-				if expected_overlapping.len() > 1 {
-					if expected_overlapping[0].start()
+				if expected_overlapping.len() > 1
+					&& expected_overlapping[0].start()
 						> expected_overlapping[1].start()
-					{
-						expected_overlapping.swap(0, 1);
-					}
+				{
+					expected_overlapping.swap(0, 1);
 				}
 
 				let overlapping = map

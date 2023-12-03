@@ -5,11 +5,9 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::discrete_finite::DiscreteFinite;
 use crate::discrete_range_map::{
-	InclusiveRange, IntoIter as DiscreteRangeMapIntoIter,
+	IntoIter as DiscreteRangeMapIntoIter, PointType, RangeType,
 };
-use crate::interval::InclusiveInterval;
 use crate::{DiscreteRangeMap, OverlapError};
 
 /// An ordered set of non-overlapping ranges based on [`DiscreteRangeMap`].
@@ -30,13 +28,13 @@ pub struct DiscreteRangeSet<I, K> {
 
 impl<I, K> DiscreteRangeSet<I, K>
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>>,
+	I: PointType,
+	K: RangeType<I>,
 {
 	/// See [`DiscreteRangeMap::overlaps()`] for more details.
 	pub fn overlaps<Q>(&self, range: Q) -> bool
 	where
-		Q: InclusiveRange<I> + Copy,
+		Q: RangeType<I>,
 	{
 		self.inner.overlaps(range)
 	}
@@ -46,7 +44,7 @@ where
 		range: Q,
 	) -> impl DoubleEndedIterator<Item = &K>
 	where
-		Q: InclusiveRange<I> + Copy,
+		Q: RangeType<I>,
 	{
 		self.inner.overlapping(range).map(first)
 	}
@@ -64,28 +62,28 @@ where
 		range: Q,
 	) -> impl Iterator<Item = K> + '_
 	where
-		Q: InclusiveRange<I> + Copy + 'a,
+		Q: RangeType<I> + 'a,
 	{
 		self.inner.remove_overlapping(range).map(first)
 	}
 	/// See [`DiscreteRangeMap::cut()`] for more details.
 	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = K> + '_
 	where
-		Q: InclusiveRange<I> + Copy + 'a,
+		Q: RangeType<I> + 'a,
 	{
 		self.inner.cut(range).map(first)
 	}
 	/// See [`DiscreteRangeMap::gaps()`] for more details.
 	pub fn gaps<'a, Q>(&'a self, range: Q) -> impl Iterator<Item = K> + '_
 	where
-		Q: InclusiveRange<I> + Copy + 'a,
+		Q: RangeType<I> + 'a,
 	{
 		self.inner.gaps(range)
 	}
 	/// See [`DiscreteRangeMap::contains_range()`] for more details.
 	pub fn contains_range<Q>(&self, range: Q) -> bool
 	where
-		Q: InclusiveRange<I> + Copy,
+		Q: RangeType<I>,
 	{
 		self.inner.contains_range(range)
 	}
@@ -200,7 +198,7 @@ impl<I, K> Iterator for IntoIter<I, K> {
 
 impl<I, K> Default for DiscreteRangeSet<I, K>
 where
-	I: PartialOrd,
+	I: PointType,
 {
 	fn default() -> Self {
 		DiscreteRangeSet {
@@ -227,8 +225,8 @@ where
 
 impl<'de, I, K> Deserialize<'de> for DiscreteRangeSet<I, K>
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>> + Deserialize<'de>,
+	I: PointType,
+	K: RangeType<I> + Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
@@ -248,8 +246,8 @@ struct DiscreteRangeSetVisitor<I, K> {
 
 impl<'de, I, K> Visitor<'de> for DiscreteRangeSetVisitor<I, K>
 where
-	I: Ord + Copy + DiscreteFinite,
-	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>> + Deserialize<'de>,
+	I: PointType,
+	K: RangeType<I> + Deserialize<'de>,
 {
 	type Value = DiscreteRangeSet<I, K>;
 

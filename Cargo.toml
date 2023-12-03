@@ -17,10 +17,17 @@ keywords = ["data-structures", "map", "data", "library"]
 categories = ["data-structures"]
 
 [dependencies]
-serde = {version = "1.0.188", features = ["derive"]}
-btree_monstrousity = {version ="0.0.4", features = ["btree_drain_filter", "btree_cursors"]}
-either = "1.9.0"
-itertools = "0.11.0"
+serde = { version = "1.0.193", features = ["derive"], default-features = false }
+btree_monstrousity = { version = "0.0.4", features = [
+	"btree_drain_filter",
+	"btree_cursors",
+], default-features = false }
+either = { version = "1.9.0", default-features = false }
+itertools = { version = "0.12.0", default-features = false }
 
 [dev-dependencies]
 pretty_assertions = "1.3.0"
+
+[features]
+default = ["std"]
+std = ["either/use_std", "itertools/use_std", "serde/std"]
