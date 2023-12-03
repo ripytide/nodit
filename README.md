@@ -13,6 +13,8 @@ This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
 Data Structures for storing non-overlapping discrete intervals based
 off [`BTreeMap`].
 
+`no_std` is supported and should work with the default features.
+
 ## You must implement `Copy`
 
 Due to implementation complications with non-`Copy` types the
@@ -38,22 +40,24 @@ assert_eq!(map.contains_point(5), true);
 ## Example using a custom range type
 
 ```rust
+use std::ops::{Bound, RangeBounds};
+
 use discrete_range_map::test_ranges::ie;
 use discrete_range_map::{
-	DiscreteFinite, Interval, DiscreteRangeMap,
-	FiniteRange,
+	DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
+	InclusiveRange,
 };
 
 #[derive(Debug, Copy, Clone)]
 enum Reservation {
-	// Start, End (Inclusive-Exclusive)
+	// Start, End (Inclusive-Inclusive)
 	Finite(i8, i8),
-	// Start (Inclusive-Forever)
+	// Start (Inclusive-Infinity)
 	Infinite(i8),
 }
 
-// First, we need to implement FiniteRange
-impl FiniteRange<i8> for Reservation {
+// First, we need to implement InclusiveRange
+impl InclusiveRange<i8> for Reservation {
 	fn start(&self) -> i8 {
 		match self {
 			Reservation::Finite(start, _) => *start,
@@ -62,23 +66,21 @@ impl FiniteRange<i8> for Reservation {
 	}
 	fn end(&self) -> i8 {
 		match self {
-			//the end is exclusive so we take off 1 with checking
-			//for compile time error overflow detection
-			Reservation::Finite(_, end) => end.down().unwrap(),
+			Reservation::Finite(_, end) => *end,
 			Reservation::Infinite(_) => i8::MAX,
 		}
 	}
 }
 
-// Second, we need to implement From<Interval<i8>>
-impl From<Interval<i8>> for Reservation {
-	fn from(bounds: Interval<i8>) -> Self {
-		if bounds.end == i8::MAX {
-			Reservation::Infinite(bounds.start)
+// Second, we need to implement From<InclusiveInterval<i8>>
+impl From<InclusiveInterval<i8>> for Reservation {
+	fn from(value: InclusiveInterval<i8>) -> Self {
+		if value.end == i8::MAX {
+			Reservation::Infinite(value.start)
 		} else {
 			Reservation::Finite(
-				bounds.start,
-				bounds.end.up().unwrap(),
+				value.start,
+				value.end.up().unwrap(),
 			)
 		}
 	}
@@ -87,7 +89,7 @@ impl From<Interval<i8>> for Reservation {
 // Next we can create a custom typed DiscreteRangeMap
 let reservation_map = DiscreteRangeMap::from_slice_strict([
 	(Reservation::Finite(10, 20), "Ferris".to_string()),
-	(Reservation::Infinite(20), "Corro".to_string()),
+	(Reservation::Infinite(21), "Corro".to_string()),
 ])
 .unwrap();
 
@@ -177,6 +179,9 @@ When a range "merges" other ranges it absorbs them to become larger.
 
 See Wikipedia's article on mathematical Intervals:
 <https://en.wikipedia.org/wiki/Interval_(mathematics)>
+
+# Features
+This crate currently has no features.
 
 # Credit
 

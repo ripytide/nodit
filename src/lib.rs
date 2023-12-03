@@ -21,6 +21,8 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! Data Structures for storing non-overlapping discrete intervals based
 //! off [`BTreeMap`].
 //!
+//! `no_std` is supported and should work with the default features.
+//!
 //! ## You must implement `Copy`
 //!
 //! Due to implementation complications with non-`Copy` types the
@@ -186,6 +188,9 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! See Wikipedia's article on mathematical Intervals:
 //! <https://en.wikipedia.org/wiki/Interval_(mathematics)>
 //!
+//! # Features
+//! This crate currently has no features.
+//!
 //! # Credit
 //!
 //! I originally came up with the `StartBound`: [`Ord`] bodge on my own,
@@ -266,7 +271,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 #![feature(step_trait)]
 #![allow(clippy::tabs_in_doc_comments)]
 #![allow(clippy::needless_return)]
-#![cfg_attr(not(any(feature = "std", test)), no_std)]
+#![cfg_attr(not(feature = "test"), no_std)]
 
 extern crate alloc;
 
