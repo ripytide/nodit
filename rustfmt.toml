@@ -1,4 +1,4 @@
-edition="2024"
+edition="2021"
 version = "Two"
 hard_tabs=true
 imports_granularity="Module"

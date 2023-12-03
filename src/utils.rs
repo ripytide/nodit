@@ -17,16 +17,15 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::cmp::Ordering;
+use core::cmp::Ordering;
 
-use crate::discrete_finite::DiscreteFinite;
-use crate::discrete_range_map::InclusiveRange;
+use crate::discrete_range_map::{PointType, RangeType};
 use crate::interval::InclusiveInterval;
 
 pub(crate) fn cmp_point_with_range<I, K>(point: I, range: K) -> Ordering
 where
-	I: Ord,
-	K: InclusiveRange<I>,
+	I: PointType,
+	K: RangeType<I>,
 {
 	if point < range.start() {
 		Ordering::Less
@@ -49,9 +48,9 @@ pub(crate) enum Config {
 }
 pub(crate) fn config<I, A, B>(a: A, b: B) -> Config
 where
-	A: InclusiveRange<I> + Copy,
-	B: InclusiveRange<I> + Copy,
-	I: Ord,
+	I: PointType,
+	A: RangeType<I>,
+	B: RangeType<I>,
 {
 	if a.start() < b.start() {
 		match (contains_point(a, b.start()), contains_point(a, b.end())) {
@@ -77,9 +76,9 @@ enum SortedConfig<I> {
 }
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
-	A: InclusiveRange<I> + Copy,
-	B: InclusiveRange<I> + Copy,
-	I: Ord,
+	I: PointType,
+	A: RangeType<I>,
+	B: RangeType<I>,
 {
 	let ae = InclusiveInterval {
 		start: a.start(),
@@ -104,10 +103,10 @@ where
 	}
 }
 
-pub(crate) fn contains_point<I, A>(range: A, point: I) -> bool
+pub(crate) fn contains_point<I, K>(range: K, point: I) -> bool
 where
-	A: InclusiveRange<I>,
-	I: Ord,
+	I: PointType,
+	K: RangeType<I>,
 {
 	cmp_point_with_range(point, range).is_eq()
 }
@@ -118,11 +117,11 @@ pub(crate) struct CutResult<I> {
 	pub(crate) inside_cut: Option<InclusiveInterval<I>>,
 	pub(crate) after_cut: Option<InclusiveInterval<I>>,
 }
-pub(crate) fn cut_range<I, B, C>(base: B, cut: C) -> CutResult<I>
+pub(crate) fn cut_range<I, A, B>(base: A, cut: B) -> CutResult<I>
 where
-	B: InclusiveRange<I> + Copy,
-	C: InclusiveRange<I> + Copy,
-	I: Ord + Copy + DiscreteFinite,
+	I: PointType,
+	A: RangeType<I>,
+	B: RangeType<I>,
 {
 	let mut result = CutResult {
 		before_cut: None,
@@ -200,17 +199,17 @@ where
 
 pub(crate) fn is_valid_range<I, K>(range: K) -> bool
 where
-	I: Ord,
-	K: InclusiveRange<I>,
+	I: PointType,
+	K: RangeType<I>,
 {
 	range.start() <= range.end()
 }
 
 pub(crate) fn overlaps<I, A, B>(a: A, b: B) -> bool
 where
-	A: InclusiveRange<I> + Copy,
-	B: InclusiveRange<I> + Copy,
-	I: Ord,
+	I: PointType,
+	A: RangeType<I>,
+	B: RangeType<I>,
 {
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }

@@ -17,10 +17,14 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::cmp::Ordering;
-use std::fmt::{self, Debug};
-use std::iter::once;
-use std::marker::PhantomData;
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+
+extern crate alloc;
+
+use core::cmp::Ordering;
+use core::fmt::{self, Debug};
+use core::iter::once;
+use core::marker::PhantomData;
 
 use btree_monstrousity::btree_map::{
 	IntoIter as BTreeMapIntoIter, SearchBoundCustom,

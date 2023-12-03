@@ -17,12 +17,11 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::ops::{Bound, RangeBounds};
+use core::ops::{Bound, RangeBounds};
 
 use serde::{Deserialize, Serialize};
 
-use crate::discrete_range_map::InclusiveRange;
-use crate::DiscreteFinite;
+use crate::discrete_range_map::{InclusiveRange, PointType};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct InclusiveInterval<I> {
@@ -30,11 +29,11 @@ pub struct InclusiveInterval<I> {
 	pub end: I,
 }
 
-impl<I> InclusiveInterval<I> where I: Ord + DiscreteFinite + Copy {}
+impl<I> InclusiveInterval<I> where I: PointType {}
 
 impl<I> RangeBounds<I> for InclusiveInterval<I>
 where
-	I: Copy,
+	I: PointType,
 {
 	fn start_bound(&self) -> Bound<&I> {
 		Bound::Included(&self.start)
@@ -47,7 +46,7 @@ where
 
 impl<I> InclusiveRange<I> for InclusiveInterval<I>
 where
-	I: Copy,
+	I: PointType,
 {
 	fn start(&self) -> I {
 		self.start

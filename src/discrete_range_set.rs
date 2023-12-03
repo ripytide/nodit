@@ -1,5 +1,5 @@
-use std::fmt;
-use std::marker::PhantomData;
+use core::fmt;
+use core::marker::PhantomData;
 
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
