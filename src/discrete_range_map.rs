@@ -1502,6 +1502,44 @@ pub trait InclusiveRange<I> {
 		self.contains(other.start()) || self.contains(other.end())
 	}
 
+	// Intersect the range with the other one, and return Some if the intersection is not empty.
+	fn intersect(&self, other: &Self) -> Option<Self>
+	where
+		I: PointType,
+		Self: From<InclusiveInterval<I>>,
+	{
+		let intersect_start = I::max(self.start(), other.start());
+		let intersect_end = I::min(self.end(), other.end());
+		if intersect_start <= intersect_end {
+			Some(Self::from(InclusiveInterval {
+				start: intersect_start,
+				end: intersect_end,
+			}))
+		} else {
+			None
+		}
+	}
+
+	fn translate(&self, delta: I) -> Self
+	where
+		I: PointType,
+		I: core::ops::Add<Output = I>,
+		Self: From<InclusiveInterval<I>>,
+	{
+		Self::from(InclusiveInterval {
+			start: self.start() + delta,
+			end: self.end() + delta,
+		})
+	}
+
+	fn size(&self) -> I
+	where
+		I: PointType,
+		I: core::ops::Sub<Output = I>,
+	{
+		(self.end() - self.start()).up().unwrap()
+	}
+
 	///requires that self comes before other
 	fn merge_ordered(&self, other: &Self) -> Self
 	where
@@ -2270,6 +2308,36 @@ mod tests {
 		if let Some(x) = result.after_cut {
 			assert!(is_valid_range(x));
 		}
+	}
+
+	#[test]
+	fn test_intersection() {
+		let input = InclusiveInterval { start: 5, end: 10 };
+		assert_eq!(
+			input.intersect(&InclusiveInterval { start: 8, end: 13 }),
+			Some(InclusiveInterval { start: 8, end: 10 })
+		);
+		assert_eq!(
+			input.intersect(&InclusiveInterval { start: 10, end: 13 }),
+			Some(InclusiveInterval { start: 10, end: 10 })
+		);
+		assert_eq!(
+			input.intersect(&InclusiveInterval { start: 11, end: 13 }),
+			None
+		);
+	}
+
+	#[test]
+	fn test_translate() {
+		let input = InclusiveInterval { start: 5, end: 10 };
+		assert_eq!(input.translate(3), InclusiveInterval { start: 8, end: 13 });
+		assert_eq!(input.translate(-2), InclusiveInterval { start: 3, end: 8 });
+	}
+
+	#[test]
+	fn test_size() {
+		assert_eq!(InclusiveInterval { start: 5, end: 10 }.size(), 6);
+		assert_eq!(InclusiveInterval { start: 6, end: 6 }.size(), 1);
 	}
 
 	// Test Helper Functions
