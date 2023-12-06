@@ -1,6 +1,6 @@
 [package]
 name = "discrete_range_map"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
