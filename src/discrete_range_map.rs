@@ -1486,7 +1486,7 @@ pub trait InclusiveRange<I> {
 		self.start() <= self.end()
 	}
 
-	///requires that self comes before other and they don't overlap
+	/// requires that self comes before other and they don't overlap
 	fn touches_ordered(&self, other: &Self) -> bool
 	where
 		I: PointType,
@@ -1494,7 +1494,7 @@ pub trait InclusiveRange<I> {
 		self.end() == other.start().down().unwrap()
 	}
 
-	///requires that self comes before other
+	/// requires that self comes before other
 	fn overlaps_ordered(&self, other: &Self) -> bool
 	where
 		I: PointType,
@@ -1502,7 +1502,7 @@ pub trait InclusiveRange<I> {
 		self.contains(other.start()) || self.contains(other.end())
 	}
 
-	// Intersect the range with the other one, and return Some if the intersection is not empty.
+	/// Intersect the range with the other one, and return Some if the intersection is not empty.
 	fn intersect(&self, other: &Self) -> Option<Self>
 	where
 		I: PointType,
@@ -1520,6 +1520,7 @@ pub trait InclusiveRange<I> {
 		}
 	}
 
+	/// Move the entire range by the given amount.
 	fn translate(&self, delta: I) -> Self
 	where
 		I: PointType,
@@ -1532,6 +1533,7 @@ pub trait InclusiveRange<I> {
 		})
 	}
 
+	/// The amount between the start and the end points of the range.
 	fn size(&self) -> I
 	where
 		I: PointType,
@@ -1540,7 +1542,7 @@ pub trait InclusiveRange<I> {
 		(self.end() - self.start()).up().unwrap()
 	}
 
-	///requires that self comes before other
+	/// requires that self comes before other
 	fn merge_ordered(&self, other: &Self) -> Self
 	where
 		Self: From<InclusiveInterval<I>>,
