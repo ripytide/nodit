@@ -85,10 +85,13 @@ pub struct DiscreteRangeMap<I, K, V> {
 	phantom: PhantomData<I>,
 }
 
-/// An error type to represent a range overlapping another range when
-/// it should not have.
+/// The error returned when inserting a range that overlaps another range when
+/// it should not have. Contains the value that was not inserted.
 #[derive(PartialEq, Debug)]
-pub struct OverlapError;
+pub struct OverlapError<V> {
+	/// The value which was not inserted, because of the overlap error.
+	pub value: V,
+}
 
 /// A compatibility type used in [`RangeType`] for allowing the library to
 /// create the custom K type used in the map when necessary.
@@ -768,18 +771,21 @@ where
 	/// let mut map = DiscreteRangeMap::new();
 	///
 	/// assert_eq!(map.insert_strict(ie(5, 10), 9), Ok(()));
-	/// assert_eq!(map.insert_strict(ie(5, 10), 2), Err(OverlapError));
+	/// assert_eq!(
+	/// 	map.insert_strict(ie(5, 10), 2),
+	/// 	Err(OverlapError { value: 2 })
+	/// );
 	/// assert_eq!(map.len(), 1);
 	/// ```
 	pub fn insert_strict(
 		&mut self,
 		range: K,
 		value: V,
-	) -> Result<(), OverlapError> {
+	) -> Result<(), OverlapError<V>> {
 		invalid_range_panic(range);
 
 		if self.overlaps(range) {
-			return Err(OverlapError);
+			return Err(OverlapError { value });
 		}
 
 		self.insert_unchecked(range, value);
@@ -877,7 +883,7 @@ where
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching(ie(4, 8), false),
-	/// 	Err(OverlapError),
+	/// 	Err(OverlapError { value: false }),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -895,11 +901,11 @@ where
 		&mut self,
 		range: K,
 		value: V,
-	) -> Result<K, OverlapError> {
+	) -> Result<K, OverlapError<V>> {
 		invalid_range_panic(range);
 
 		if self.overlaps(range) {
-			return Err(OverlapError);
+			return Err(OverlapError { value });
 		}
 
 		Ok(self.insert_merge_with_comps(
@@ -965,7 +971,7 @@ where
 	/// // Overlapping
 	/// assert_eq!(
 	/// 	map.insert_merge_touching_if_values_equal(ie(4, 8), false),
-	/// 	Err(OverlapError),
+	/// 	Err(OverlapError { value: false }),
 	/// );
 	///
 	/// // Neither Touching or Overlapping
@@ -983,14 +989,14 @@ where
 		&mut self,
 		range: K,
 		value: V,
-	) -> Result<K, OverlapError>
+	) -> Result<K, OverlapError<V>>
 	where
 		V: Eq,
 	{
 		invalid_range_panic(range);
 
 		if self.overlaps(range) {
-			return Err(OverlapError);
+			return Err(OverlapError { value });
 		}
 
 		let get_start = |selfy: &Self, value: &V| {
@@ -1260,7 +1266,7 @@ where
 	/// ```
 	pub fn from_slice_strict<const N: usize>(
 		slice: [(K, V); N],
-	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError> {
+	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError<V>> {
 		let mut map = DiscreteRangeMap::new();
 		for (range, value) in slice {
 			map.insert_strict(range, value)?;
@@ -1296,7 +1302,7 @@ where
 	/// ```
 	pub fn from_iter_strict(
 		iter: impl Iterator<Item = (K, V)>,
-	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError> {
+	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError<V>> {
 		let mut map = DiscreteRangeMap::new();
 		for (range, value) in iter {
 			map.insert_strict(range, value)?;
@@ -1511,7 +1517,7 @@ pub trait InclusiveRange<I> {
 	/// The end of the range, inclusive.
 	fn end(&self) -> I;
 
-    /// Does the range contain the given point?
+	/// Does the range contain the given point?
 	fn contains(&self, point: I) -> bool
 	where
 		I: PointType,
@@ -1519,8 +1525,8 @@ pub trait InclusiveRange<I> {
 		point >= self.start() && point <= self.end()
 	}
 
-    /// Is the range is valid, which according to this crate means `start()`
-    /// <= `end()`
+	/// Is the range is valid, which according to this crate means `start()`
+	/// <= `end()`
 	fn is_valid(&self) -> bool
 	where
 		I: PointType,
@@ -1740,19 +1746,19 @@ mod tests {
 		assert_insert_strict(
 			basic(),
 			(ii(0, 4), false),
-			Err(OverlapError),
+			Err(OverlapError { value: false }),
 			basic_slice(),
 		);
 		assert_insert_strict(
 			basic(),
 			(ii(5, 6), false),
-			Err(OverlapError),
+			Err(OverlapError { value: false }),
 			basic_slice(),
 		);
 		assert_insert_strict(
 			basic(),
 			(ii(4, 5), true),
-			Err(OverlapError),
+			Err(OverlapError { value: true }),
 			basic_slice(),
 		);
 		assert_insert_strict(
@@ -1771,7 +1777,7 @@ mod tests {
 	fn assert_insert_strict<const N: usize>(
 		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
 		to_insert: (InclusiveInterval<i8>, bool),
-		result: Result<(), OverlapError>,
+		result: Result<(), OverlapError<bool>>,
 		after: [(InclusiveInterval<i8>, bool); N],
 	) {
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
@@ -1988,7 +1994,7 @@ mod tests {
 		assert_insert_merge_touching(
 			basic(),
 			(ii(0, 4), false),
-			Err(OverlapError),
+			Err(OverlapError { value: false }),
 			[
 				(ui(4), false),
 				(ee(5, 7), true),
@@ -2028,7 +2034,7 @@ mod tests {
 	fn assert_insert_merge_touching<const N: usize>(
 		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
 		to_insert: (InclusiveInterval<i8>, bool),
-		result: Result<InclusiveInterval<i8>, OverlapError>,
+		result: Result<InclusiveInterval<i8>, OverlapError<bool>>,
 		after: [(InclusiveInterval<i8>, bool); N],
 	) {
 		assert_eq!(
@@ -2042,7 +2048,7 @@ mod tests {
 		assert_insert_merge_touching_if_values_equal(
 			basic(),
 			(ii(0, 4), false),
-			Err(OverlapError),
+			Err(OverlapError { value: false }),
 			basic_slice(),
 		);
 		dbg!("hererere");
@@ -2084,7 +2090,7 @@ mod tests {
 	fn assert_insert_merge_touching_if_values_equal<const N: usize>(
 		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
 		to_insert: (InclusiveInterval<i8>, bool),
-		result: Result<InclusiveInterval<i8>, OverlapError>,
+		result: Result<InclusiveInterval<i8>, OverlapError<bool>>,
 		after: [(InclusiveInterval<i8>, bool); N],
 	) {
 		assert_eq!(
