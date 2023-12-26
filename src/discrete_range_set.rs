@@ -1,3 +1,27 @@
+/*
+Copyright 2022,2023 James Forster
+
+This file is part of discrete_range_map.
+
+discrete_range_map is free software: you can redistribute it and/or
+modify it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+discrete_range_map is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+//! The module containing [`DiscreteRangeSet`] and related types. Since
+//! [`DiscreteRangeSet`] is just a wrapper around [`DiscreteRangeMap`], most of
+//! the methods' docs will point towards the equivalent method's docs on
+//! [`DiscreteRangeMap`] to prevent inconsistency.
+
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -5,10 +29,8 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::discrete_range_map::{
-	IntoIter as DiscreteRangeMapIntoIter, PointType, RangeType,
-};
-use crate::{DiscreteRangeMap, OverlapError};
+use crate::discrete_range_map::IntoIter as DiscreteRangeMapIntoIter;
+use crate::{DiscreteRangeMap, OverlapError, PointType, RangeType};
 
 /// An ordered set of non-overlapping ranges based on [`DiscreteRangeMap`].
 ///

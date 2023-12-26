@@ -17,11 +17,14 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
+//! The module containing [`DiscreteRangeMap`] and related types.
+
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::fmt::{self, Debug};
 use core::iter::once;
 use core::marker::PhantomData;
+use core::ops::{Bound, RangeBounds};
 
 use btree_monstrousity::btree_map::{
 	IntoIter as BTreeMapIntoIter, SearchBoundCustom,
@@ -33,9 +36,8 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::discrete_finite::DiscreteFinite;
-use crate::interval::InclusiveInterval;
 use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
+use crate::DiscreteFinite;
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
 ///
@@ -88,10 +90,45 @@ pub struct DiscreteRangeMap<I, K, V> {
 #[derive(PartialEq, Debug)]
 pub struct OverlapError;
 
+/// A compatibility type used in [`RangeType`] for allowing the library to
+/// create the custom K type used in the map when necessary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct InclusiveInterval<I> {
+	/// The start of the interval, inclusive.
+	pub start: I,
+	/// The end of the interval, inclusive.
+	pub end: I,
+}
+impl<I> RangeBounds<I> for InclusiveInterval<I>
+where
+	I: PointType,
+{
+	fn start_bound(&self) -> Bound<&I> {
+		Bound::Included(&self.start)
+	}
+
+	fn end_bound(&self) -> Bound<&I> {
+		Bound::Included(&self.end)
+	}
+}
+impl<I> InclusiveRange<I> for InclusiveInterval<I>
+where
+	I: PointType,
+{
+	fn start(&self) -> I {
+		self.start
+	}
+
+	fn end(&self) -> I {
+		self.end
+	}
+}
+
 /// The marker trait for valid point types, a blanket implementation is provided for all types
 /// which implement this traits' super-traits so you shouln't need to implement this yourself.
 pub trait PointType: Ord + Copy + DiscreteFinite {}
 impl<I> PointType for I where I: Ord + Copy + DiscreteFinite {}
+
 /// The marker trait for valid range types, a blanket implementation is provided for all types
 /// which implement this traits' super-traits so you shouln't need to implement this yourself.
 pub trait RangeType<I>:
@@ -1469,9 +1506,12 @@ where
 
 /// A range that has **Inclusive** end-points.
 pub trait InclusiveRange<I> {
+	/// The start of the range, inclusive.
 	fn start(&self) -> I;
+	/// The end of the range, inclusive.
 	fn end(&self) -> I;
 
+    /// Does the range contain the given point?
 	fn contains(&self, point: I) -> bool
 	where
 		I: PointType,
@@ -1479,6 +1519,8 @@ pub trait InclusiveRange<I> {
 		point >= self.start() && point <= self.end()
 	}
 
+    /// Is the range is valid, which according to this crate means `start()`
+    /// <= `end()`
 	fn is_valid(&self) -> bool
 	where
 		I: PointType,
@@ -1486,7 +1528,7 @@ pub trait InclusiveRange<I> {
 		self.start() <= self.end()
 	}
 
-	/// requires that self comes before other and they don't overlap
+	/// Requires that self comes before other and they don't overlap
 	fn touches_ordered(&self, other: &Self) -> bool
 	where
 		I: PointType,
@@ -1494,7 +1536,7 @@ pub trait InclusiveRange<I> {
 		self.end() == other.start().down().unwrap()
 	}
 
-	/// requires that self comes before other
+	/// Requires that self comes before other
 	fn overlaps_ordered(&self, other: &Self) -> bool
 	where
 		I: PointType,
@@ -1542,7 +1584,7 @@ pub trait InclusiveRange<I> {
 		(self.end() - self.start()).up().unwrap()
 	}
 
-	/// requires that self comes before other
+	/// Requires that self comes before other
 	fn merge_ordered(&self, other: &Self) -> Self
 	where
 		Self: From<InclusiveInterval<I>>,
@@ -1770,7 +1812,7 @@ mod tests {
 					dbg!(overlap_range, inside_range);
 					dbg!(overlapping, expected_overlapping);
 					panic!(
-						"Discrepency in .overlapping() with single inside range detected!"
+						"Discrepancy in .overlapping() with single inside range detected!"
 					);
 				}
 			}
@@ -1810,7 +1852,7 @@ mod tests {
 					dbg!(overlap_range, inside_range1, inside_range2);
 					dbg!(overlapping, expected_overlapping);
 					panic!(
-						"Discrepency in .overlapping() with two inside ranges detected!"
+						"Discrepancy in .overlapping() with two inside ranges detected!"
 					);
 				}
 			}
@@ -2224,7 +2266,7 @@ mod tests {
 				if our_answer != mathematical_definition_of_overlap {
 					dbg!(range1, range2);
 					dbg!(mathematical_definition_of_overlap, our_answer);
-					panic!("Discrepency in overlaps() detected!");
+					panic!("Discrepancy in overlaps() detected!");
 				}
 			}
 		}

@@ -127,7 +127,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! `String` is a `Continuous` if you try to parse it as a decimal value.
 //!
 //! The reason for this is that common [`interval-Mathematics`] operations
-//! differ depending on wether the underlying type is `Discrete` or
+//! differ depending on whether the underlying type is `Discrete` or
 //! `Continuous`. For example `5..=6` touches `7..=8` since integers are
 //! `Discrete` but `5.0..=6.0` does **not** touch `7.0..=8.0` since the
 //! value `6.5` exists.
@@ -165,7 +165,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! | 0..0                                   | NO    |
 //! | 0..1                                   | YES   |
 //! | 9..8                                   | NO    |
-//! | (Bound::Exluded(3), Bound::Exluded(4)) | NO    |
+//! | (Bound::Excluded(3), Bound::Excluded(4)) | NO    |
 //! | 400..=400                              | YES   |
 //!
 //! ### Overlap
@@ -275,18 +275,16 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 
 extern crate alloc;
 
-pub mod test_ranges;
 pub(crate) mod utils;
 
 pub mod discrete_finite;
-pub mod interval;
-
 pub mod discrete_range_map;
 pub mod discrete_range_set;
+pub mod test_ranges;
 
 pub use crate::discrete_finite::DiscreteFinite;
 pub use crate::discrete_range_map::{
-	DiscreteRangeMap, InclusiveRange, OverlapError, PointType, RangeType,
+	DiscreteRangeMap, InclusiveInterval, InclusiveRange, OverlapError,
+	PointType, RangeType,
 };
 pub use crate::discrete_range_set::DiscreteRangeSet;
-pub use crate::interval::InclusiveInterval;

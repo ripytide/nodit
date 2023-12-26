@@ -17,13 +17,23 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
+//! A module containing the [`DiscreteFinite`] trait and trait impls for the
+//! primitive integer datatypes.
+
+/// A trait for things which are both discrete and finite datatypes. See the
+/// top-level module documentation for more detailed descriptions on
+/// discrete-ness and finite-ness.
 pub trait DiscreteFinite {
+	/// The minimum value of the type.
 	const MIN: Self;
+	/// The maximum value of the type.
 	const MAX: Self;
 
+	/// The smallest value greater than `self` if one exists.
 	fn up(self) -> Option<Self>
 	where
 		Self: Sized;
+	/// The greatest value smaller than `self` if one exists.
 	fn down(self) -> Option<Self>
 	where
 		Self: Sized;

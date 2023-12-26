@@ -27,3 +27,6 @@ itertools = { version = "0.12.0", default-features = false }
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
+
+[lints.rust]
+missing_docs = "deny"
