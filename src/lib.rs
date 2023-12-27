@@ -367,6 +367,8 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
 //! [`num_bigint`]: https://docs.rs/num-bigint
 //! [`get_entry_at_point()`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html#method.get_entry_at_point
+//! [`DiscreteRangeMap`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html#
+//! [`DiscreteRangeSet`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_set/struct.DiscreteRangeSet.html#
 
 #![feature(let_chains)]
 #![feature(btree_cursors)]
