@@ -275,7 +275,8 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! ### Overlap
 //!
 //! Two ranges are "overlapping" if there exists a point that is contained
-//! within both ranges.
+//! within both ranges. For example, `2..4` and `2..6` overlap but `2..4`
+//! and `4..8` do not.
 //!
 //! ### Touching
 //!

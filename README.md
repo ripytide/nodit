@@ -272,7 +272,8 @@ Here are a few examples of ranges and whether they are valid:
 ### Overlap
 
 Two ranges are "overlapping" if there exists a point that is contained
-within both ranges.
+within both ranges. For example, `2..4` and `2..6` overlap but `2..4`
+and `4..8` do not.
 
 ### Touching
 
