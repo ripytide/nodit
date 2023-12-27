@@ -357,7 +357,7 @@ where
 	}
 
 	/// Removes every entry in the map which overlaps the given range
-	/// and returns them in an iterator.
+	/// and returns them in an iterator in ascending order.
 	///
 	/// # Panics
 	///
@@ -416,7 +416,7 @@ where
 	}
 
 	/// Cuts a given range out of the map and returns an iterator of
-	/// the full or partial ranges that were cut.
+	/// the full or partial ranges that were cut in ascending order.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
 	/// of a range in the map it will split into two different entries
@@ -584,8 +584,9 @@ where
 			.chain(keeping_after_entry);
 	}
 
-	/// Returns an iterator of ranges over all the maximally-sized
-	/// gaps in the map that are also within the given `outer_range`.
+	/// Returns an iterator of ranges over all the maximally-sized gaps in
+	/// the map that are also within the given `outer_range` in ascending
+	/// order.
 	///
 	/// # Panics
 	///
@@ -1164,6 +1165,9 @@ where
 
 	/// Adds a new entry to the map and overwrites any other ranges
 	/// that overlap the new range.
+	///
+	/// Returns an iterator over the full or partial cut entries in
+	/// ascending order.
 	///
 	/// This is equivalent to using [`DiscreteRangeMap::cut()`]
 	/// followed by [`DiscreteRangeMap::insert_strict()`]. Hence the
