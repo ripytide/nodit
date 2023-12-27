@@ -44,73 +44,73 @@ use std::ops::{Bound, RangeBounds};
 
 use discrete_range_map::test_ranges::ie;
 use discrete_range_map::{
-	DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
-	InclusiveRange,
+    DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
+    InclusiveRange,
 };
 
 #[derive(Debug, Copy, Clone)]
 enum Reservation {
-	// Start, End (Inclusive-Inclusive)
-	Finite(i8, i8),
-	// Start (Inclusive-Infinity)
-	Infinite(i8),
+    // Start, End (Inclusive-Inclusive)
+    Finite(i8, i8),
+    // Start (Inclusive-Infinity)
+    Infinite(i8),
 }
 
 // First, we need to implement InclusiveRange
 impl InclusiveRange<i8> for Reservation {
-	fn start(&self) -> i8 {
-		match self {
-			Reservation::Finite(start, _) => *start,
-			Reservation::Infinite(start) => *start,
-		}
-	}
-	fn end(&self) -> i8 {
-		match self {
-			Reservation::Finite(_, end) => *end,
-			Reservation::Infinite(_) => i8::MAX,
-		}
-	}
+    fn start(&self) -> i8 {
+        match self {
+            Reservation::Finite(start, _) => *start,
+            Reservation::Infinite(start) => *start,
+        }
+    }
+    fn end(&self) -> i8 {
+        match self {
+            Reservation::Finite(_, end) => *end,
+            Reservation::Infinite(_) => i8::MAX,
+        }
+    }
 }
 
 // Second, we need to implement From<InclusiveInterval<i8>>
 impl From<InclusiveInterval<i8>> for Reservation {
-	fn from(value: InclusiveInterval<i8>) -> Self {
-		if value.end == i8::MAX {
-			Reservation::Infinite(value.start)
-		} else {
-			Reservation::Finite(
-				value.start,
-				value.end.up().unwrap(),
-			)
-		}
-	}
+    fn from(value: InclusiveInterval<i8>) -> Self {
+        if value.end == i8::MAX {
+            Reservation::Infinite(value.start)
+        } else {
+            Reservation::Finite(
+                value.start,
+                value.end.up().unwrap(),
+            )
+        }
+    }
 }
 
 // Next we can create a custom typed DiscreteRangeMap
 let reservation_map = DiscreteRangeMap::from_slice_strict([
-	(Reservation::Finite(10, 20), "Ferris".to_string()),
-	(Reservation::Infinite(21), "Corro".to_string()),
+    (Reservation::Finite(10, 20), "Ferris".to_string()),
+    (Reservation::Infinite(21), "Corro".to_string()),
 ])
 .unwrap();
 
 for (reservation, name) in reservation_map.overlapping(ie(16, 17))
 {
-	println!(
-		"{name} has reserved {reservation:?} inside the range 16..17"
-	);
+    println!(
+        "{name} has reserved {reservation:?} inside the range 16..17"
+    );
 }
 
 for (reservation, name) in reservation_map.iter() {
-	println!("{name} has reserved {reservation:?}");
+    println!("{name} has reserved {reservation:?}");
 }
 
 assert_eq!(
-	reservation_map.overlaps(Reservation::Infinite(0)),
-	true
+    reservation_map.overlaps(Reservation::Infinite(0)),
+    true
 );
 ```
 
-## Key Understandings and Philosophies:
+## Key Understandings and Philosophies
 
 ### Discrete-ness
 
@@ -146,74 +146,74 @@ use discrete_range_map::DiscreteFinite;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum WithInfinity<T> {
-	Finite(T),
-	Infinity,
+    Finite(T),
+    Infinity,
 }
 
 impl<T> Ord for WithInfinity<T>
 where
-	T: Ord,
+    T: Ord,
 {
-	fn cmp(&self, other: &Self) -> Ordering {
-		match (self, other) {
-			(
-				WithInfinity::Finite(x),
-				WithInfinity::Finite(y),
-			) => x.cmp(y),
-			(WithInfinity::Finite(_), WithInfinity::Infinity) => {
-				Ordering::Less
-			}
-			(WithInfinity::Infinity, WithInfinity::Finite(_)) => {
-				Ordering::Greater
-			}
-			(WithInfinity::Infinity, WithInfinity::Infinity) => {
-				Ordering::Equal
-			}
-		}
-	}
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (
+                WithInfinity::Finite(x),
+                WithInfinity::Finite(y),
+            ) => x.cmp(y),
+            (WithInfinity::Finite(_), WithInfinity::Infinity) => {
+                Ordering::Less
+            }
+            (WithInfinity::Infinity, WithInfinity::Finite(_)) => {
+                Ordering::Greater
+            }
+            (WithInfinity::Infinity, WithInfinity::Infinity) => {
+                Ordering::Equal
+            }
+        }
+    }
 }
 
 impl<T> PartialOrd for WithInfinity<T>
 where
-	T: Ord,
+    T: Ord,
 {
-	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.cmp(other))
-	}
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl<T> DiscreteFinite for WithInfinity<T>
 where
-	T: DiscreteFinite,
+    T: DiscreteFinite,
 {
-	const MIN: Self = WithInfinity::Finite(T::MIN);
-	const MAX: Self = WithInfinity::Infinity;
+    const MIN: Self = WithInfinity::Finite(T::MIN);
+    const MAX: Self = WithInfinity::Infinity;
 
-	fn up(self) -> Option<Self>
-	where
-		Self: Sized,
-	{
-		match self {
-			WithInfinity::Finite(x) => match x.up() {
-				Some(y) => Some(WithInfinity::Finite(y)),
-				None => Some(WithInfinity::Infinity),
-			},
-			WithInfinity::Infinity => None,
-		}
-	}
-	fn down(self) -> Option<Self>
-	where
-		Self: Sized,
-	{
-		match self {
-			WithInfinity::Finite(x) => {
-				Some(WithInfinity::Finite(x.down()?))
-			}
-			WithInfinity::Infinity => {
-				Some(WithInfinity::Finite(T::MAX))
-			}
-		}
-	}
+    fn up(self) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        match self {
+            WithInfinity::Finite(x) => match x.up() {
+                Some(y) => Some(WithInfinity::Finite(y)),
+                None => Some(WithInfinity::Infinity),
+            },
+            WithInfinity::Infinity => None,
+        }
+    }
+    fn down(self) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        match self {
+            WithInfinity::Finite(x) => {
+                Some(WithInfinity::Finite(x.down()?))
+            }
+            WithInfinity::Infinity => {
+                Some(WithInfinity::Finite(T::MAX))
+            }
+        }
+    }
 }
 
 // And then you this means you can be explicit with when
@@ -223,19 +223,19 @@ where
 use discrete_range_map::{DiscreteRangeMap, InclusiveInterval};
 
 let map: DiscreteRangeMap<
-	WithInfinity<u8>,
-	InclusiveInterval<WithInfinity<u8>>,
-	bool,
+    WithInfinity<u8>,
+    InclusiveInterval<WithInfinity<u8>>,
+    bool,
 > = DiscreteRangeMap::new();
 
 let mut gap = map.get_entry_at_point(WithInfinity::Finite(4));
 
 assert_eq!(
-	gap,
-	Err(InclusiveInterval {
-		start: WithInfinity::Finite(0),
-		end: WithInfinity::Infinity,
-	})
+    gap,
+    Err(InclusiveInterval {
+        start: WithInfinity::Finite(0),
+        end: WithInfinity::Infinity,
+    })
 );
 ```
 
@@ -278,21 +278,23 @@ value between them. For example, `2..4` and `4..6` are touching but
 See Wikipedia's article on mathematical Intervals:
 <https://en.wikipedia.org/wiki/Interval_(mathematics)>
 
-# Features This crate currently has no features.
+## Features
 
-# Credit
+This crate currently has no features
+
+## Credit
 
 Lots of my inspiration came from the [`rangemap`] crate.
 
 The BTreeMap implementation ([`btree_monstrousity`]) used under the
 hood was inspired and forked from the [`copse`] crate.
 
-# Name Change
+## Name Change
 
 This crate was previously named [`range_bounds_map`] it was renamed
 around about 2023-04-24 due to it no longer being an accurate name.
 
-# Similar Crates
+## Similar Crates
 
 Here are some relevant crates I found whilst searching around the
 topic area, beware my biases when reading:
@@ -341,11 +343,9 @@ topic area, beware my biases when reading:
 
 [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 [`btree_monstrousity`]: https://github.com/ripytide/btree_monstrousity
-[`rangebounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
 [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
 [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
-[`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
 [`copse`]: https://github.com/eggyal/copse
 [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
 [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics

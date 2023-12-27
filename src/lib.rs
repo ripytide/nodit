@@ -17,17 +17,6 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! # discrete_range_map
-//!
-//! [![License](https://img.shields.io/github/license/ripytide/discrete_range_map)](https://www.gnu.org/licenses/agpl-3.0.en.html)
-//! [![Docs](https://docs.rs/discrete_range_map/badge.svg)](https://docs.rs/discrete_range_map)
-//! [![Maintained](https://img.shields.io/maintenance/yes/2023)](https://github.com/ripytide)
-//! [![Crates.io](https://img.shields.io/crates/v/discrete_range_map)](https://crates.io/crates/discrete_range_map)
-//!
-//! <p align="center">
-//! <img src="logo.png" alt="discrete_range_map_logo" width="350">
-//! </p>
-//!
 //! This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
 //! Data Structures for storing non-overlapping discrete intervals based
 //! off [`BTreeMap`].
@@ -129,7 +118,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! );
 //! ```
 //!
-//! ## Key Understandings and Philosophies:
+//! ## Key Understandings and Philosophies
 //!
 //! ### Discrete-ness
 //!
@@ -297,21 +286,23 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! See Wikipedia's article on mathematical Intervals:
 //! <https://en.wikipedia.org/wiki/Interval_(mathematics)>
 //!
-//! # Features This crate currently has no features.
+//! ## Features
 //!
-//! # Credit
+//! This crate currently has no features
+//!
+//! ## Credit
 //!
 //! Lots of my inspiration came from the [`rangemap`] crate.
 //!
 //! The BTreeMap implementation ([`btree_monstrousity`]) used under the
 //! hood was inspired and forked from the [`copse`] crate.
 //!
-//! # Name Change
+//! ## Name Change
 //!
 //! This crate was previously named [`range_bounds_map`] it was renamed
 //! around about 2023-04-24 due to it no longer being an accurate name.
 //!
-//! # Similar Crates
+//! ## Similar Crates
 //!
 //! Here are some relevant crates I found whilst searching around the
 //! topic area, beware my biases when reading:
@@ -360,11 +351,9 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 //! [`btree_monstrousity`]: https://github.com/ripytide/btree_monstrousity
-//! [`rangebounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 //! [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
 //! [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
 //! [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
-//! [`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
 //! [`copse`]: https://github.com/eggyal/copse
 //! [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
 //! [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics
