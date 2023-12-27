@@ -27,7 +27,7 @@ for some methods so if in doubt check a methods trait bounds.
 ## Example using an Inclusive-Exclusive range
 
 ```rust
-use discrete_range_map::test_ranges::ie;
+use discrete_range_map::inclusive_interval::ie;
 use discrete_range_map::DiscreteRangeMap;
 
 let mut map = DiscreteRangeMap::new();
@@ -45,7 +45,7 @@ assert_eq!(map.contains_point(5), true);
 ```rust
 use std::ops::{Bound, RangeBounds};
 
-use discrete_range_map::test_ranges::ie;
+use discrete_range_map::inclusive_interval::ie;
 use discrete_range_map::{
     DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
     InclusiveRange,

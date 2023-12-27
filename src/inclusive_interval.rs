@@ -17,10 +17,48 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! A collection of helper functions for making [`InclusiveInterval`]s from `i8`'s used for testing
-//! and example purposes.
+//! A module containing [`InclusiveInterval`] and it's various constructor functions.
 
-use crate::{DiscreteFinite, InclusiveInterval};
+use core::ops::{RangeBounds, Bound};
+
+use serde::{Serialize, Deserialize};
+
+use crate::{DiscreteFinite, PointType, InclusiveRange};
+
+/// The interval type used throughout this crate both for the examples and
+/// for use by library users if they don't wish to create their own
+/// interval types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct InclusiveInterval<I> {
+	/// The start of the interval, inclusive.
+	pub start: I,
+	/// The end of the interval, inclusive.
+	pub end: I,
+}
+impl<I> RangeBounds<I> for InclusiveInterval<I>
+where
+	I: PointType,
+{
+	fn start_bound(&self) -> Bound<&I> {
+		Bound::Included(&self.start)
+	}
+
+	fn end_bound(&self) -> Bound<&I> {
+		Bound::Included(&self.end)
+	}
+}
+impl<I> InclusiveRange<I> for InclusiveInterval<I>
+where
+	I: PointType,
+{
+	fn start(&self) -> I {
+		self.start
+	}
+
+	fn end(&self) -> I {
+		self.end
+	}
+}
 
 /// An unbounded-unbounded interval
 pub fn uu() -> InclusiveInterval<i8> {

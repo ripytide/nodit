@@ -35,7 +35,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! ## Example using an Inclusive-Exclusive range
 //!
 //! ```rust
-//! use discrete_range_map::test_ranges::ie;
+//! use discrete_range_map::inclusive_interval::ie;
 //! use discrete_range_map::DiscreteRangeMap;
 //!
 //! let mut map = DiscreteRangeMap::new();
@@ -53,7 +53,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! ```rust
 //! use std::ops::{Bound, RangeBounds};
 //!
-//! use discrete_range_map::test_ranges::ie;
+//! use discrete_range_map::inclusive_interval::ie;
 //! use discrete_range_map::{
 //! 	DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
 //! 	InclusiveRange,
@@ -384,11 +384,12 @@ pub(crate) mod utils;
 pub mod discrete_finite;
 pub mod discrete_range_map;
 pub mod discrete_range_set;
-pub mod test_ranges;
+pub mod inclusive_interval;
 
 pub use crate::discrete_finite::DiscreteFinite;
 pub use crate::discrete_range_map::{
-	DiscreteRangeMap, InclusiveInterval, InclusiveRange, OverlapError,
-	PointType, RangeType,
+	DiscreteRangeMap, InclusiveRange, OverlapError, PointType, RangeType,
 };
 pub use crate::discrete_range_set::DiscreteRangeSet;
+pub use crate::inclusive_interval::InclusiveInterval;
+
