@@ -15,11 +15,14 @@ off [`BTreeMap`].
 
 `no_std` is supported and should work with the default features.
 
-## You must implement `Copy`
+## `Copy` is partially required
 
 Due to implementation complications with non-`Copy` types the
-datastructures currently require both the range type and the points
-the ranges are over to be `Copy`.
+datastructures currently require both the range type and the points the
+ranges are over to be `Copy`. However, the value type used when using
+the [`DiscreteRangeMap`] does not have to be `Copy`. In fact the only
+required traits on the value type are sometimes `Clone` or `Eq` but only
+for some methods so if in doubt check a methods trait bounds.
 
 ## Example using an Inclusive-Exclusive range
 
