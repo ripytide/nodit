@@ -17,6 +17,17 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
+//! # discrete_range_map
+//!
+//! [![License](https://img.shields.io/github/license/ripytide/discrete_range_map)](https://www.gnu.org/licenses/agpl-3.0.en.html)
+//! [![Docs](https://docs.rs/discrete_range_map/badge.svg)](https://docs.rs/discrete_range_map)
+//! [![Maintained](https://img.shields.io/maintenance/yes/2023)](https://github.com/ripytide)
+//! [![Crates.io](https://img.shields.io/crates/v/discrete_range_map)](https://crates.io/crates/discrete_range_map)
+//!
+//! <p align="center">
+//! <img src="logo.png" alt="discrete_range_map_logo" width="350">
+//! </p>
+//!
 //! This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
 //! Data Structures for storing non-overlapping discrete intervals based
 //! off [`BTreeMap`].
@@ -134,28 +145,130 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ### Finite-ness
 //!
-//! This crate is also designed to work with [`Finite`] types since it is
-//! much easier to implement and it is not restrictive to users since you
-//! can still represent `Infinite` numbers in `Finite` types paradoxically
-//! using the concept of [`Actual Infinity`].
+//! At the moment this crate is also designed to work only with [`Finite`]
+//! types such as `u8` or `i128`, but not with `Infinite` types such as
+//! [`BigInt`] from the [`num_bigint`] crate. This is because the
+//! [`get_entry_at_point()`] method would not be able to return anything
+//! from an empty map if the type was an infinite type such as `BigInt`
+//! since it has no maximum value.
 //!
-//! For example you could define `Infinite` for `u8` as `u8::MAX` or if
-//! you still want to use `u8::MAX` as a `Finite` number you could define
-//! a wrapper type for `u8` that adds an [`Actual Infinity`] value to the
-//! `u8` set.
+//! A handy trick you can use to pretend to have infinite types when you
+//! don't expect to reach to top end of your type is to use [`Actual
+//! Infinity`] to pretend you have an `Infinity`. For example, if you were
+//! using `u8` as your point type then you could create a wrapper type such
+//! as this:
+//!
+//! ```rust
+//! use std::cmp::Ordering;
+//!
+//! use discrete_range_map::DiscreteFinite;
+//!
+//! #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+//! enum WithInfinity<T> {
+//! 	Finite(T),
+//! 	Infinity,
+//! }
+//!
+//! impl<T> Ord for WithInfinity<T>
+//! where
+//! 	T: Ord,
+//! {
+//! 	fn cmp(&self, other: &Self) -> Ordering {
+//! 		match (self, other) {
+//! 			(
+//! 				WithInfinity::Finite(x),
+//! 				WithInfinity::Finite(y),
+//! 			) => x.cmp(y),
+//! 			(WithInfinity::Finite(_), WithInfinity::Infinity) => {
+//! 				Ordering::Less
+//! 			}
+//! 			(WithInfinity::Infinity, WithInfinity::Finite(_)) => {
+//! 				Ordering::Greater
+//! 			}
+//! 			(WithInfinity::Infinity, WithInfinity::Infinity) => {
+//! 				Ordering::Equal
+//! 			}
+//! 		}
+//! 	}
+//! }
+//!
+//! impl<T> PartialOrd for WithInfinity<T>
+//! where
+//! 	T: Ord,
+//! {
+//! 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+//! 		Some(self.cmp(other))
+//! 	}
+//! }
+//!
+//! impl<T> DiscreteFinite for WithInfinity<T>
+//! where
+//! 	T: DiscreteFinite,
+//! {
+//! 	const MIN: Self = WithInfinity::Finite(T::MIN);
+//! 	const MAX: Self = WithInfinity::Infinity;
+//!
+//! 	fn up(self) -> Option<Self>
+//! 	where
+//! 		Self: Sized,
+//! 	{
+//! 		match self {
+//! 			WithInfinity::Finite(x) => match x.up() {
+//! 				Some(y) => Some(WithInfinity::Finite(y)),
+//! 				None => Some(WithInfinity::Infinity),
+//! 			},
+//! 			WithInfinity::Infinity => None,
+//! 		}
+//! 	}
+//! 	fn down(self) -> Option<Self>
+//! 	where
+//! 		Self: Sized,
+//! 	{
+//! 		match self {
+//! 			WithInfinity::Finite(x) => {
+//! 				Some(WithInfinity::Finite(x.down()?))
+//! 			}
+//! 			WithInfinity::Infinity => {
+//! 				Some(WithInfinity::Finite(T::MAX))
+//! 			}
+//! 		}
+//! 	}
+//! }
+//!
+//! // And then you this means you can be explicit with when
+//! // Infinity is encountered such as when it might be
+//! // returned by `get_entry_at_point()`, for example:
+//!
+//! use discrete_range_map::{DiscreteRangeMap, InclusiveInterval};
+//!
+//! let map: DiscreteRangeMap<
+//! 	WithInfinity<u8>,
+//! 	InclusiveInterval<WithInfinity<u8>>,
+//! 	bool,
+//! > = DiscreteRangeMap::new();
+//!
+//! let mut gap = map.get_entry_at_point(WithInfinity::Finite(4));
+//!
+//! assert_eq!(
+//! 	gap,
+//! 	Err(InclusiveInterval {
+//! 		start: WithInfinity::Finite(0),
+//! 		end: WithInfinity::Infinity,
+//! 	})
+//! );
+//! ```
 //!
 //! ### Invalid Ranges
 //!
-//! Within this crate, not all ranges are considered valid
-//! ranges. The definition of the validity of a range used
-//! within this crate is that a range is only valid if it contains
-//! at least one value of the underlying domain.
+//! Within this crate, not all ranges are considered valid ranges. The
+//! definition of the validity of a range used within this crate is that a
+//! range is only valid if it contains at least one value of the underlying
+//! domain.
 //!
-//! For example, `4..6` is considered valid as it contains the values
-//! `4` and `5`, however, `4..4` is considered invalid as it contains
-//! no values. Another example of invalid range are those whose start
-//! values are greater than their end values. such as `5..2` or
-//! `100..=40`.
+//! For example, `4..6` is considered valid as it contains the values `4`
+//! and `5`, however, `4..4` is considered invalid as it contains no
+//! values. Another example of invalid range are those whose start values
+//! are greater than their end values. such as `5..2` or `100..=40`.
 //!
 //! Here are a few examples of ranges and whether they are valid:
 //!
@@ -179,48 +292,29 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! value between them. For example, `2..4` and `4..6` are touching but
 //! `2..4` and `6..8` are not, neither are `2..6` and `4..8`.
 //!
-//! ### Merging
-//!
-//! When a range "merges" other ranges it absorbs them to become larger.
-//!
 //! ### Further Reading
 //!
 //! See Wikipedia's article on mathematical Intervals:
 //! <https://en.wikipedia.org/wiki/Interval_(mathematics)>
 //!
-//! # Features
-//! This crate currently has no features.
+//! # Features This crate currently has no features.
 //!
 //! # Credit
 //!
-//! I originally came up with the `StartBound`: [`Ord`] bodge on my own,
-//! however, I later stumbled across [`rangemap`] which also used a
-//! `StartBound`: [`Ord`] bodge. [`rangemap`] then became my main source
-//! of inspiration.
+//! Lots of my inspiration came from the [`rangemap`] crate.
 //!
-//! Later I then undid the [`Ord`] bodge and switched to my own full-code
-//! port of [`BTreeMap`], inspired and forked from [`copse`], for it's
-//! increased flexibility.
+//! The BTreeMap implementation ([`btree_monstrousity`]) used under the
+//! hood was inspired and forked from the [`copse`] crate.
 //!
-//! # Origin
+//! # Name Change
 //!
-//! The aim for this library was to become a more generic superset of
-//! [`rangemap`], following from [this
-//! issue](https://github.com/jeffparsons/rangemap/issues/56) and [this
-//! pull request](https://github.com/jeffparsons/rangemap/pull/57) in
-//! which I changed [`rangemap`]'s [`RangeMap`] to use [`RangeBounds`]s as
-//! keys before I realized it might be easier and simpler to just write it
-//! all from scratch.
-//!
-//! It is however worth noting the library eventually expanded and evolved
-//! from it's origins.
-//!
-//! This crate was previously named [`range_bounds_map`].
+//! This crate was previously named [`range_bounds_map`] it was renamed
+//! around about 2023-04-24 due to it no longer being an accurate name.
 //!
 //! # Similar Crates
 //!
 //! Here are some relevant crates I found whilst searching around the
-//! topic area:
+//! topic area, beware my biases when reading:
 //!
 //! - <https://docs.rs/rangemap>
 //!   Very similar to this crate but can only use [`Range`]s and
@@ -246,18 +340,31 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //!   a custom red-black tree/BTree implementation used specifically for a
 //!   Range Tree. Interesting but also quite old (5 years) and uses
 //!   unsafe.
+//! - <https://docs.rs/rust-lapper>
+//!   Another sort-of immutable (can insert but its very expensive)
+//!   interval datastructure optimised for lots of intervals of the same
+//!   size such as their staple usecase of genomic datasets.
+//! - <https://docs.rs/store-interval-tree>
+//!   An interval tree very similar to this crate and `rangemap` with many
+//!   of the same methods (and lots of doc examples!) except using a custom
+//!   in-house self-balancing tree implementation. It is not exactly clear
+//!   from my reading of the docs whether they support overlapping intervals
+//!   or not. On the one hand their examples show overlapping intervals but
+//!   then their `insert()` method says "if interval already exists,
+//!   interval will be ignored", so perhaps it allows overlapping but not
+//!   duplicate intervals? A bit of an odd choice in my opinion.
+//! - <https://docs.rs/bio> and <https://docs.rs/rudac>
+//!   Both essentially identical to `store-interval-tree` as it looks like
+//!   `store-interval-tree` is a fork of `rudac`'s interval tree. `bio` in
+//!   particular seems targeted at bioinfographics.
 //!
 //! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
-//! [`btreeset`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
+//! [`btree_monstrousity`]: https://github.com/ripytide/btree_monstrousity
 //! [`rangebounds`]: https://doc.rust-lang.org/std/ops/trait.RangeBounds.html
 //! [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
-//! [`range()`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html#method.range
 //! [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
-//! [`rangeinclusivemap`]: https://docs.rs/rangemap/latest/rangemap/inclusive_map/struct.RangeInclusiveMap.html#
 //! [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
 //! [`ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
-//! [`discreteboundsmap`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html
-//! [`discreteboundsset`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/range_bounds_set/struct.DiscreteRangeSet.html
 //! [`copse`]: https://github.com/eggyal/copse
 //! [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
 //! [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics
@@ -265,6 +372,9 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`actual infinity`]: https://en.wikipedia.org/wiki/Actual_infinity
 //! [`finite`]: https://en.wiktionary.org/wiki/finite#Adjective
 //! [`range_bounds_map`]: https://docs.rs/range_bounds_map
+//! [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
+//! [`num_bigint`]: https://docs.rs/num-bigint
+//! [`get_entry_at_point()`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html#method.get_entry_at_point
 
 #![feature(let_chains)]
 #![feature(btree_cursors)]

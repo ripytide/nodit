@@ -188,7 +188,7 @@ where
 		}
 	}
 
-	//only return valid range_bounds
+	//only return valid ranges
 	return CutResult {
 		before_cut: result.before_cut.filter(|x| is_valid_range(*x)),
 		inside_cut: result.inside_cut.filter(|x| is_valid_range(*x)),

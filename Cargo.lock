@@ -26,7 +26,7 @@ checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
 name = "discrete_range_map"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "btree_monstrousity",
  "either",
