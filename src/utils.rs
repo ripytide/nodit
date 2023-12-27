@@ -19,7 +19,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 
 use core::cmp::Ordering;
 
-use crate::{InclusiveInterval, PointType, RangeType, InclusiveRange};
+use crate::{InclusiveInterval, InclusiveRange, PointType, RangeType};
 
 pub(crate) fn cmp_point_with_range<I, K>(point: I, range: K) -> Ordering
 where
