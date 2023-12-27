@@ -17,14 +17,13 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! The module containing [`DiscreteRangeMap`] and related types.
+//! A module containing [`DiscreteRangeMap`] and related types.
 
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::fmt::{self, Debug};
 use core::iter::once;
 use core::marker::PhantomData;
-use core::ops::{Bound, RangeBounds};
 
 use btree_monstrousity::btree_map::{
 	IntoIter as BTreeMapIntoIter, SearchBoundCustom,
@@ -36,8 +35,8 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
-use crate::DiscreteFinite;
+use crate::utils::{cmp_point_with_range, cut_range, overlaps};
+use crate::{DiscreteFinite, InclusiveInterval};
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
 ///
@@ -54,7 +53,7 @@ use crate::DiscreteFinite;
 ///
 /// # Examples
 /// ```
-/// use discrete_range_map::test_ranges::ie;
+/// use discrete_range_map::inclusive_interval::ie;
 /// use discrete_range_map::DiscreteRangeMap;
 ///
 /// // Make a map of ranges to booleans
@@ -93,40 +92,6 @@ pub struct OverlapError<V> {
 	pub value: V,
 }
 
-/// A compatibility type used in [`RangeType`] for allowing the library to
-/// create the custom K type used in the map when necessary.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct InclusiveInterval<I> {
-	/// The start of the interval, inclusive.
-	pub start: I,
-	/// The end of the interval, inclusive.
-	pub end: I,
-}
-impl<I> RangeBounds<I> for InclusiveInterval<I>
-where
-	I: PointType,
-{
-	fn start_bound(&self) -> Bound<&I> {
-		Bound::Included(&self.start)
-	}
-
-	fn end_bound(&self) -> Bound<&I> {
-		Bound::Included(&self.end)
-	}
-}
-impl<I> InclusiveRange<I> for InclusiveInterval<I>
-where
-	I: PointType,
-{
-	fn start(&self) -> I {
-		self.start
-	}
-
-	fn end(&self) -> I {
-		self.end
-	}
-}
-
 /// The marker trait for valid point types, a blanket implementation is provided for all types
 /// which implement this traits' super-traits so you shouln't need to implement this yourself.
 pub trait PointType: Ord + Copy + DiscreteFinite {}
@@ -161,7 +126,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::{ie, ii};
+	/// use discrete_range_map::inclusive_interval::{ie, ii};
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::new();
@@ -194,7 +159,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -241,7 +206,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
@@ -283,7 +248,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -306,7 +271,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	/// let mut map =
 	/// 	DiscreteRangeMap::from_slice_strict([(ie(1, 4), false)])
@@ -327,7 +292,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -353,7 +318,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::{ie, iu};
+	/// use discrete_range_map::inclusive_interval::{ie, iu};
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -402,7 +367,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
@@ -466,7 +431,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::{ie, ii};
+	/// use discrete_range_map::inclusive_interval::{ie, ii};
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut base = DiscreteRangeMap::from_slice_strict([
@@ -633,7 +598,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::{ie, iu};
+	/// use discrete_range_map::inclusive_interval::{ie, iu};
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -706,7 +671,7 @@ where
 					end: second.0.down().unwrap(),
 				})
 			})
-			.filter(|range| is_valid_range(*range));
+			.filter(|range| range.is_valid());
 
 		//possibly add the trimmed start and end gaps
 		return trimmed_start_gap
@@ -727,7 +692,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -765,7 +730,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
 	///
 	/// let mut map = DiscreteRangeMap::new();
@@ -865,7 +830,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
@@ -953,7 +918,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
@@ -1054,7 +1019,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
@@ -1127,7 +1092,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
@@ -1215,7 +1180,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map =
@@ -1254,7 +1219,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -1288,7 +1253,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let slice =
@@ -1296,7 +1261,7 @@ where
 	///
 	/// let map: DiscreteRangeMap<_, _, _> =
 	/// 	DiscreteRangeMap::from_iter_strict(
-	/// 		slice.into_iter().filter(|(range, _)| range.start > 2),
+	/// 		slice.into_iter().filter(|(range, _)| range.start() > 2),
 	/// 	)
 	/// 	.unwrap();
 	/// ```
@@ -1332,7 +1297,7 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::new();
@@ -1350,7 +1315,7 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::new();
@@ -1368,7 +1333,7 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -1394,7 +1359,7 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let mut map = DiscreteRangeMap::from_slice_strict([
@@ -1422,7 +1387,7 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -1443,7 +1408,7 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	/// # Examples
 	/// ```
 	/// use discrete_range_map::DiscreteRangeMap;
-	/// use discrete_range_map::test_ranges::ie;
+	/// use discrete_range_map::inclusive_interval::ie;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
@@ -1463,12 +1428,12 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 
 // Helper Functions ==========================
 
-fn invalid_range_panic<Q, I>(range: Q)
+pub(crate) fn invalid_range_panic<Q, I>(range: Q)
 where
 	I: PointType,
 	Q: RangeType<I>,
 {
-	if !is_valid_range(range) {
+	if !range.is_valid() {
 		panic!(
 			"invalid range given to function see here for more details: https://docs.rs/discrete_range_map/latest/discrete_range_map/#invalid-ranges"
 		);
@@ -1713,7 +1678,7 @@ mod tests {
 	use pretty_assertions::assert_eq;
 
 	use super::*;
-	use crate::test_ranges::{ee, ei, ie, ii, iu, ue, ui, uu};
+	use crate::inclusive_interval::{ee, ei, ie, ii, iu, ue, ui, uu};
 	use crate::utils::{config, contains_point, Config, CutResult};
 
 	//only every other number to allow mathematical_overlapping_definition
@@ -2339,24 +2304,24 @@ mod tests {
 	fn cut_range_bounds_should_return_valid_ranges() {
 		let result: CutResult<i8> = cut_range(ie(3, 8), ie(5, 8));
 		if let Some(x) = result.before_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 		if let Some(x) = result.inside_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 		if let Some(x) = result.after_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 
 		let result = cut_range(ie(3, 8), ie(3, 5));
 		if let Some(x) = result.before_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 		if let Some(x) = result.inside_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 		if let Some(x) = result.after_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 	}
 

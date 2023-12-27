@@ -35,7 +35,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! ## Example using an Inclusive-Exclusive range
 //!
 //! ```rust
-//! use discrete_range_map::test_ranges::ie;
+//! use discrete_range_map::inclusive_interval::ie;
 //! use discrete_range_map::DiscreteRangeMap;
 //!
 //! let mut map = DiscreteRangeMap::new();
@@ -53,7 +53,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! ```rust
 //! use std::ops::{Bound, RangeBounds};
 //!
-//! use discrete_range_map::test_ranges::ie;
+//! use discrete_range_map::inclusive_interval::ie;
 //! use discrete_range_map::{
 //! 	DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
 //! 	InclusiveRange,
@@ -86,12 +86,12 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! // Second, we need to implement From<InclusiveInterval<i8>>
 //! impl From<InclusiveInterval<i8>> for Reservation {
 //! 	fn from(value: InclusiveInterval<i8>) -> Self {
-//! 		if value.end == i8::MAX {
-//! 			Reservation::Infinite(value.start)
+//! 		if value.end() == i8::MAX {
+//! 			Reservation::Infinite(value.start())
 //! 		} else {
 //! 			Reservation::Finite(
-//! 				value.start,
-//! 				value.end.up().unwrap(),
+//! 				value.start(),
+//! 				value.end().up().unwrap(),
 //! 			)
 //! 		}
 //! 	}
@@ -134,6 +134,10 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! `Continuous`. For example `5..=6` touches `7..=8` since integers are
 //! `Discrete` but `5.0..=6.0` does **not** touch `7.0..=8.0` since the
 //! value `6.5` exists.
+//!
+//! Importantly, this also makes Inclusive/Exclusive ended ranges really
+//! easy to work with as they can be losslessly converted between one
+//! another. For example, `3..6` is equivalent to `3..=5`.
 //!
 //! ### Finite-ness
 //!
@@ -231,6 +235,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! // Infinity is encountered such as when it might be
 //! // returned by `get_entry_at_point()`, for example:
 //!
+//! use discrete_range_map::inclusive_interval::uu;
 //! use discrete_range_map::{DiscreteRangeMap, InclusiveInterval};
 //!
 //! let map: DiscreteRangeMap<
@@ -241,13 +246,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! let mut gap = map.get_entry_at_point(WithInfinity::Finite(4));
 //!
-//! assert_eq!(
-//! 	gap,
-//! 	Err(InclusiveInterval {
-//! 		start: WithInfinity::Finite(0),
-//! 		end: WithInfinity::Infinity,
-//! 	})
-//! );
+//! assert_eq!(gap, Err(uu()));
 //! ```
 //!
 //! ### Invalid Ranges
@@ -276,7 +275,8 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! ### Overlap
 //!
 //! Two ranges are "overlapping" if there exists a point that is contained
-//! within both ranges.
+//! within both ranges. For example, `2..4` and `2..6` overlap but `2..4`
+//! and `4..8` do not.
 //!
 //! ### Touching
 //!
@@ -384,11 +384,11 @@ pub(crate) mod utils;
 pub mod discrete_finite;
 pub mod discrete_range_map;
 pub mod discrete_range_set;
-pub mod test_ranges;
+pub mod inclusive_interval;
 
 pub use crate::discrete_finite::DiscreteFinite;
 pub use crate::discrete_range_map::{
-	DiscreteRangeMap, InclusiveInterval, InclusiveRange, OverlapError,
-	PointType, RangeType,
+	DiscreteRangeMap, InclusiveRange, OverlapError, PointType, RangeType,
 };
 pub use crate::discrete_range_set::DiscreteRangeSet;
+pub use crate::inclusive_interval::InclusiveInterval;

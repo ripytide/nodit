@@ -27,7 +27,7 @@ for some methods so if in doubt check a methods trait bounds.
 ## Example using an Inclusive-Exclusive range
 
 ```rust
-use discrete_range_map::test_ranges::ie;
+use discrete_range_map::inclusive_interval::ie;
 use discrete_range_map::DiscreteRangeMap;
 
 let mut map = DiscreteRangeMap::new();
@@ -45,7 +45,7 @@ assert_eq!(map.contains_point(5), true);
 ```rust
 use std::ops::{Bound, RangeBounds};
 
-use discrete_range_map::test_ranges::ie;
+use discrete_range_map::inclusive_interval::ie;
 use discrete_range_map::{
     DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
     InclusiveRange,
@@ -126,6 +126,10 @@ differ depending on whether the underlying type is `Discrete` or
 `Continuous`. For example `5..=6` touches `7..=8` since integers are
 `Discrete` but `5.0..=6.0` does **not** touch `7.0..=8.0` since the
 value `6.5` exists.
+
+Importantly, this also makes Inclusive/Exclusive ended ranges really
+easy to work with as they can be losslessly converted between one
+another. For example, `3..6` is equivalent to `3..=5`.
 
 ### Finite-ness
 
@@ -268,7 +272,8 @@ Here are a few examples of ranges and whether they are valid:
 ### Overlap
 
 Two ranges are "overlapping" if there exists a point that is contained
-within both ranges.
+within both ranges. For example, `2..4` and `2..6` overlap but `2..4`
+and `4..8` do not.
 
 ### Touching
 

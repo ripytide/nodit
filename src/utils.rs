@@ -19,7 +19,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 
 use core::cmp::Ordering;
 
-use crate::{InclusiveInterval, PointType, RangeType};
+use crate::{InclusiveInterval, PointType, RangeType, InclusiveRange};
 
 pub(crate) fn cmp_point_with_range<I, K>(point: I, range: K) -> Ordering
 where
@@ -190,18 +190,10 @@ where
 
 	//only return valid ranges
 	return CutResult {
-		before_cut: result.before_cut.filter(|x| is_valid_range(*x)),
-		inside_cut: result.inside_cut.filter(|x| is_valid_range(*x)),
-		after_cut: result.after_cut.filter(|x| is_valid_range(*x)),
+		before_cut: result.before_cut.filter(|x| x.is_valid()),
+		inside_cut: result.inside_cut.filter(|x| x.is_valid()),
+		after_cut: result.after_cut.filter(|x| x.is_valid()),
 	};
-}
-
-pub(crate) fn is_valid_range<I, K>(range: K) -> bool
-where
-	I: PointType,
-	K: RangeType<I>,
-{
-	range.start() <= range.end()
 }
 
 pub(crate) fn overlaps<I, A, B>(a: A, b: B) -> bool
