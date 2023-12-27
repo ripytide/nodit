@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! The module containing [`DiscreteRangeMap`] and related types.
+//! A module containing [`DiscreteRangeMap`] and related types.
 
 use alloc::vec::Vec;
 use core::cmp::Ordering;
@@ -35,7 +35,7 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::utils::{cmp_point_with_range, cut_range, is_valid_range, overlaps};
+use crate::utils::{cmp_point_with_range, cut_range, overlaps};
 use crate::{DiscreteFinite, InclusiveInterval};
 
 /// An ordered map of non-overlapping ranges based on [`BTreeMap`].
@@ -671,7 +671,7 @@ where
 					end: second.0.down().unwrap(),
 				})
 			})
-			.filter(|range| is_valid_range(*range));
+			.filter(|range| range.is_valid());
 
 		//possibly add the trimmed start and end gaps
 		return trimmed_start_gap
@@ -1261,7 +1261,7 @@ where
 	///
 	/// let map: DiscreteRangeMap<_, _, _> =
 	/// 	DiscreteRangeMap::from_iter_strict(
-	/// 		slice.into_iter().filter(|(range, _)| range.start > 2),
+	/// 		slice.into_iter().filter(|(range, _)| range.start() > 2),
 	/// 	)
 	/// 	.unwrap();
 	/// ```
@@ -1428,12 +1428,12 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 
 // Helper Functions ==========================
 
-fn invalid_range_panic<Q, I>(range: Q)
+pub(crate) fn invalid_range_panic<Q, I>(range: Q)
 where
 	I: PointType,
 	Q: RangeType<I>,
 {
-	if !is_valid_range(range) {
+	if !range.is_valid() {
 		panic!(
 			"invalid range given to function see here for more details: https://docs.rs/discrete_range_map/latest/discrete_range_map/#invalid-ranges"
 		);
@@ -2304,24 +2304,24 @@ mod tests {
 	fn cut_range_bounds_should_return_valid_ranges() {
 		let result: CutResult<i8> = cut_range(ie(3, 8), ie(5, 8));
 		if let Some(x) = result.before_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 		if let Some(x) = result.inside_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 		if let Some(x) = result.after_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 
 		let result = cut_range(ie(3, 8), ie(3, 5));
 		if let Some(x) = result.before_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 		if let Some(x) = result.inside_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 		if let Some(x) = result.after_cut {
-			assert!(is_valid_range(x));
+			assert!(x.is_valid());
 		}
 	}
 

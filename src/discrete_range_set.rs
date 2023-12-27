@@ -17,10 +17,12 @@ You should have received a copy of the GNU Affero General Public License
 along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! The module containing [`DiscreteRangeSet`] and related types. Since
-//! [`DiscreteRangeSet`] is just a wrapper around [`DiscreteRangeMap`], most of
-//! the methods' docs will point towards the equivalent method's docs on
-//! [`DiscreteRangeMap`] to prevent inconsistency.
+//! A module containing [`DiscreteRangeSet`] and related types.
+//!
+//! Since [`DiscreteRangeSet`] is just a wrapper around
+//! [`DiscreteRangeMap`], most of the methods' docs will point towards the
+//! equivalent method's docs on [`DiscreteRangeMap`] to prevent
+//! inconsistency.
 
 use core::fmt;
 use core::marker::PhantomData;

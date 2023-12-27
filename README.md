@@ -127,6 +127,10 @@ differ depending on whether the underlying type is `Discrete` or
 `Discrete` but `5.0..=6.0` does **not** touch `7.0..=8.0` since the
 value `6.5` exists.
 
+Importantly, this also makes Inclusive/Exclusive ended ranges really
+easy to work with as they can be losslessly converted between one
+another. For example, `3..6` is equivalent to `3..=5`.
+
 ### Finite-ness
 
 At the moment this crate is also designed to work only with [`Finite`]
