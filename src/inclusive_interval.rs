@@ -25,7 +25,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! yet. If you would still like the associated versions I would be happy to
 //! add them as well, just open a PR/Issue.
 
-use core::ops::{Bound, RangeBounds};
+use core::ops::{Bound, Range, RangeBounds, RangeInclusive};
 
 use serde::{Deserialize, Serialize};
 
@@ -113,6 +113,35 @@ where
 
 	fn end(&self) -> I {
 		self.end
+	}
+}
+impl<I> From<InclusiveInterval<I>> for RangeInclusive<I> {
+	fn from(value: InclusiveInterval<I>) -> Self {
+		value.start..=value.end
+	}
+}
+impl<I> From<RangeInclusive<I>> for InclusiveInterval<I>
+where
+	I: PointType,
+{
+	fn from(value: RangeInclusive<I>) -> Self {
+		ii(*value.start(), *value.end())
+	}
+}
+impl<I> From<InclusiveInterval<I>> for Range<I>
+where
+	I: PointType,
+{
+	fn from(value: InclusiveInterval<I>) -> Self {
+		value.start..value.end.up().unwrap()
+	}
+}
+impl<I> From<Range<I>> for InclusiveInterval<I>
+where
+	I: PointType,
+{
+	fn from(value: Range<I>) -> Self {
+		ie(value.start, value.end)
 	}
 }
 
