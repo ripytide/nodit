@@ -392,7 +392,7 @@ where
 	pub fn remove_overlapping<'a, Q>(
 		&'a mut self,
 		range: Q,
-	) -> impl Iterator<Item = (K, V)> + '_
+	) -> impl Iterator<Item = (K, V)>
 	where
 		Q: RangeType<I> + 'a,
 	{
@@ -453,10 +453,7 @@ where
 	/// );
 	/// assert_eq!(base, after_cut);
 	/// ```
-	pub fn cut<'a, Q>(
-		&'a mut self,
-		range: Q,
-	) -> impl Iterator<Item = (K, V)> + '_
+	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = (K, V)>
 	where
 		Q: RangeType<I> + 'a,
 		V: Clone,
@@ -522,7 +519,7 @@ where
 		range: Q,
 		left_overlapping: Option<K>,
 		right_overlapping: Option<K>,
-	) -> impl Iterator<Item = (K, V)> + '_
+	) -> impl Iterator<Item = (K, V)>
 	where
 		Q: RangeType<I> + 'a,
 		V: Clone,
@@ -1194,14 +1191,19 @@ where
 	/// 	[(ie(2, 4), false), (ie(4, 6), true), (ie(6, 8), false)]
 	/// );
 	/// ```
-	pub fn insert_overwrite(&mut self, range: K, value: V)
+	pub fn insert_overwrite(
+		&mut self,
+		range: K,
+		value: V,
+	) -> impl Iterator<Item = (K, V)>
 	where
 		V: Clone,
 	{
 		invalid_range_panic(range);
 
-		let _ = self.cut(range);
+		let cut = self.cut(range);
 		self.insert_unchecked(range, value);
+		cut
 	}
 
 	/// Allocates a `DiscreteRangeMap` and moves the given entries from

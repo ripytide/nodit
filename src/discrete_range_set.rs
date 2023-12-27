@@ -84,14 +84,14 @@ where
 	pub fn remove_overlapping<'a, Q>(
 		&'a mut self,
 		range: Q,
-	) -> impl Iterator<Item = K> + '_
+	) -> impl Iterator<Item = K>
 	where
 		Q: RangeType<I> + 'a,
 	{
 		self.inner.remove_overlapping(range).map(first)
 	}
 	/// See [`DiscreteRangeMap::cut()`] for more details.
-	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = K> + '_
+	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = K>
 	where
 		Q: RangeType<I> + 'a,
 	{
@@ -131,8 +131,8 @@ where
 		self.inner.insert_merge_touching_or_overlapping(range, ())
 	}
 	/// See [`DiscreteRangeMap::insert_overwrite()`] for more details.
-	pub fn insert_overwrite(&mut self, range: K) {
-		self.inner.insert_overwrite(range, ())
+	pub fn insert_overwrite(&mut self, range: K) -> impl Iterator<Item = K> {
+		self.inner.insert_overwrite(range, ()).map(first)
 	}
 	/// See [`DiscreteRangeMap::from_slice_strict()`] for more details.
 	pub fn from_slice_strict<const N: usize>(
