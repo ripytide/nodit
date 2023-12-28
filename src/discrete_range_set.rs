@@ -98,14 +98,20 @@ where
 		self.inner.cut(range).map(first)
 	}
 	/// See [`DiscreteRangeMap::gaps_untrimmed()`] for more details.
-	pub fn gaps_untrimmed<'a, Q>(&'a self, range: Q) -> impl Iterator<Item = K> + '_
+	pub fn gaps_untrimmed<'a, Q>(
+		&'a self,
+		range: Q,
+	) -> impl Iterator<Item = K> + '_
 	where
 		Q: RangeType<I> + 'a,
 	{
 		self.inner.gaps_untrimmed(range)
 	}
 	/// See [`DiscreteRangeMap::gaps_trimmed()`] for more details.
-	pub fn gaps_trimmed<'a, Q>(&'a self, range: Q) -> impl Iterator<Item = K> + '_
+	pub fn gaps_trimmed<'a, Q>(
+		&'a self,
+		range: Q,
+	) -> impl Iterator<Item = K> + '_
 	where
 		Q: RangeType<I> + 'a,
 	{
