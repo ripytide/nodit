@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `InclusiveInterval` has now been given generic constructors and proper
   documentation for use by end-users, #56
 - `insert_overwrite()` now returns the cut entries, #51
+- Renamed `gaps()` to `gaps_trimmed()` and added a `gaps_untrimmed()` method
 
 ### Fixed
 
