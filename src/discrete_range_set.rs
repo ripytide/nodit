@@ -97,19 +97,26 @@ where
 	{
 		self.inner.cut(range).map(first)
 	}
-	/// See [`DiscreteRangeMap::gaps()`] for more details.
-	pub fn gaps<'a, Q>(&'a self, range: Q) -> impl Iterator<Item = K> + '_
+	/// See [`DiscreteRangeMap::gaps_untrimmed()`] for more details.
+	pub fn gaps_untrimmed<'a, Q>(&'a self, range: Q) -> impl Iterator<Item = K> + '_
 	where
 		Q: RangeType<I> + 'a,
 	{
-		self.inner.gaps(range)
+		self.inner.gaps_untrimmed(range)
 	}
-	/// See [`DiscreteRangeMap::contains_range()`] for more details.
-	pub fn contains_range<Q>(&self, range: Q) -> bool
+	/// See [`DiscreteRangeMap::gaps_trimmed()`] for more details.
+	pub fn gaps_trimmed<'a, Q>(&'a self, range: Q) -> impl Iterator<Item = K> + '_
+	where
+		Q: RangeType<I> + 'a,
+	{
+		self.inner.gaps_trimmed(range)
+	}
+	/// See [`DiscreteRangeMap::contains_entire_range()`] for more details.
+	pub fn contains_entire_range<Q>(&self, range: Q) -> bool
 	where
 		Q: RangeType<I>,
 	{
-		self.inner.contains_range(range)
+		self.inner.contains_entire_range(range)
 	}
 	/// See [`DiscreteRangeMap::insert_strict()`] for more details.
 	pub fn insert_strict(&mut self, range: K) -> Result<(), OverlapError<()>> {

@@ -584,9 +584,11 @@ where
 			.chain(keeping_after_entry);
 	}
 
-	/// Returns an iterator of ranges over all the maximally-sized gaps in
-	/// the map that are also within the given `outer_range` in ascending
-	/// order.
+    /// Returns an iterator of all the gaps in the map that overlap the given
+    /// `range` in ascending order.
+    ///
+    /// See [`DiscreteRangeMap::gaps_trimmed()`] if you require the returned
+    /// gaps to be trimmed to be fully contained within given `range`.
 	///
 	/// # Panics
 	///
@@ -596,7 +598,7 @@ where
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::{ie, iu};
+	/// use discrete_range_map::inclusive_interval::{ie, iu, ii};
 	/// use discrete_range_map::DiscreteRangeMap;
 	///
 	/// let map = DiscreteRangeMap::from_slice_strict([
@@ -606,59 +608,149 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut gaps = map.gaps(iu(2));
+	/// let mut gaps = map.gaps_untrimmed(ii(4, 120));
 	///
 	/// assert_eq!(
 	/// 	gaps.collect::<Vec<_>>(),
 	/// 	[ie(3, 5), ie(7, 9), iu(100)]
 	/// );
 	/// ```
-	pub fn gaps<'a, Q>(&'a self, outer_range: Q) -> impl Iterator<Item = K> + '_
+	pub fn gaps_untrimmed<'a, Q>(&'a self, range: Q) -> impl Iterator<Item = K> + '_
 	where
 		Q: RangeType<I> + 'a,
 	{
-		invalid_range_panic(outer_range);
+		invalid_range_panic(range);
 
-		// If the start or end point of outer_range is not
+		// If the start or end point of range is not
 		// contained within a range in the map then we need to
 		// generate the gaps.
 		let start_gap = (!self
 			.inner
-			.contains_key(overlapping_comp(outer_range.start())))
-		.then(|| self.get_gap_at_raw(outer_range.start()));
+			.contains_key(overlapping_comp(range.start())))
+		.then(|| self.get_gap_at_raw(range.start()));
 		let end_gap =
-			(!self.inner.contains_key(overlapping_comp(outer_range.end())))
-				.then(|| self.get_gap_at_raw(outer_range.end()));
+			(!self.inner.contains_key(overlapping_comp(range.end())))
+				.then(|| self.get_gap_at_raw(range.end()));
 
-		let (trimmed_start_gap, trimmed_end_gap) = match (start_gap, end_gap) {
-			(Some(mut start_gap), Some(mut end_gap)) => {
+		let (start_gap, end_gap) = match (start_gap, end_gap) {
+			(Some(start_gap), Some(end_gap)) => {
 				if start_gap.start() == end_gap.start() {
 					//it's the same gap
-					start_gap.start = outer_range.start();
-					start_gap.end = outer_range.end();
-
 					(Some(start_gap), None)
 				} else {
 					//it's different gaps
-					start_gap.start = outer_range.start();
-					end_gap.end = outer_range.end();
-
 					(Some(start_gap), Some(end_gap))
 				}
 			}
-			(Some(mut start_gap), None) => {
-				start_gap.start = outer_range.start();
+			(Some(start_gap), None) => {
 				(Some(start_gap), None)
 			}
-			(None, Some(mut end_gap)) => {
-				end_gap.end = outer_range.end();
+			(None, Some(end_gap)) => {
 				(None, Some(end_gap))
 			}
 			(None, None) => (None, None),
 		};
 
 		let overlapping = self
-			.overlapping(outer_range)
+			.overlapping(range)
+			.map(|(key, _)| (key.start(), key.end()));
+
+		let inner_gaps = overlapping
+			.tuple_windows()
+			.map(|(first, second)| {
+				K::from(InclusiveInterval {
+					start: first.1.up().unwrap(),
+					end: second.0.down().unwrap(),
+				})
+			})
+			.filter(|range| range.is_valid());
+
+		//possibly add the trimmed start and end gaps
+		return start_gap
+			.map(K::from)
+			.into_iter()
+			.chain(inner_gaps)
+			.chain(end_gap.map(K::from));
+	}
+
+    /// Returns an iterator of all the gaps in the map that overlap the given
+    /// `range` that are also trimmed so they are all fully contained within the
+    /// given `range`, in ascending order.
+    ///
+    /// See [`DiscreteRangeMap::gaps_untrimmed()`] if you do not want the
+    /// returned gaps to be trimmed.
+	///
+	/// # Panics
+	///
+	/// Panics if the given range is an invalid range. See [`Invalid
+	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use discrete_range_map::inclusive_interval::{ie, iu, ii};
+	/// use discrete_range_map::DiscreteRangeMap;
+	///
+	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// 	(ie(1, 3), false),
+	/// 	(ie(5, 7), true),
+	/// 	(ie(9, 100), false),
+	/// ])
+	/// .unwrap();
+	///
+	/// let mut gaps = map.gaps_trimmed(ii(4, 120));
+	///
+	/// assert_eq!(
+	/// 	gaps.collect::<Vec<_>>(),
+	/// 	[ie(4, 5), ie(7, 9), ii(100, 120)]
+	/// );
+	/// ```
+	pub fn gaps_trimmed<'a, Q>(&'a self, range: Q) -> impl Iterator<Item = K> + '_
+	where
+		Q: RangeType<I> + 'a,
+	{
+		invalid_range_panic(range);
+
+		// If the start or end point of range is not
+		// contained within a range in the map then we need to
+		// generate the gaps.
+		let start_gap = (!self
+			.inner
+			.contains_key(overlapping_comp(range.start())))
+		.then(|| self.get_gap_at_raw(range.start()));
+		let end_gap =
+			(!self.inner.contains_key(overlapping_comp(range.end())))
+				.then(|| self.get_gap_at_raw(range.end()));
+
+		let (trimmed_start_gap, trimmed_end_gap) = match (start_gap, end_gap) {
+			(Some(mut start_gap), Some(mut end_gap)) => {
+				if start_gap.start() == end_gap.start() {
+					//it's the same gap
+					start_gap.start = range.start();
+					start_gap.end = range.end();
+
+					(Some(start_gap), None)
+				} else {
+					//it's different gaps
+					start_gap.start = range.start();
+					end_gap.end = range.end();
+
+					(Some(start_gap), Some(end_gap))
+				}
+			}
+			(Some(mut start_gap), None) => {
+				start_gap.start = range.start();
+				(Some(start_gap), None)
+			}
+			(None, Some(mut end_gap)) => {
+				end_gap.end = range.end();
+				(None, Some(end_gap))
+			}
+			(None, None) => (None, None),
+		};
+
+		let overlapping = self
+			.overlapping(range)
 			.map(|(key, _)| (key.start(), key.end()));
 
 		let inner_gaps = overlapping
@@ -700,18 +792,18 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.contains_range(ie(1, 3)), true);
-	/// assert_eq!(map.contains_range(ie(2, 6)), false);
-	/// assert_eq!(map.contains_range(ie(6, 100)), true);
+	/// assert_eq!(map.contains_entire_range(ie(1, 3)), true);
+	/// assert_eq!(map.contains_entire_range(ie(2, 6)), false);
+	/// assert_eq!(map.contains_entire_range(ie(6, 100)), true);
 	/// ```
-	pub fn contains_range<Q>(&self, range: Q) -> bool
+	pub fn contains_entire_range<Q>(&self, range: Q) -> bool
 	where
 		Q: RangeType<I>,
 	{
 		invalid_range_panic(range);
 
-		// Soooo clean and mathematical 🥰!
-		self.gaps(range).next().is_none()
+		// Soooo clean and mathematical!
+		self.gaps_untrimmed(range).next().is_none()
 	}
 
 	/// Adds a new entry to the map without modifying other entries.
@@ -1924,19 +2016,19 @@ mod tests {
 	}
 
 	#[test]
-	fn gaps_tests() {
-		assert_gaps(basic(), ii(50, 60), [ii(50, 60)]);
-		assert_gaps(basic(), iu(50), [iu(50)]);
-		assert_gaps(basic(), ee(3, 16), [ei(4, 5), ee(7, 14)]);
-		assert_gaps(basic(), ei(3, 16), [ei(4, 5), ee(7, 14), ii(16, 16)]);
-		assert_gaps(basic(), ue(5), []);
-		assert_gaps(basic(), ui(3), []);
-		assert_gaps(basic(), ii(5, 5), [ii(5, 5)]);
-		assert_gaps(basic(), ii(6, 6), []);
-		assert_gaps(basic(), ii(7, 7), []);
-		assert_gaps(basic(), ii(8, 8), [ii(8, 8)]);
+	fn gaps_untrimmed_tests() {
+		assert_gaps_untrimmed(basic(), ii(50, 60), [iu(16)]);
+		assert_gaps_untrimmed(basic(), iu(50), [iu(16)]);
+		assert_gaps_untrimmed(basic(), ee(3, 16), [ei(4, 5), ee(7, 14)]);
+		assert_gaps_untrimmed(basic(), ei(3, 16), [ei(4, 5), ee(7, 14), iu(16)]);
+		assert_gaps_untrimmed(basic(), ue(5), []);
+		assert_gaps_untrimmed(basic(), ui(3), []);
+		assert_gaps_untrimmed(basic(), ii(5, 5), [ii(5, 5)]);
+		assert_gaps_untrimmed(basic(), ii(6, 6), []);
+		assert_gaps_untrimmed(basic(), ii(7, 7), []);
+		assert_gaps_untrimmed(basic(), ii(8, 8), [ii(8, 13)]);
 
-		assert_gaps(
+		assert_gaps_untrimmed(
 			basic(),
 			ii(i8::MIN, i8::MAX),
 			[ei(4, 5), ee(7, 14), ii(16, i8::MAX)],
@@ -1947,17 +2039,54 @@ mod tests {
 				false
 			)])
 			.unwrap()
-			.gaps(uu())
+			.gaps_trimmed(uu())
 			.collect::<Vec<_>>(),
 			[]
 		);
 	}
-	fn assert_gaps<const N: usize>(
+	fn assert_gaps_untrimmed<const N: usize>(
 		map: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		outer_range: InclusiveInterval<i8>,
+		range: InclusiveInterval<i8>,
 		result: [InclusiveInterval<i8>; N],
 	) {
-		assert_eq!(map.gaps(outer_range).collect::<Vec<_>>(), result);
+		assert_eq!(map.gaps_untrimmed(range).collect::<Vec<_>>(), result);
+	}
+
+	#[test]
+	fn gaps_trimmed_tests() {
+		assert_gaps_trimmed(basic(), ii(50, 60), [ii(50, 60)]);
+		assert_gaps_trimmed(basic(), iu(50), [iu(50)]);
+		assert_gaps_trimmed(basic(), ee(3, 16), [ei(4, 5), ee(7, 14)]);
+		assert_gaps_trimmed(basic(), ei(3, 16), [ei(4, 5), ee(7, 14), ii(16, 16)]);
+		assert_gaps_trimmed(basic(), ue(5), []);
+		assert_gaps_trimmed(basic(), ui(3), []);
+		assert_gaps_trimmed(basic(), ii(5, 5), [ii(5, 5)]);
+		assert_gaps_trimmed(basic(), ii(6, 6), []);
+		assert_gaps_trimmed(basic(), ii(7, 7), []);
+		assert_gaps_trimmed(basic(), ii(8, 8), [ii(8, 8)]);
+
+		assert_gaps_trimmed(
+			basic(),
+			ii(i8::MIN, i8::MAX),
+			[ei(4, 5), ee(7, 14), ii(16, i8::MAX)],
+		);
+		assert_eq!(
+			DiscreteRangeMap::from_slice_strict([(
+				ii(i8::MIN, i8::MAX),
+				false
+			)])
+			.unwrap()
+			.gaps_trimmed(uu())
+			.collect::<Vec<_>>(),
+			[]
+		);
+	}
+	fn assert_gaps_trimmed<const N: usize>(
+		map: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
+		range: InclusiveInterval<i8>,
+		result: [InclusiveInterval<i8>; N],
+	) {
+		assert_eq!(map.gaps_trimmed(range).collect::<Vec<_>>(), result);
 	}
 
 	#[test]
