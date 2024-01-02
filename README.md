@@ -1,36 +1,35 @@
-# discrete_range_map
+# nodit
 
-[![License](https://img.shields.io/github/license/ripytide/discrete_range_map)](https://www.gnu.org/licenses/agpl-3.0.en.html)
-[![Docs](https://docs.rs/discrete_range_map/badge.svg)](https://docs.rs/discrete_range_map)
-[![Maintained](https://img.shields.io/maintenance/yes/2023)](https://github.com/ripytide)
-[![Crates.io](https://img.shields.io/crates/v/discrete_range_map)](https://crates.io/crates/discrete_range_map)
+[![License](https://img.shields.io/github/license/ripytide/nodit)](https://www.gnu.org/licenses/agpl-3.0.en.html)
+[![Docs](https://docs.rs/nodit/badge.svg)](https://docs.rs/nodit)
+[![Maintained](https://img.shields.io/maintenance/yes/2024)](https://github.com/ripytide)
+[![Crates.io](https://img.shields.io/crates/v/nodit)](https://crates.io/crates/nodit)
 
 <p align="center">
-<img src="logo.png" alt="discrete_range_map_logo" width="350">
+<img src="logo.png" alt="nodit_logo" width="350">
 </p>
 
-This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
-Data Structures for storing non-overlapping discrete intervals based
-off [`BTreeMap`].
+This crate provides [`NoditMap`] and [`NoditSet`], Data Structures for storing
+non-overlapping discrete intervals based off [`BTreeMap`].
 
 `no_std` is supported and should work with the default features.
 
 ## `Copy` is partially required
 
 Due to implementation complications with non-`Copy` types the
-datastructures currently require both the range type and the points the
+data-structures currently require both the range type and the points the
 ranges are over to be `Copy`. However, the value type used when using
-the [`DiscreteRangeMap`] does not have to be `Copy`. In fact the only
+the [`NoditMap`] does not have to be `Copy`. In fact the only
 required traits on the value type are sometimes `Clone` or `Eq` but only
 for some methods so if in doubt check a methods trait bounds.
 
 ## Example using an Inclusive-Exclusive range
 
 ```rust
-use discrete_range_map::inclusive_interval::ie;
-use discrete_range_map::DiscreteRangeMap;
+use nodit::interval::ie;
+use nodit::NoditMap;
 
-let mut map = DiscreteRangeMap::new();
+let mut map = NoditMap::new();
 
 map.insert_strict(ie(0, 5), true);
 map.insert_strict(ie(5, 10), false);
@@ -45,9 +44,9 @@ assert_eq!(map.contains_point(5), true);
 ```rust
 use std::ops::{Bound, RangeBounds};
 
-use discrete_range_map::inclusive_interval::ie;
-use discrete_range_map::{
-    DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
+use nodit::interval::ie;
+use nodit::{
+    DiscreteFinite, NoditMap, InclusiveInterval,
     InclusiveRange,
 };
 
@@ -75,9 +74,9 @@ impl InclusiveRange<i8> for Reservation {
     }
 }
 
-// Second, we need to implement From<InclusiveInterval<i8>>
-impl From<InclusiveInterval<i8>> for Reservation {
-    fn from(value: InclusiveInterval<i8>) -> Self {
+// Second, we need to implement From<Interval<i8>>
+impl From<Interval<i8>> for Reservation {
+    fn from(value: Interval<i8>) -> Self {
         if value.end == i8::MAX {
             Reservation::Infinite(value.start)
         } else {
@@ -89,8 +88,8 @@ impl From<InclusiveInterval<i8>> for Reservation {
     }
 }
 
-// Next we can create a custom typed DiscreteRangeMap
-let reservation_map = DiscreteRangeMap::from_slice_strict([
+// Next we can create a custom typed NoditMap
+let reservation_map = NoditMap::from_slice_strict([
     (Reservation::Finite(10, 20), "Ferris".to_string()),
     (Reservation::Infinite(21), "Corro".to_string()),
 ])
@@ -149,7 +148,7 @@ as this:
 ```rust
 use std::cmp::Ordering;
 
-use discrete_range_map::DiscreteFinite;
+use nodit::DiscreteFinite;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum WithInfinity<T> {
@@ -227,19 +226,19 @@ where
 // Infinity is encountered such as when it might be
 // returned by `get_entry_at_point()`, for example:
 
-use discrete_range_map::{DiscreteRangeMap, InclusiveInterval};
+use nodit::{NoditMap, Interval};
 
-let map: DiscreteRangeMap<
+let map: NoditMap<
     WithInfinity<u8>,
-    InclusiveInterval<WithInfinity<u8>>,
+    Interval<WithInfinity<u8>>,
     bool,
-> = DiscreteRangeMap::new();
+> = NoditMap::new();
 
 let mut gap = map.get_entry_at_point(WithInfinity::Finite(4));
 
 assert_eq!(
     gap,
-    Err(InclusiveInterval {
+    Err(Interval {
         start: WithInfinity::Finite(0),
         end: WithInfinity::Infinity,
     })
@@ -363,6 +362,6 @@ topic area, beware my biases when reading:
 [`range_bounds_map`]: https://docs.rs/range_bounds_map
 [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
 [`num_bigint`]: https://docs.rs/num-bigint
-[`get_entry_at_point()`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html#method.get_entry_at_point
-[`DiscreteRangeMap`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html#
-[`DiscreteRangeSet`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_set/struct.DiscreteRangeSet.html#
+[`get_entry_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#method.get_entry_at_point
+[`NoditMap`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#
+[`NoditSet`]: https://docs.rs/nodit/latest/nodit/discrete_interval_set/struct.NoditSet.html#
