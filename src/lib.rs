@@ -17,9 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with nodit. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! This crate provides [`NoditMap`] and [`NoditSet`],
-//! Data Structures for storing non-overlapping discrete intervals based
-//! off [`BTreeMap`].
+//! This crate provides [`NoditMap`] and [`NoditSet`], Non-Overlapping Discrete
+//! Interval Tree data-structures, which are based off [`BTreeMap`].
 //!
 //! `no_std` is supported and should work with the default features.
 //!
@@ -55,8 +54,7 @@ along with nodit. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! use nodit::interval::ie;
 //! use nodit::{
-//! 	DiscreteFinite, NoditMap, InclusiveInterval,
-//! 	Interval,
+//! 	DiscreteFinite, InclusiveInterval, Interval, NoditMap,
 //! };
 //!
 //! #[derive(Debug, Copy, Clone)]
@@ -236,7 +234,7 @@ along with nodit. If not, see <https://www.gnu.org/licenses/>.
 //! // returned by `get_entry_at_point()`, for example:
 //!
 //! use nodit::interval::uu;
-//! use nodit::{NoditMap, Interval};
+//! use nodit::{Interval, NoditMap};
 //!
 //! let map: NoditMap<
 //! 	WithInfinity<u8>,
@@ -382,14 +380,13 @@ extern crate alloc;
 pub(crate) mod utils;
 
 pub mod discrete_finite;
+pub mod interval;
 pub mod map;
 pub mod set;
-pub mod interval;
 
 pub use crate::discrete_finite::DiscreteFinite;
+pub use crate::interval::Interval;
 pub use crate::map::{
-	NoditMap, InclusiveInterval, IntervalType, OverlapError,
-	PointType,
+	InclusiveInterval, IntervalType, NoditMap, OverlapError, PointType,
 };
 pub use crate::set::NoditSet;
-pub use crate::interval::Interval;

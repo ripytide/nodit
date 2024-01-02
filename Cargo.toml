@@ -4,9 +4,8 @@ version = "0.6.2"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
-This crate provides NoditMap and NoditSet, Data
-Structures for storing Non-Overlapping Discrete Intervals based off
-BTreeMap.
+This crate provides NoditMap and NoditSet, Non-Overlapping Discrete
+Interval Tree data-structures, which are based off BTreeMap.
 """
 documentation = "https://docs.rs/nodit"
 readme = "README.md"

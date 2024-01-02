@@ -9,8 +9,8 @@
 <img src="logo.png" alt="nodit_logo" width="350">
 </p>
 
-This crate provides [`NoditMap`] and [`NoditSet`], Data Structures for storing
-non-overlapping discrete intervals based off [`BTreeMap`].
+This crate provides [`NoditMap`] and [`NoditSet`], Non-Overlapping Discrete
+Interval Tree data-structures, which are based off [`BTreeMap`].
 
 `no_std` is supported and should work with the default features.
 
@@ -296,10 +296,19 @@ Lots of my inspiration came from the [`rangemap`] crate.
 The BTreeMap implementation ([`btree_monstrousity`]) used under the
 hood was inspired and forked from the [`copse`] crate.
 
-## Name Change
-
-This crate was previously named [`range_bounds_map`] it was renamed
+## Name Changes
+This crate was later named [`range_bounds_map`] it was renamed
 around about 2023-04-24 due to it no longer being an accurate name.
+
+This crate was previously named [`range_bounds_map`] it was renamed to
+[`discrete_range_map`] around about 2023-04-24 due to the old name no longer
+being very accurate.
+
+This crate was then renamed again on 2023-01-02 from [`discrete_range_map`] to
+[`nodit`] due to a change to prefer the word "interval" over "range" whenever
+possible for consistency. Hopefully, even if the library undergoes more changes
+the shorter and more abstract name may be able to be kept even if it loses its
+acronym of Non-Overlapping Discrete Interval Tree.
 
 ## Similar Crates
 
