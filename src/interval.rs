@@ -155,7 +155,7 @@ where
 ///
 /// ```
 /// use nodit::interval::uu;
-/// use nodit::{Interval, InclusiveInterval};
+/// use nodit::{InclusiveInterval, Interval};
 ///
 /// let interval1: Interval<u8> = uu();
 /// let interval2: Interval<u8> = uu();

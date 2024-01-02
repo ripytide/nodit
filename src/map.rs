@@ -274,8 +274,7 @@ where
 	/// use nodit::interval::ie;
 	/// use nodit::NoditMap;
 	/// let mut map =
-	/// 	NoditMap::from_slice_strict([(ie(1, 4), false)])
-	/// 		.unwrap();
+	/// 	NoditMap::from_slice_strict([(ie(1, 4), false)]).unwrap();
 	///
 	/// if let Some(x) = map.get_at_point_mut(2) {
 	/// 	*x = true;
@@ -503,7 +502,10 @@ where
 		let returning_before_cut = cut_result.before_cut.map(K::from);
 		let returning_after_cut = cut_result.after_cut.map(K::from);
 
-		let value = self.inner.remove(overlapping_comp(interval.start())).unwrap();
+		let value = self
+			.inner
+			.remove(overlapping_comp(interval.start()))
+			.unwrap();
 
 		if let Some(before) = returning_before_cut {
 			self.insert_unchecked(before, value.clone());
@@ -549,7 +551,8 @@ where
 			None => (None, None),
 		};
 
-		let before_value = self.inner.remove(overlapping_comp(interval.start()));
+		let before_value =
+			self.inner.remove(overlapping_comp(interval.start()));
 		let after_value = self.inner.remove(overlapping_comp(interval.end()));
 
 		if let Some(returning_before_cut) = returning_before_cut {
@@ -630,8 +633,9 @@ where
 		let start_gap =
 			(!self.inner.contains_key(overlapping_comp(interval.start())))
 				.then(|| self.get_gap_at_raw(interval.start()));
-		let end_gap = (!self.inner.contains_key(overlapping_comp(interval.end())))
-			.then(|| self.get_gap_at_raw(interval.end()));
+		let end_gap =
+			(!self.inner.contains_key(overlapping_comp(interval.end())))
+				.then(|| self.get_gap_at_raw(interval.end()));
 
 		let (start_gap, end_gap) = match (start_gap, end_gap) {
 			(Some(start_gap), Some(end_gap)) => {
@@ -717,8 +721,9 @@ where
 		let start_gap =
 			(!self.inner.contains_key(overlapping_comp(interval.start())))
 				.then(|| self.get_gap_at_raw(interval.start()));
-		let end_gap = (!self.inner.contains_key(overlapping_comp(interval.end())))
-			.then(|| self.get_gap_at_raw(interval.end()));
+		let end_gap =
+			(!self.inner.contains_key(overlapping_comp(interval.end())))
+				.then(|| self.get_gap_at_raw(interval.end()));
 
 		let (trimmed_start_gap, trimmed_end_gap) = match (start_gap, end_gap) {
 			(Some(mut start_gap), Some(mut end_gap)) => {
@@ -870,12 +875,10 @@ where
 		let matching_end = get_end(self, &value);
 
 		let returning = match (matching_start, matching_end) {
-			(Some(matching_start), Some(matching_end)) => {
-				K::from(Interval {
-					start: matching_start.start(),
-					end: matching_end.end(),
-				})
-			}
+			(Some(matching_start), Some(matching_end)) => K::from(Interval {
+				start: matching_start.start(),
+				end: matching_end.end(),
+			}),
 			(Some(matching_start), None) => K::from(Interval {
 				start: matching_start.start(),
 				end: interval.end(),
@@ -1275,8 +1278,7 @@ where
 	/// use nodit::NoditMap;
 	///
 	/// let mut map =
-	/// 	NoditMap::from_slice_strict([(ie(2, 8), false)])
-	/// 		.unwrap();
+	/// 	NoditMap::from_slice_strict([(ie(2, 8), false)]).unwrap();
 	///
 	/// map.insert_overwrite(ie(4, 6), true);
 	///
@@ -1355,11 +1357,12 @@ where
 	/// let slice =
 	/// 	[(ie(1, 4), false), (ie(4, 8), true), (ie(8, 100), false)];
 	///
-	/// let map: NoditMap<_, _, _> =
-	/// 	NoditMap::from_iter_strict(
-	/// 		slice.into_iter().filter(|(interval, _)| interval.start() > 2),
-	/// 	)
-	/// 	.unwrap();
+	/// let map: NoditMap<_, _, _> = NoditMap::from_iter_strict(
+	/// 	slice
+	/// 		.into_iter()
+	/// 		.filter(|(interval, _)| interval.start() > 2),
+	/// )
+	/// .unwrap();
 	/// ```
 	pub fn from_iter_strict(
 		iter: impl Iterator<Item = (K, V)>,
@@ -1377,10 +1380,9 @@ impl<I, K, V> NoditMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use nodit::{NoditMap, Interval};
+	/// use nodit::{Interval, NoditMap};
 	///
-	/// let map: NoditMap<i8, Interval<i8>, bool> =
-	/// 	NoditMap::new();
+	/// let map: NoditMap<i8, Interval<i8>, bool> = NoditMap::new();
 	/// ```
 	pub fn new() -> Self {
 		NoditMap {
@@ -1541,7 +1543,9 @@ where
 	I: PointType,
 	K: IntervalType<I>,
 {
-	|inner_interval: &K, new_interval: &K| new_interval.start().cmp(&inner_interval.start())
+	|inner_interval: &K, new_interval: &K| {
+		new_interval.start().cmp(&inner_interval.start())
+	}
 }
 fn overlapping_comp<I, K>(point: I) -> impl FnMut(&K) -> Ordering
 where
@@ -2036,13 +2040,10 @@ mod tests {
 			[ei(4, 5), ee(7, 14), ii(16, i8::MAX)],
 		);
 		assert_eq!(
-			NoditMap::from_slice_strict([(
-				ii(i8::MIN, i8::MAX),
-				false
-			)])
-			.unwrap()
-			.gaps_trimmed(uu())
-			.collect::<Vec<_>>(),
+			NoditMap::from_slice_strict([(ii(i8::MIN, i8::MAX), false)])
+				.unwrap()
+				.gaps_trimmed(uu())
+				.collect::<Vec<_>>(),
 			[]
 		);
 	}
@@ -2077,13 +2078,10 @@ mod tests {
 			[ei(4, 5), ee(7, 14), ii(16, i8::MAX)],
 		);
 		assert_eq!(
-			NoditMap::from_slice_strict([(
-				ii(i8::MIN, i8::MAX),
-				false
-			)])
-			.unwrap()
-			.gaps_trimmed(uu())
-			.collect::<Vec<_>>(),
+			NoditMap::from_slice_strict([(ii(i8::MIN, i8::MAX), false)])
+				.unwrap()
+				.gaps_trimmed(uu())
+				.collect::<Vec<_>>(),
 			[]
 		);
 	}
@@ -2372,7 +2370,8 @@ mod tests {
 
 				let mathematical_definition_of_overlap =
 					NUMBERS_DOMAIN.iter().any(|x| {
-						contains_point(interval1, *x) && contains_point(interval2, *x)
+						contains_point(interval1, *x)
+							&& contains_point(interval2, *x)
 					});
 
 				if our_answer != mathematical_definition_of_overlap {
@@ -2477,10 +2476,7 @@ mod tests {
 			input.intersect(&Interval { start: 10, end: 13 }),
 			Some(Interval { start: 10, end: 10 })
 		);
-		assert_eq!(
-			input.intersect(&Interval { start: 11, end: 13 }),
-			None
-		);
+		assert_eq!(input.intersect(&Interval { start: 11, end: 13 }), None);
 	}
 
 	#[test]

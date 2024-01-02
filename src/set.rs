@@ -32,7 +32,7 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::map::IntoIter as NoditMapIntoIter;
-use crate::{NoditMap, OverlapError, PointType, IntervalType};
+use crate::{IntervalType, NoditMap, OverlapError, PointType};
 
 /// An ordered set of non-overlapping intervals based on [`NoditMap`].
 ///
@@ -125,7 +125,10 @@ where
 		self.inner.contains_entire_interval(interval)
 	}
 	/// See [`NoditMap::insert_strict()`] for more details.
-	pub fn insert_strict(&mut self, interval: K) -> Result<(), OverlapError<()>> {
+	pub fn insert_strict(
+		&mut self,
+		interval: K,
+	) -> Result<(), OverlapError<()>> {
 		self.inner.insert_strict(interval, ())
 	}
 	/// See [`NoditMap::insert_merge_touching()`] for more details.
@@ -141,7 +144,8 @@ where
 	}
 	/// See [`NoditMap::insert_merge_touching_or_overlapping()`] for more details.
 	pub fn insert_merge_touching_or_overlapping(&mut self, interval: K) -> K {
-		self.inner.insert_merge_touching_or_overlapping(interval, ())
+		self.inner
+			.insert_merge_touching_or_overlapping(interval, ())
 	}
 	/// See [`NoditMap::insert_overwrite()`] for more details.
 	pub fn insert_overwrite(&mut self, interval: K) -> impl Iterator<Item = K> {

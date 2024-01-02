@@ -19,7 +19,7 @@ along with nodit. If not, see <https://www.gnu.org/licenses/>.
 
 use core::cmp::Ordering;
 
-use crate::{Interval, InclusiveInterval, PointType, IntervalType};
+use crate::{InclusiveInterval, Interval, IntervalType, PointType};
 
 pub(crate) fn cmp_point_with_interval<I, K>(point: I, interval: K) -> Ordering
 where
