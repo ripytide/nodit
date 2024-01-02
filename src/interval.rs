@@ -1,20 +1,20 @@
 /*
 Copyright 2022,2023 James Forster
 
-This file is part of discrete_range_map.
+This file is part of nodit.
 
-discrete_range_map is free software: you can redistribute it and/or
+nodit is free software: you can redistribute it and/or
 modify it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
-discrete_range_map is distributed in the hope that it will be useful,
+nodit is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
+along with nodit. If not, see <https://www.gnu.org/licenses/>.
 */
 
 //! A module containing [`InclusiveInterval`] and its constructors.
@@ -29,8 +29,8 @@ use core::ops::{Bound, Range, RangeBounds, RangeInclusive};
 
 use serde::{Deserialize, Serialize};
 
-use crate::discrete_range_map::invalid_range_panic;
-use crate::{InclusiveRange, PointType};
+use crate::map::invalid_interval_panic;
+use crate::{InclusiveInterval, PointType};
 
 /// An inclusive interval, only valid intervals can be constructed.
 ///
@@ -39,13 +39,13 @@ use crate::{InclusiveRange, PointType};
 /// their own interval types.
 ///
 /// To create an `InclusiveInterval` use one of the various contrutor
-/// functions which will all panic if you try to create an invalid range.
+/// functions which will all panic if you try to create an invalid interval.
 /// See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::{ee, ii};
+/// use nodit::interval::{ee, ii};
 ///
 /// let inclusive_interval = ii(4, 4);
 /// let exclusive_interval = ee(3, 5);
@@ -54,35 +54,35 @@ use crate::{InclusiveRange, PointType};
 /// ```
 ///
 /// ```should_panic
-/// use discrete_range_map::inclusive_interval::ee;
+/// use nodit::interval::ee;
 ///
 /// let invalid_interval = ee(4, 4);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct InclusiveInterval<I> {
+pub struct Interval<I> {
 	/// The start of the interval, inclusive.
 	pub(crate) start: I,
 	/// The end of the interval, inclusive.
 	pub(crate) end: I,
 }
-impl<I> InclusiveInterval<I>
+impl<I> Interval<I>
 where
 	I: PointType,
 {
-	/// The start of the range, inclusive.
+	/// The start of the interval, inclusive.
 	///
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ii;
+	/// use nodit::interval::ii;
 	///
 	/// assert_eq!(ii(2, 4).start(), 2);
 	/// ```
 	pub fn start(&self) -> I {
 		self.start
 	}
-	/// The end of the range, inclusive.
+	/// The end of the interval, inclusive.
 	///
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ii;
+	/// use nodit::interval::ii;
 	///
 	/// assert_eq!(ii(2, 4).end(), 4);
 	/// ```
@@ -91,7 +91,7 @@ where
 	}
 }
 
-impl<I> RangeBounds<I> for InclusiveInterval<I>
+impl<I> RangeBounds<I> for Interval<I>
 where
 	I: PointType,
 {
@@ -103,7 +103,7 @@ where
 		Bound::Included(&self.end)
 	}
 }
-impl<I> InclusiveRange<I> for InclusiveInterval<I>
+impl<I> InclusiveInterval<I> for Interval<I>
 where
 	I: PointType,
 {
@@ -115,12 +115,12 @@ where
 		self.end
 	}
 }
-impl<I> From<InclusiveInterval<I>> for RangeInclusive<I> {
-	fn from(value: InclusiveInterval<I>) -> Self {
+impl<I> From<Interval<I>> for RangeInclusive<I> {
+	fn from(value: Interval<I>) -> Self {
 		value.start..=value.end
 	}
 }
-impl<I> From<RangeInclusive<I>> for InclusiveInterval<I>
+impl<I> From<RangeInclusive<I>> for Interval<I>
 where
 	I: PointType,
 {
@@ -128,15 +128,15 @@ where
 		ii(*value.start(), *value.end())
 	}
 }
-impl<I> From<InclusiveInterval<I>> for Range<I>
+impl<I> From<Interval<I>> for Range<I>
 where
 	I: PointType,
 {
-	fn from(value: InclusiveInterval<I>) -> Self {
+	fn from(value: Interval<I>) -> Self {
 		value.start..value.end.up().unwrap()
 	}
 }
-impl<I> From<Range<I>> for InclusiveInterval<I>
+impl<I> From<Range<I>> for Interval<I>
 where
 	I: PointType,
 {
@@ -149,29 +149,29 @@ where
 ///
 /// # Panics
 ///
-/// Panics if the range is an invalid range. See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Panics if the interval is an invalid interval. See [`Invalid
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::uu;
-/// use discrete_range_map::InclusiveInterval;
+/// use nodit::interval::uu;
+/// use nodit::{Interval, InclusiveInterval};
 ///
-/// let interval1: InclusiveInterval<u8> = uu();
-/// let interval2: InclusiveInterval<u8> = uu();
+/// let interval1: Interval<u8> = uu();
+/// let interval2: Interval<u8> = uu();
 ///
 /// assert_eq!(interval1, interval2)
 /// ```
-pub fn uu<I>() -> InclusiveInterval<I>
+pub fn uu<I>() -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = InclusiveInterval {
+	let interval = Interval {
 		start: I::MIN,
 		end: I::MAX,
 	};
 
-	invalid_range_panic(interval);
+	invalid_interval_panic(interval);
 
 	interval
 }
@@ -179,28 +179,28 @@ where
 ///
 /// # Panics
 ///
-/// Panics if the range is an invalid range. See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Panics if the interval is an invalid interval. See [`Invalid
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::ui;
+/// use nodit::interval::ui;
 ///
 /// let interval1 = ui(1);
 /// let interval2 = ui(4);
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ui<I>(x: I) -> InclusiveInterval<I>
+pub fn ui<I>(x: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = InclusiveInterval {
+	let interval = Interval {
 		start: I::MIN,
 		end: x,
 	};
 
-	invalid_range_panic(interval);
+	invalid_interval_panic(interval);
 
 	interval
 }
@@ -208,28 +208,28 @@ where
 ///
 /// # Panics
 ///
-/// Panics if the range is an invalid range. See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Panics if the interval is an invalid interval. See [`Invalid
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::ue;
+/// use nodit::interval::ue;
 ///
 /// let interval1 = ue(1);
 /// let interval2 = ue(4);
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ue<I>(x: I) -> InclusiveInterval<I>
+pub fn ue<I>(x: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = InclusiveInterval {
+	let interval = Interval {
 		start: I::MIN,
 		end: x.down().unwrap(),
 	};
 
-	invalid_range_panic(interval);
+	invalid_interval_panic(interval);
 
 	interval
 }
@@ -237,28 +237,28 @@ where
 ///
 /// # Panics
 ///
-/// Panics if the range is an invalid range. See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Panics if the interval is an invalid interval. See [`Invalid
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::iu;
+/// use nodit::interval::iu;
 ///
 /// let interval1 = iu(1);
 /// let interval2 = iu(4);
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn iu<I>(x: I) -> InclusiveInterval<I>
+pub fn iu<I>(x: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = InclusiveInterval {
+	let interval = Interval {
 		start: x,
 		end: I::MAX,
 	};
 
-	invalid_range_panic(interval);
+	invalid_interval_panic(interval);
 
 	interval
 }
@@ -266,28 +266,28 @@ where
 ///
 /// # Panics
 ///
-/// Panics if the range is an invalid range. See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Panics if the interval is an invalid interval. See [`Invalid
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::eu;
+/// use nodit::interval::eu;
 ///
 /// let interval1 = eu(1);
 /// let interval2 = eu(4);
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn eu<I>(x: I) -> InclusiveInterval<I>
+pub fn eu<I>(x: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = InclusiveInterval {
+	let interval = Interval {
 		start: x.up().unwrap(),
 		end: I::MAX,
 	};
 
-	invalid_range_panic(interval);
+	invalid_interval_panic(interval);
 
 	interval
 }
@@ -295,25 +295,25 @@ where
 ///
 /// # Panics
 ///
-/// Panics if the range is an invalid range. See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Panics if the interval is an invalid interval. See [`Invalid
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::ii;
+/// use nodit::interval::ii;
 ///
 /// let interval1 = ii(0, 4);
 /// let interval2 = ii(2, 6);
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ii<I>(x1: I, x2: I) -> InclusiveInterval<I>
+pub fn ii<I>(x1: I, x2: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = InclusiveInterval { start: x1, end: x2 };
+	let interval = Interval { start: x1, end: x2 };
 
-	invalid_range_panic(interval);
+	invalid_interval_panic(interval);
 
 	interval
 }
@@ -321,28 +321,28 @@ where
 ///
 /// # Panics
 ///
-/// Panics if the range is an invalid range. See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Panics if the interval is an invalid interval. See [`Invalid
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::ie;
+/// use nodit::interval::ie;
 ///
 /// let interval1 = ie(0, 4);
 /// let interval2 = ie(2, 6);
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ie<I>(x1: I, x2: I) -> InclusiveInterval<I>
+pub fn ie<I>(x1: I, x2: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = InclusiveInterval {
+	let interval = Interval {
 		start: x1,
 		end: x2.down().unwrap(),
 	};
 
-	invalid_range_panic(interval);
+	invalid_interval_panic(interval);
 
 	interval
 }
@@ -350,28 +350,28 @@ where
 ///
 /// # Panics
 ///
-/// Panics if the range is an invalid range. See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Panics if the interval is an invalid interval. See [`Invalid
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::ei;
+/// use nodit::interval::ei;
 ///
 /// let interval1 = ei(0, 4);
 /// let interval2 = ei(2, 6);
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ei<I>(x1: I, x2: I) -> InclusiveInterval<I>
+pub fn ei<I>(x1: I, x2: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = InclusiveInterval {
+	let interval = Interval {
 		start: x1.up().unwrap(),
 		end: x2,
 	};
 
-	invalid_range_panic(interval);
+	invalid_interval_panic(interval);
 
 	interval
 }
@@ -379,28 +379,28 @@ where
 ///
 /// # Panics
 ///
-/// Panics if the range is an invalid range. See [`Invalid
-/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+/// Panics if the interval is an invalid interval. See [`Invalid
+/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 /// for more details.
 ///
 /// ```
-/// use discrete_range_map::inclusive_interval::ee;
+/// use nodit::interval::ee;
 ///
 /// let interval1 = ee(0, 4);
 /// let interval2 = ee(2, 6);
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ee<I>(x1: I, x2: I) -> InclusiveInterval<I>
+pub fn ee<I>(x1: I, x2: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = InclusiveInterval {
+	let interval = Interval {
 		start: x1.up().unwrap(),
 		end: x2.down().unwrap(),
 	};
 
-	invalid_range_panic(interval);
+	invalid_interval_panic(interval);
 
 	interval
 }

@@ -1,44 +1,43 @@
 /*
 Copyright 2022,2023 James Forster
 
-This file is part of discrete_range_map.
+This file is part of nodit.
 
-discrete_range_map is free software: you can redistribute it and/or
+nodit is free software: you can redistribute it and/or
 modify it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
-discrete_range_map is distributed in the hope that it will be useful,
+nodit is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
+along with nodit. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! This crate provides [`DiscreteRangeMap`] and [`DiscreteRangeSet`],
-//! Data Structures for storing non-overlapping discrete intervals based
-//! off [`BTreeMap`].
+//! This crate provides [`NoditMap`] and [`NoditSet`], Non-Overlapping Discrete
+//! Interval Tree data-structures, which are based off [`BTreeMap`].
 //!
 //! `no_std` is supported and should work with the default features.
 //!
 //! ## `Copy` is partially required
 //!
 //! Due to implementation complications with non-`Copy` types the
-//! datastructures currently require both the range type and the points the
-//! ranges are over to be `Copy`. However, the value type used when using
-//! the [`DiscreteRangeMap`] does not have to be `Copy`. In fact the only
+//! datastructures currently require both the interval type and the points the
+//! intervals are over to be `Copy`. However, the value type used when using
+//! the [`NoditMap`] does not have to be `Copy`. In fact the only
 //! required traits on the value type are sometimes `Clone` or `Eq` but only
 //! for some methods so if in doubt check a methods trait bounds.
 //!
-//! ## Example using an Inclusive-Exclusive range
+//! ## Example using an Inclusive-Exclusive interval
 //!
 //! ```rust
-//! use discrete_range_map::inclusive_interval::ie;
-//! use discrete_range_map::DiscreteRangeMap;
+//! use nodit::interval::ie;
+//! use nodit::NoditMap;
 //!
-//! let mut map = DiscreteRangeMap::new();
+//! let mut map = NoditMap::new();
 //!
 //! map.insert_strict(ie(0, 5), true);
 //! map.insert_strict(ie(5, 10), false);
@@ -48,15 +47,14 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! assert_eq!(map.contains_point(5), true);
 //! ```
 //!
-//! ## Example using a custom range type
+//! ## Example using a custom interval type
 //!
 //! ```rust
 //! use std::ops::{Bound, RangeBounds};
 //!
-//! use discrete_range_map::inclusive_interval::ie;
-//! use discrete_range_map::{
-//! 	DiscreteFinite, DiscreteRangeMap, InclusiveInterval,
-//! 	InclusiveRange,
+//! use nodit::interval::ie;
+//! use nodit::{
+//! 	DiscreteFinite, InclusiveInterval, Interval, NoditMap,
 //! };
 //!
 //! #[derive(Debug, Copy, Clone)]
@@ -67,8 +65,8 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! 	Infinite(i8),
 //! }
 //!
-//! // First, we need to implement InclusiveRange
-//! impl InclusiveRange<i8> for Reservation {
+//! // First, we need to implement InclusiveInterval
+//! impl InclusiveInterval<i8> for Reservation {
 //! 	fn start(&self) -> i8 {
 //! 		match self {
 //! 			Reservation::Finite(start, _) => *start,
@@ -83,9 +81,9 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! 	}
 //! }
 //!
-//! // Second, we need to implement From<InclusiveInterval<i8>>
-//! impl From<InclusiveInterval<i8>> for Reservation {
-//! 	fn from(value: InclusiveInterval<i8>) -> Self {
+//! // Second, we need to implement From<Interval<i8>>
+//! impl From<Interval<i8>> for Reservation {
+//! 	fn from(value: Interval<i8>) -> Self {
 //! 		if value.end() == i8::MAX {
 //! 			Reservation::Infinite(value.start())
 //! 		} else {
@@ -97,8 +95,8 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! 	}
 //! }
 //!
-//! // Next we can create a custom typed DiscreteRangeMap
-//! let reservation_map = DiscreteRangeMap::from_slice_strict([
+//! // Next we can create a custom typed NoditMap
+//! let reservation_map = NoditMap::from_slice_strict([
 //! 	(Reservation::Finite(10, 20), "Ferris".to_string()),
 //! 	(Reservation::Infinite(21), "Corro".to_string()),
 //! ])
@@ -107,7 +105,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! for (reservation, name) in reservation_map.overlapping(ie(16, 17))
 //! {
 //! 	println!(
-//! 		"{name} has reserved {reservation:?} inside the range 16..17"
+//! 		"{name} has reserved {reservation:?} inside the interval 16..17"
 //! 	);
 //! }
 //!
@@ -135,7 +133,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! `Discrete` but `5.0..=6.0` does **not** touch `7.0..=8.0` since the
 //! value `6.5` exists.
 //!
-//! Importantly, this also makes Inclusive/Exclusive ended ranges really
+//! Importantly, this also makes Inclusive/Exclusive ended intervals really
 //! easy to work with as they can be losslessly converted between one
 //! another. For example, `3..6` is equivalent to `3..=5`.
 //!
@@ -157,7 +155,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! ```rust
 //! use std::cmp::Ordering;
 //!
-//! use discrete_range_map::DiscreteFinite;
+//! use nodit::DiscreteFinite;
 //!
 //! #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 //! enum WithInfinity<T> {
@@ -235,35 +233,35 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! // Infinity is encountered such as when it might be
 //! // returned by `get_entry_at_point()`, for example:
 //!
-//! use discrete_range_map::inclusive_interval::uu;
-//! use discrete_range_map::{DiscreteRangeMap, InclusiveInterval};
+//! use nodit::interval::uu;
+//! use nodit::{Interval, NoditMap};
 //!
-//! let map: DiscreteRangeMap<
+//! let map: NoditMap<
 //! 	WithInfinity<u8>,
-//! 	InclusiveInterval<WithInfinity<u8>>,
+//! 	Interval<WithInfinity<u8>>,
 //! 	bool,
-//! > = DiscreteRangeMap::new();
+//! > = NoditMap::new();
 //!
 //! let mut gap = map.get_entry_at_point(WithInfinity::Finite(4));
 //!
 //! assert_eq!(gap, Err(uu()));
 //! ```
 //!
-//! ### Invalid Ranges
+//! ### Invalid Intervals
 //!
-//! Within this crate, not all ranges are considered valid ranges. The
-//! definition of the validity of a range used within this crate is that a
-//! range is only valid if it contains at least one value of the underlying
+//! Within this crate, not all intervals are considered valid intervals. The
+//! definition of the validity of a interval used within this crate is that a
+//! interval is only valid if it contains at least one value of the underlying
 //! domain.
 //!
 //! For example, `4..6` is considered valid as it contains the values `4`
 //! and `5`, however, `4..4` is considered invalid as it contains no
-//! values. Another example of invalid range are those whose start values
+//! values. Another example of invalid interval are those whose start values
 //! are greater than their end values. such as `5..2` or `100..=40`.
 //!
-//! Here are a few examples of ranges and whether they are valid:
+//! Here are a few examples of intervals and whether they are valid:
 //!
-//! | range                                  | valid |
+//! | interval                                  | valid |
 //! | -------------------------------------- | ----- |
 //! | 0..=0                                  | YES   |
 //! | 0..0                                   | NO    |
@@ -274,13 +272,13 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //!
 //! ### Overlap
 //!
-//! Two ranges are "overlapping" if there exists a point that is contained
-//! within both ranges. For example, `2..4` and `2..6` overlap but `2..4`
+//! Two intervals are "overlapping" if there exists a point that is contained
+//! within both intervals. For example, `2..4` and `2..6` overlap but `2..4`
 //! and `4..8` do not.
 //!
 //! ### Touching
 //!
-//! Two ranges are "touching" if they do not overlap and there exists no
+//! Two intervals are "touching" if they do not overlap and there exists no
 //! value between them. For example, `2..4` and `4..6` are touching but
 //! `2..4` and `6..8` are not, neither are `2..6` and `4..8`.
 //!
@@ -311,7 +309,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! topic area, beware my biases when reading:
 //!
 //! - <https://docs.rs/rangemap>
-//!   Very similar to this crate but can only use [`Range`]s and
+//!   Very similar to this crate but can only use std [`Range`]s and
 //!   [`RangeInclusive`]s as keys in it's `map` and `set` structs (separately).
 //! - <https://docs.rs/btree-range-map>
 //! - <https://docs.rs/ranges>
@@ -321,7 +319,7 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! - <https://docs.rs/intervaltree>
 //!   Allows overlapping intervals but is immutable unfortunately
 //! - <https://docs.rs/nonoverlapping_interval_tree>
-//!   Very similar to rangemap except without a `gaps()` function and only
+//!   Very similar to `rangemap` except without a `gaps()` function and only
 //!   for [`Range`]s and not [`RangeInclusive`]s. And also no fancy
 //!   merging functions.
 //! - <https://docs.rs/unbounded-interval-tree>
@@ -366,9 +364,9 @@ along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
 //! [`range_bounds_map`]: https://docs.rs/range_bounds_map
 //! [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
 //! [`num_bigint`]: https://docs.rs/num-bigint
-//! [`get_entry_at_point()`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html#method.get_entry_at_point
-//! [`DiscreteRangeMap`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_map/struct.DiscreteRangeMap.html#
-//! [`DiscreteRangeSet`]: https://docs.rs/discrete_range_map/latest/discrete_range_map/discrete_range_set/struct.DiscreteRangeSet.html#
+//! [`get_entry_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#method.get_entry_at_point
+//! [`NoditMap`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#
+//! [`NoditSet`]: https://docs.rs/nodit/latest/nodit/discrete_interval_set/struct.NoditSet.html#
 
 #![feature(let_chains)]
 #![feature(btree_cursors)]
@@ -382,13 +380,13 @@ extern crate alloc;
 pub(crate) mod utils;
 
 pub mod discrete_finite;
-pub mod discrete_range_map;
-pub mod discrete_range_set;
-pub mod inclusive_interval;
+pub mod interval;
+pub mod map;
+pub mod set;
 
 pub use crate::discrete_finite::DiscreteFinite;
-pub use crate::discrete_range_map::{
-	DiscreteRangeMap, InclusiveRange, OverlapError, PointType, RangeType,
+pub use crate::interval::Interval;
+pub use crate::map::{
+	InclusiveInterval, IntervalType, NoditMap, OverlapError, PointType,
 };
-pub use crate::discrete_range_set::DiscreteRangeSet;
-pub use crate::inclusive_interval::InclusiveInterval;
+pub use crate::set::NoditSet;

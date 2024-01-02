@@ -1,23 +1,23 @@
 /*
 Copyright 2022,2023 James Forster
 
-This file is part of discrete_range_map.
+This file is part of nodit.
 
-discrete_range_map is free software: you can redistribute it and/or
+nodit is free software: you can redistribute it and/or
 modify it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
-discrete_range_map is distributed in the hope that it will be useful,
+nodit is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
+along with nodit. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! A module containing [`DiscreteRangeMap`] and related types.
+//! A module containing [`NoditMap`] and related types.
 
 use alloc::vec::Vec;
 use core::cmp::Ordering;
@@ -35,29 +35,29 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::utils::{cmp_point_with_range, cut_range, overlaps};
-use crate::{DiscreteFinite, InclusiveInterval};
+use crate::utils::{cmp_point_with_interval, cut_interval, overlaps};
+use crate::{DiscreteFinite, Interval};
 
-/// An ordered map of non-overlapping ranges based on [`BTreeMap`].
+/// An ordered map of non-overlapping intervals based on [`BTreeMap`].
 ///
 /// `I` is the generic type parameter for the [`Ord`] type the `K`
-/// type is a range over.
+/// type is a interval over.
 ///
-/// `K` is the generic type parameter for the range type stored as the
+/// `K` is the generic type parameter for the interval type stored as the
 /// keys in the map.
 ///
 /// `V` is the generic type parameter for the values associated with the
 /// keys in the map.
 ///
-/// Phrasing it another way: `I` is the point type, `K` is the range type, and `V` is the value type.
+/// Phrasing it another way: `I` is the point type, `K` is the interval type, and `V` is the value type.
 ///
 /// # Examples
 /// ```
-/// use discrete_range_map::inclusive_interval::ie;
-/// use discrete_range_map::DiscreteRangeMap;
+/// use nodit::interval::ie;
+/// use nodit::NoditMap;
 ///
-/// // Make a map of ranges to booleans
-/// let mut map = DiscreteRangeMap::from_slice_strict([
+/// // Make a map of intervals to booleans
+/// let mut map = NoditMap::from_slice_strict([
 /// 	(ie(4, 8), false),
 /// 	(ie(8, 18), true),
 /// 	(ie(20, 100), false),
@@ -72,19 +72,19 @@ use crate::{DiscreteFinite, InclusiveInterval};
 /// }
 ///
 /// // Iterate over the entries in the map
-/// for (range, value) in map.iter() {
-/// 	println!("{range:?}, {value:?}");
+/// for (interval, value) in map.iter() {
+/// 	println!("{interval:?}, {value:?}");
 /// }
 /// ```
 ///
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DiscreteRangeMap<I, K, V> {
+pub struct NoditMap<I, K, V> {
 	inner: BTreeMap<K, V>,
 	phantom: PhantomData<I>,
 }
 
-/// The error returned when inserting a range that overlaps another range when
+/// The error returned when inserting a interval that overlaps another interval when
 /// it should not have. Contains the value that was not inserted.
 #[derive(PartialEq, Debug)]
 pub struct OverlapError<V> {
@@ -97,39 +97,39 @@ pub struct OverlapError<V> {
 pub trait PointType: Ord + Copy + DiscreteFinite {}
 impl<I> PointType for I where I: Ord + Copy + DiscreteFinite {}
 
-/// The marker trait for valid range types, a blanket implementation is provided for all types
+/// The marker trait for valid interval types, a blanket implementation is provided for all types
 /// which implement this traits' super-traits so you shouln't need to implement this yourself.
-pub trait RangeType<I>:
-	InclusiveRange<I> + Copy + From<InclusiveInterval<I>>
+pub trait IntervalType<I>:
+	InclusiveInterval<I> + Copy + From<Interval<I>>
 {
 }
-impl<I, K> RangeType<I> for K
+impl<I, K> IntervalType<I> for K
 where
 	I: PointType,
-	K: InclusiveRange<I> + Copy + From<InclusiveInterval<I>>,
+	K: InclusiveInterval<I> + Copy + From<Interval<I>>,
 {
 }
 
-impl<I, K, V> DiscreteRangeMap<I, K, V>
+impl<I, K, V> NoditMap<I, K, V>
 where
 	I: PointType,
-	K: RangeType<I>,
+	K: IntervalType<I>,
 {
-	/// Returns `true` if the given range overlaps any of the
-	/// other ranges in the map, and `false` if not.
+	/// Returns `true` if the given interval overlaps any of the
+	/// other intervals in the map, and `false` if not.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::{ie, ii};
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::{ie, ii};
+	/// use nodit::NoditMap;
 	///
-	/// let mut map = DiscreteRangeMap::new();
+	/// let mut map = NoditMap::new();
 	///
 	/// map.insert_strict(ie(5, 10), false);
 	///
@@ -139,30 +139,30 @@ where
 	/// assert_eq!(map.overlaps(ii(4, 5)), true);
 	/// assert_eq!(map.overlaps(ie(4, 6)), true);
 	/// ```
-	pub fn overlaps<Q>(&self, range: Q) -> bool
+	pub fn overlaps<Q>(&self, interval: Q) -> bool
 	where
-		Q: RangeType<I>,
+		Q: IntervalType<I>,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		self.overlapping(range).next().is_some()
+		self.overlapping(interval).next().is_some()
 	}
 
 	/// Returns an iterator over every entry in the map that overlaps
-	/// the given range in ascending order.
+	/// the given interval in ascending order.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -178,15 +178,15 @@ where
 	/// ```
 	pub fn overlapping<Q>(
 		&self,
-		range: Q,
+		interval: Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &V)>
 	where
-		Q: RangeType<I>,
+		Q: IntervalType<I>,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		let start_comp = overlapping_comp(range.start());
-		let end_comp = overlapping_comp(range.end());
+		let start_comp = overlapping_comp(interval.start());
+		let end_comp = overlapping_comp(interval.end());
 
 		let start_bound = SearchBoundCustom::Included;
 		let end_bound = SearchBoundCustom::Included;
@@ -196,28 +196,28 @@ where
 	}
 
 	/// Returns an mutable iterator over every entry in the map that
-	/// overlaps the given range in ascending order.
+	/// overlaps the given interval in ascending order.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let mut map = DiscreteRangeMap::from_slice_strict([
+	/// let mut map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
 	/// ])
 	/// .unwrap();
 	///
-	/// for (range, value) in map.overlapping_mut(ie(3, 7)) {
-	/// 	if *range == ie(4, 8) {
+	/// for (interval, value) in map.overlapping_mut(ie(3, 7)) {
+	/// 	if *interval == ie(4, 8) {
 	/// 		*value = false
 	/// 	} else {
 	/// 		*value = true
@@ -226,15 +226,15 @@ where
 	/// ```
 	pub fn overlapping_mut<Q>(
 		&mut self,
-		range: Q,
+		interval: Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &mut V)>
 	where
-		Q: RangeType<I>,
+		Q: IntervalType<I>,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		let start_comp = overlapping_comp(range.start());
-		let end_comp = overlapping_comp(range.end());
+		let start_comp = overlapping_comp(interval.start());
+		let end_comp = overlapping_comp(interval.end());
 
 		let start_bound = SearchBoundCustom::Included;
 		let end_bound = SearchBoundCustom::Included;
@@ -243,15 +243,15 @@ where
 			.range_mut(start_comp, start_bound, end_comp, end_bound)
 	}
 
-	/// Returns a reference to the value corresponding to the range in
+	/// Returns a reference to the value corresponding to the interval in
 	/// the map that overlaps the given point, if any.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -267,14 +267,14 @@ where
 	}
 
 	/// Returns a mutable reference to the value corresponding to the
-	/// range that overlaps the given point, if any.
+	/// interval that overlaps the given point, if any.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	/// let mut map =
-	/// 	DiscreteRangeMap::from_slice_strict([(ie(1, 4), false)])
+	/// 	NoditMap::from_slice_strict([(ie(1, 4), false)])
 	/// 		.unwrap();
 	///
 	/// if let Some(x) = map.get_at_point_mut(2) {
@@ -287,15 +287,15 @@ where
 		self.inner.get_mut(overlapping_comp(point))
 	}
 
-	/// Returns `true` if the map contains a range that overlaps the
+	/// Returns `true` if the map contains a interval that overlaps the
 	/// given point, and `false` if not.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -310,18 +310,18 @@ where
 		self.get_entry_at_point(point).is_ok()
 	}
 
-	/// Returns the entry corresponding to the range that
+	/// Returns the entry corresponding to the interval that
 	/// overlaps the given point, if any.
 	///
-	/// If there is no range that overlaps the given point the
+	/// If there is no interval that overlaps the given point the
 	/// maximally-sized gap at the given point is returned.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::{ie, iu};
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::{ie, iu};
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 6), true),
 	/// 	(ie(8, 100), false),
@@ -338,7 +338,7 @@ where
 			.get_key_value(overlapping_comp(point))
 			.ok_or_else(|| K::from(self.get_gap_at_raw(point)))
 	}
-	fn get_gap_at_raw(&self, point: I) -> InclusiveInterval<I> {
+	fn get_gap_at_raw(&self, point: I) -> Interval<I> {
 		let lower = self
 			.inner
 			.upper_bound(overlapping_comp(point), SearchBoundCustom::Included);
@@ -346,7 +346,7 @@ where
 			.inner
 			.lower_bound(overlapping_comp(point), SearchBoundCustom::Included);
 
-		InclusiveInterval {
+		Interval {
 			start: lower
 				.key()
 				.map_or(I::MIN, |lower| lower.end().up().unwrap()),
@@ -356,21 +356,21 @@ where
 		}
 	}
 
-	/// Removes every entry in the map which overlaps the given range
+	/// Removes every entry in the map which overlaps the given interval
 	/// and returns them in an iterator in ascending order.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let mut map = DiscreteRangeMap::from_slice_strict([
+	/// let mut map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -391,23 +391,23 @@ where
 	/// ```
 	pub fn remove_overlapping<'a, Q>(
 		&'a mut self,
-		range: Q,
+		interval: Q,
 	) -> impl Iterator<Item = (K, V)>
 	where
-		Q: RangeType<I> + 'a,
+		Q: IntervalType<I> + 'a,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
 		let mut result = Vec::new();
 
 		let mut leftmost_cursor = self.inner.lower_bound_mut(
-			overlapping_comp(range.start()),
+			overlapping_comp(interval.start()),
 			SearchBoundCustom::Included,
 		);
 
 		while leftmost_cursor
 			.key()
-			.is_some_and(|inner_range| overlaps(*inner_range, range))
+			.is_some_and(|inner_interval| overlaps(*inner_interval, interval))
 		{
 			result.push(leftmost_cursor.remove_current().unwrap());
 		}
@@ -415,33 +415,33 @@ where
 		return result.into_iter();
 	}
 
-	/// Cuts a given range out of the map and returns an iterator of
-	/// the full or partial ranges that were cut in ascending order.
+	/// Cuts a given interval out of the map and returns an iterator of
+	/// the full or partial intervals that were cut in ascending order.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
-	/// of a range in the map it will split into two different entries
-	/// using `Clone`. Or if you partially cut a range then
+	/// of a interval in the map it will split into two different entries
+	/// using `Clone`. Or if you partially cut a interval then
 	/// `V` must be cloned to be returned in the iterator.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::{ie, ii};
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::{ie, ii};
+	/// use nodit::NoditMap;
 	///
-	/// let mut base = DiscreteRangeMap::from_slice_strict([
+	/// let mut base = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
 	/// ])
 	/// .unwrap();
 	///
-	/// let after_cut = DiscreteRangeMap::from_slice_strict([
+	/// let after_cut = NoditMap::from_slice_strict([
 	/// 	(ie(1, 2), false),
 	/// 	(ie(40, 100), false),
 	/// ])
@@ -453,15 +453,15 @@ where
 	/// );
 	/// assert_eq!(base, after_cut);
 	/// ```
-	pub fn cut<'a, Q>(&'a mut self, range: Q) -> impl Iterator<Item = (K, V)>
+	pub fn cut<'a, Q>(&'a mut self, interval: Q) -> impl Iterator<Item = (K, V)>
 	where
-		Q: RangeType<I> + 'a,
+		Q: IntervalType<I> + 'a,
 		V: Clone,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		let start_comp = overlapping_comp(range.start());
-		let end_comp = overlapping_comp(range.end());
+		let start_comp = overlapping_comp(interval.start());
+		let end_comp = overlapping_comp(interval.end());
 
 		let left_overlapping = self
 			.inner
@@ -478,10 +478,10 @@ where
 			&& let Some(right) = right_overlapping
 			&& left.start() == right.start()
 		{
-			Either::Left(self.cut_single_overlapping(range, left))
+			Either::Left(self.cut_single_overlapping(interval, left))
 		} else {
 			Either::Right(self.cut_non_single_overlapping(
-				range,
+				interval,
 				left_overlapping,
 				right_overlapping,
 			))
@@ -489,21 +489,21 @@ where
 	}
 	fn cut_single_overlapping<Q>(
 		&mut self,
-		range: Q,
-		single_overlapping_range: K,
+		interval: Q,
+		single_overlapping_interval: K,
 	) -> impl Iterator<Item = (K, V)>
 	where
-		Q: RangeType<I>,
+		Q: IntervalType<I>,
 		V: Clone,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		let cut_result = cut_range(single_overlapping_range, range);
+		let cut_result = cut_interval(single_overlapping_interval, interval);
 
 		let returning_before_cut = cut_result.before_cut.map(K::from);
 		let returning_after_cut = cut_result.after_cut.map(K::from);
 
-		let value = self.inner.remove(overlapping_comp(range.start())).unwrap();
+		let value = self.inner.remove(overlapping_comp(interval.start())).unwrap();
 
 		if let Some(before) = returning_before_cut {
 			self.insert_unchecked(before, value.clone());
@@ -516,19 +516,19 @@ where
 	}
 	fn cut_non_single_overlapping<'a, Q>(
 		&'a mut self,
-		range: Q,
+		interval: Q,
 		left_overlapping: Option<K>,
 		right_overlapping: Option<K>,
 	) -> impl Iterator<Item = (K, V)>
 	where
-		Q: RangeType<I> + 'a,
+		Q: IntervalType<I> + 'a,
 		V: Clone,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
 		let (returning_before_cut, keeping_before) = match left_overlapping {
 			Some(before) => {
-				let cut_result = cut_range(before, range);
+				let cut_result = cut_interval(before, interval);
 
 				(
 					cut_result.before_cut.map(K::from),
@@ -539,7 +539,7 @@ where
 		};
 		let (returning_after_cut, keeping_after) = match right_overlapping {
 			Some(after) => {
-				let cut_result = cut_range(after, range);
+				let cut_result = cut_interval(after, interval);
 
 				(
 					cut_result.after_cut.map(K::from),
@@ -549,8 +549,8 @@ where
 			None => (None, None),
 		};
 
-		let before_value = self.inner.remove(overlapping_comp(range.start()));
-		let after_value = self.inner.remove(overlapping_comp(range.end()));
+		let before_value = self.inner.remove(overlapping_comp(interval.start()));
+		let after_value = self.inner.remove(overlapping_comp(interval.end()));
 
 		if let Some(returning_before_cut) = returning_before_cut {
 			self.insert_unchecked(
@@ -572,9 +572,9 @@ where
 
 		return keeping_before_entry
 			.into_iter()
-			.chain(self.remove_overlapping(range).map(|(key, value)| {
+			.chain(self.remove_overlapping(interval).map(|(key, value)| {
 				(
-					K::from(InclusiveInterval {
+					K::from(Interval {
 						start: key.start(),
 						end: key.end(),
 					}),
@@ -585,23 +585,23 @@ where
 	}
 
 	/// Returns an iterator of all the gaps in the map that overlap the given
-	/// `range` in ascending order.
+	/// `interval` in ascending order.
 	///
-	/// See [`DiscreteRangeMap::gaps_trimmed()`] if you require the returned
-	/// gaps to be trimmed to be fully contained within given `range`.
+	/// See [`NoditMap::gaps_trimmed()`] if you require the returned
+	/// gaps to be trimmed to be fully contained within given `interval`.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::{ie, ii, iu};
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::{ie, ii, iu};
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 3), false),
 	/// 	(ie(5, 7), true),
 	/// 	(ie(9, 100), false),
@@ -617,21 +617,21 @@ where
 	/// ```
 	pub fn gaps_untrimmed<'a, Q>(
 		&'a self,
-		range: Q,
+		interval: Q,
 	) -> impl Iterator<Item = K> + '_
 	where
-		Q: RangeType<I> + 'a,
+		Q: IntervalType<I> + 'a,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		// If the start or end point of range is not
-		// contained within a range in the map then we need to
+		// If the start or end point of interval is not
+		// contained within a interval in the map then we need to
 		// generate the gaps.
 		let start_gap =
-			(!self.inner.contains_key(overlapping_comp(range.start())))
-				.then(|| self.get_gap_at_raw(range.start()));
-		let end_gap = (!self.inner.contains_key(overlapping_comp(range.end())))
-			.then(|| self.get_gap_at_raw(range.end()));
+			(!self.inner.contains_key(overlapping_comp(interval.start())))
+				.then(|| self.get_gap_at_raw(interval.start()));
+		let end_gap = (!self.inner.contains_key(overlapping_comp(interval.end())))
+			.then(|| self.get_gap_at_raw(interval.end()));
 
 		let (start_gap, end_gap) = match (start_gap, end_gap) {
 			(Some(start_gap), Some(end_gap)) => {
@@ -649,18 +649,18 @@ where
 		};
 
 		let overlapping = self
-			.overlapping(range)
+			.overlapping(interval)
 			.map(|(key, _)| (key.start(), key.end()));
 
 		let inner_gaps = overlapping
 			.tuple_windows()
 			.map(|(first, second)| {
-				K::from(InclusiveInterval {
+				K::from(Interval {
 					start: first.1.up().unwrap(),
 					end: second.0.down().unwrap(),
 				})
 			})
-			.filter(|range| range.is_valid());
+			.filter(|interval| interval.is_valid());
 
 		//possibly add the trimmed start and end gaps
 		return start_gap
@@ -671,24 +671,24 @@ where
 	}
 
 	/// Returns an iterator of all the gaps in the map that overlap the given
-	/// `range` that are also trimmed so they are all fully contained within the
-	/// given `range`, in ascending order.
+	/// `interval` that are also trimmed so they are all fully contained within the
+	/// given `interval`, in ascending order.
 	///
-	/// See [`DiscreteRangeMap::gaps_untrimmed()`] if you do not want the
+	/// See [`NoditMap::gaps_untrimmed()`] if you do not want the
 	/// returned gaps to be trimmed.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::{ie, ii, iu};
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::{ie, ii, iu};
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 3), false),
 	/// 	(ie(5, 7), true),
 	/// 	(ie(9, 100), false),
@@ -704,62 +704,62 @@ where
 	/// ```
 	pub fn gaps_trimmed<'a, Q>(
 		&'a self,
-		range: Q,
+		interval: Q,
 	) -> impl Iterator<Item = K> + '_
 	where
-		Q: RangeType<I> + 'a,
+		Q: IntervalType<I> + 'a,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		// If the start or end point of range is not
-		// contained within a range in the map then we need to
+		// If the start or end point of interval is not
+		// contained within a interval in the map then we need to
 		// generate the gaps.
 		let start_gap =
-			(!self.inner.contains_key(overlapping_comp(range.start())))
-				.then(|| self.get_gap_at_raw(range.start()));
-		let end_gap = (!self.inner.contains_key(overlapping_comp(range.end())))
-			.then(|| self.get_gap_at_raw(range.end()));
+			(!self.inner.contains_key(overlapping_comp(interval.start())))
+				.then(|| self.get_gap_at_raw(interval.start()));
+		let end_gap = (!self.inner.contains_key(overlapping_comp(interval.end())))
+			.then(|| self.get_gap_at_raw(interval.end()));
 
 		let (trimmed_start_gap, trimmed_end_gap) = match (start_gap, end_gap) {
 			(Some(mut start_gap), Some(mut end_gap)) => {
 				if start_gap.start() == end_gap.start() {
 					//it's the same gap
-					start_gap.start = range.start();
-					start_gap.end = range.end();
+					start_gap.start = interval.start();
+					start_gap.end = interval.end();
 
 					(Some(start_gap), None)
 				} else {
 					//it's different gaps
-					start_gap.start = range.start();
-					end_gap.end = range.end();
+					start_gap.start = interval.start();
+					end_gap.end = interval.end();
 
 					(Some(start_gap), Some(end_gap))
 				}
 			}
 			(Some(mut start_gap), None) => {
-				start_gap.start = range.start();
+				start_gap.start = interval.start();
 				(Some(start_gap), None)
 			}
 			(None, Some(mut end_gap)) => {
-				end_gap.end = range.end();
+				end_gap.end = interval.end();
 				(None, Some(end_gap))
 			}
 			(None, None) => (None, None),
 		};
 
 		let overlapping = self
-			.overlapping(range)
+			.overlapping(interval)
 			.map(|(key, _)| (key.start(), key.end()));
 
 		let inner_gaps = overlapping
 			.tuple_windows()
 			.map(|(first, second)| {
-				K::from(InclusiveInterval {
+				K::from(Interval {
 					start: first.1.up().unwrap(),
 					end: second.0.down().unwrap(),
 				})
 			})
-			.filter(|range| range.is_valid());
+			.filter(|interval| interval.is_valid());
 
 		//possibly add the trimmed start and end gaps
 		return trimmed_start_gap
@@ -770,58 +770,58 @@ where
 	}
 
 	/// Returns `true` if the map covers every point in the given
-	/// range, and `false` if it does not.
+	/// interval, and `false` if it does not.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 3), false),
 	/// 	(ie(5, 8), true),
 	/// 	(ie(8, 100), false),
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.contains_entire_range(ie(1, 3)), true);
-	/// assert_eq!(map.contains_entire_range(ie(2, 6)), false);
-	/// assert_eq!(map.contains_entire_range(ie(6, 100)), true);
+	/// assert_eq!(map.contains_entire_interval(ie(1, 3)), true);
+	/// assert_eq!(map.contains_entire_interval(ie(2, 6)), false);
+	/// assert_eq!(map.contains_entire_interval(ie(6, 100)), true);
 	/// ```
-	pub fn contains_entire_range<Q>(&self, range: Q) -> bool
+	pub fn contains_entire_interval<Q>(&self, interval: Q) -> bool
 	where
-		Q: RangeType<I>,
+		Q: IntervalType<I>,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
 		// Soooo clean and mathematical!
-		self.gaps_untrimmed(range).next().is_none()
+		self.gaps_untrimmed(interval).next().is_none()
 	}
 
 	/// Adds a new entry to the map without modifying other entries.
 	///
-	/// If the given range overlaps one or more ranges already in the
+	/// If the given interval overlaps one or more intervals already in the
 	/// map, then an [`OverlapError`] is returned and the map is not
 	/// updated.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
+	/// use nodit::interval::ie;
+	/// use nodit::{NoditMap, OverlapError};
 	///
-	/// let mut map = DiscreteRangeMap::new();
+	/// let mut map = NoditMap::new();
 	///
 	/// assert_eq!(map.insert_strict(ie(5, 10), 9), Ok(()));
 	/// assert_eq!(
@@ -832,26 +832,26 @@ where
 	/// ```
 	pub fn insert_strict(
 		&mut self,
-		range: K,
+		interval: K,
 		value: V,
 	) -> Result<(), OverlapError<V>> {
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		if self.overlaps(range) {
+		if self.overlaps(interval) {
 			return Err(OverlapError { value });
 		}
 
-		self.insert_unchecked(range, value);
+		self.insert_unchecked(interval, value);
 
 		return Ok(());
 	}
-	fn insert_unchecked(&mut self, range: K, value: V) {
-		self.inner.insert(range, value, double_comp());
+	fn insert_unchecked(&mut self, interval: K, value: V) {
+		self.inner.insert(interval, value, double_comp());
 	}
 
 	fn insert_merge_with_comps<G1, G2, R1, R2>(
 		&mut self,
-		range: K,
+		interval: K,
 		value: V,
 		get_start: G1,
 		get_end: G2,
@@ -864,30 +864,30 @@ where
 		R1: FnOnce(&mut Self, &V),
 		R2: FnOnce(&mut Self, &V),
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
 		let matching_start = get_start(self, &value);
 		let matching_end = get_end(self, &value);
 
 		let returning = match (matching_start, matching_end) {
 			(Some(matching_start), Some(matching_end)) => {
-				K::from(InclusiveInterval {
+				K::from(Interval {
 					start: matching_start.start(),
 					end: matching_end.end(),
 				})
 			}
-			(Some(matching_start), None) => K::from(InclusiveInterval {
+			(Some(matching_start), None) => K::from(Interval {
 				start: matching_start.start(),
-				end: range.end(),
+				end: interval.end(),
 			}),
-			(None, Some(matching_end)) => K::from(InclusiveInterval {
-				start: range.start(),
+			(None, Some(matching_end)) => K::from(Interval {
+				start: interval.start(),
 				end: matching_end.end(),
 			}),
-			(None, None) => range,
+			(None, None) => interval,
 		};
 
-		let _ = self.remove_overlapping(range);
+		let _ = self.remove_overlapping(interval);
 
 		remove_start(self, &value);
 		remove_end(self, &value);
@@ -897,31 +897,31 @@ where
 		return returning;
 	}
 
-	/// Adds a new entry to the map and merges into other ranges in
+	/// Adds a new entry to the map and merges into other intervals in
 	/// the map which touch it.
 	///
-	/// The value of the merged-together range is set to the value given for
+	/// The value of the merged-together interval is set to the value given for
 	/// this insertion.
 	///
-	/// If successful then the newly inserted (possibly merged) range is
+	/// If successful then the newly inserted (possibly merged) interval is
 	/// returned.
 	///
-	/// If the given range overlaps one or more ranges already in the
+	/// If the given interval overlaps one or more intervals already in the
 	/// map, then an [`OverlapError`] is returned and the map is not
 	/// updated.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
+	/// use nodit::interval::ie;
+	/// use nodit::{NoditMap, OverlapError};
 	///
-	/// let mut map = DiscreteRangeMap::from_slice_strict([
+	/// let mut map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(6, 8), true),
 	/// ])
@@ -952,64 +952,64 @@ where
 	/// ```
 	pub fn insert_merge_touching(
 		&mut self,
-		range: K,
+		interval: K,
 		value: V,
 	) -> Result<K, OverlapError<V>> {
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		if self.overlaps(range) {
+		if self.overlaps(interval) {
 			return Err(OverlapError { value });
 		}
 
 		Ok(self.insert_merge_with_comps(
-			range,
+			interval,
 			value,
 			|selfy, _| {
 				selfy
 					.inner
-					.get_key_value(touching_start_comp(range.start()))
+					.get_key_value(touching_start_comp(interval.start()))
 					.map(|(key, _)| key)
 					.copied()
 			},
 			|selfy, _| {
 				selfy
 					.inner
-					.get_key_value(touching_end_comp(range.end()))
+					.get_key_value(touching_end_comp(interval.end()))
 					.map(|(key, _)| key)
 					.copied()
 			},
 			|selfy, _| {
-				selfy.inner.remove(touching_start_comp(range.start()));
+				selfy.inner.remove(touching_start_comp(interval.start()));
 			},
 			|selfy, _| {
-				selfy.inner.remove(touching_end_comp(range.end()));
+				selfy.inner.remove(touching_end_comp(interval.end()));
 			},
 		))
 	}
 
-	/// Adds a new entry to the map and merges into other ranges in
-	/// the map which touch it if the touching ranges' values are
+	/// Adds a new entry to the map and merges into other intervals in
+	/// the map which touch it if the touching intervals' values are
 	/// equal to the value being inserted.
 	///
-	/// If successful then the newly inserted (possibly merged) range is
+	/// If successful then the newly inserted (possibly merged) interval is
 	/// returned.
 	///
-	/// If the given range overlaps one or more ranges already in the
+	/// If the given interval overlaps one or more intervals already in the
 	/// map, then an [`OverlapError`] is returned and the map is not
 	/// updated.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
+	/// use nodit::interval::ie;
+	/// use nodit::{NoditMap, OverlapError};
 	///
-	/// let mut map = DiscreteRangeMap::from_slice_strict([
+	/// let mut map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(6, 8), true),
 	/// ])
@@ -1040,22 +1040,22 @@ where
 	/// ```
 	pub fn insert_merge_touching_if_values_equal(
 		&mut self,
-		range: K,
+		interval: K,
 		value: V,
 	) -> Result<K, OverlapError<V>>
 	where
 		V: Eq,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		if self.overlaps(range) {
+		if self.overlaps(interval) {
 			return Err(OverlapError { value });
 		}
 
 		let get_start = |selfy: &Self, value: &V| {
 			selfy
 				.inner
-				.get_key_value(touching_start_comp(range.start()))
+				.get_key_value(touching_start_comp(interval.start()))
 				.filter(|(_, start_touching_value)| {
 					*start_touching_value == value
 				})
@@ -1065,7 +1065,7 @@ where
 		let get_end = |selfy: &Self, value: &V| {
 			selfy
 				.inner
-				.get_key_value(touching_end_comp(range.end()))
+				.get_key_value(touching_end_comp(interval.end()))
 				.filter(|(_, start_touching_value)| {
 					*start_touching_value == value
 				})
@@ -1074,43 +1074,43 @@ where
 		};
 
 		Ok(self.insert_merge_with_comps(
-			range,
+			interval,
 			value,
 			get_start,
 			get_end,
 			|selfy, value| {
 				if get_start(selfy, value).is_some() {
-					selfy.inner.remove(touching_start_comp(range.start()));
+					selfy.inner.remove(touching_start_comp(interval.start()));
 				}
 			},
 			|selfy, value| {
 				if get_end(selfy, value).is_some() {
-					selfy.inner.remove(touching_end_comp(range.end()));
+					selfy.inner.remove(touching_end_comp(interval.end()));
 				}
 			},
 		))
 	}
 
-	/// Adds a new entry to the map and merges into other ranges in
+	/// Adds a new entry to the map and merges into other intervals in
 	/// the map which overlap it.
 	///
-	/// The value of the merged-together range is set to the value given for
+	/// The value of the merged-together interval is set to the value given for
 	/// this insertion.
 	///
-	/// The newly inserted (possibly merged) range is returned.
+	/// The newly inserted (possibly merged) interval is returned.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
+	/// use nodit::interval::ie;
+	/// use nodit::{NoditMap, OverlapError};
 	///
-	/// let mut map = DiscreteRangeMap::from_slice_strict([
+	/// let mut map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(6, 8), true),
 	/// ])
@@ -1139,23 +1139,23 @@ where
 	/// 	[(ie(1, 4), false), (ie(4, 8), false), (ie(10, 16), false)]
 	/// );
 	/// ```
-	pub fn insert_merge_overlapping(&mut self, range: K, value: V) -> K {
-		invalid_range_panic(range);
+	pub fn insert_merge_overlapping(&mut self, interval: K, value: V) -> K {
+		invalid_interval_panic(interval);
 
 		self.insert_merge_with_comps(
-			range,
+			interval,
 			value,
 			|selfy, _| {
 				selfy
 					.inner
-					.get_key_value(overlapping_comp(range.start()))
+					.get_key_value(overlapping_comp(interval.start()))
 					.map(|(key, _)| key)
 					.copied()
 			},
 			|selfy, _| {
 				selfy
 					.inner
-					.get_key_value(overlapping_comp(range.end()))
+					.get_key_value(overlapping_comp(interval.end()))
 					.map(|(key, _)| key)
 					.copied()
 			},
@@ -1164,26 +1164,26 @@ where
 		)
 	}
 
-	/// Adds a new entry to the map and merges into other ranges in
+	/// Adds a new entry to the map and merges into other intervals in
 	/// the map which touch or overlap it.
 	///
-	/// The value of the merged-together range is set to the value given for
+	/// The value of the merged-together interval is set to the value given for
 	/// this insertion.
 	///
-	/// The newly inserted (possibly merged) range is returned.
+	/// The newly inserted (possibly merged) interval is returned.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::{DiscreteRangeMap, OverlapError};
+	/// use nodit::interval::ie;
+	/// use nodit::{NoditMap, OverlapError};
 	///
-	/// let mut map = DiscreteRangeMap::from_slice_strict([
+	/// let mut map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(6, 8), true),
 	/// ])
@@ -1214,68 +1214,68 @@ where
 	/// ```
 	pub fn insert_merge_touching_or_overlapping(
 		&mut self,
-		range: K,
+		interval: K,
 		value: V,
 	) -> K {
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
 		self.insert_merge_with_comps(
-			range,
+			interval,
 			value,
 			|selfy, _| {
 				selfy
 					.inner
-					.get_key_value(touching_start_comp(range.start()))
+					.get_key_value(touching_start_comp(interval.start()))
 					.map(|(key, _)| key)
 					.or(selfy
 						.inner
-						.get_key_value(overlapping_comp(range.start()))
+						.get_key_value(overlapping_comp(interval.start()))
 						.map(|(key, _)| key))
 					.copied()
 			},
 			|selfy, _| {
 				selfy
 					.inner
-					.get_key_value(touching_end_comp(range.end()))
+					.get_key_value(touching_end_comp(interval.end()))
 					.map(|(key, _)| key)
 					.or(selfy
 						.inner
-						.get_key_value(overlapping_comp(range.end()))
+						.get_key_value(overlapping_comp(interval.end()))
 						.map(|(key, _)| key))
 					.copied()
 			},
 			|selfy, _| {
-				selfy.inner.remove(touching_start_comp(range.start()));
+				selfy.inner.remove(touching_start_comp(interval.start()));
 			},
 			|selfy, _| {
-				selfy.inner.remove(touching_end_comp(range.end()));
+				selfy.inner.remove(touching_end_comp(interval.end()));
 			},
 		)
 	}
 
-	/// Adds a new entry to the map and overwrites any other ranges
-	/// that overlap the new range.
+	/// Adds a new entry to the map and overwrites any other intervals
+	/// that overlap the new interval.
 	///
 	/// Returns an iterator over the full or partial cut entries in
 	/// ascending order.
 	///
-	/// This is equivalent to using [`DiscreteRangeMap::cut()`]
-	/// followed by [`DiscreteRangeMap::insert_strict()`]. Hence the
+	/// This is equivalent to using [`NoditMap::cut()`]
+	/// followed by [`NoditMap::insert_strict()`]. Hence the
 	/// same `V: Clone` trait bound applies.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
 	/// let mut map =
-	/// 	DiscreteRangeMap::from_slice_strict([(ie(2, 8), false)])
+	/// 	NoditMap::from_slice_strict([(ie(2, 8), false)])
 	/// 		.unwrap();
 	///
 	/// map.insert_overwrite(ie(4, 6), true);
@@ -1287,38 +1287,38 @@ where
 	/// ```
 	pub fn insert_overwrite(
 		&mut self,
-		range: K,
+		interval: K,
 		value: V,
 	) -> impl Iterator<Item = (K, V)>
 	where
 		V: Clone,
 	{
-		invalid_range_panic(range);
+		invalid_interval_panic(interval);
 
-		let cut = self.cut(range);
-		self.insert_unchecked(range, value);
+		let cut = self.cut(interval);
+		self.insert_unchecked(interval, value);
 		cut
 	}
 
-	/// Allocates a `DiscreteRangeMap` and moves the given entries from
+	/// Allocates a `NoditMap` and moves the given entries from
 	/// the given slice into the map using
-	/// [`DiscreteRangeMap::insert_strict()`].
+	/// [`NoditMap::insert_strict()`].
 	///
 	/// May return an `Err` while inserting. See
-	/// [`DiscreteRangeMap::insert_strict()`] for details.
+	/// [`NoditMap::insert_strict()`] for details.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -1327,76 +1327,76 @@ where
 	/// ```
 	pub fn from_slice_strict<const N: usize>(
 		slice: [(K, V); N],
-	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError<V>> {
-		let mut map = DiscreteRangeMap::new();
-		for (range, value) in slice {
-			map.insert_strict(range, value)?;
+	) -> Result<NoditMap<I, K, V>, OverlapError<V>> {
+		let mut map = NoditMap::new();
+		for (interval, value) in slice {
+			map.insert_strict(interval, value)?;
 		}
 		return Ok(map);
 	}
 
-	/// Collects a `DiscreteRangeMap` from an iterator of (range,
-	/// value) tuples using [`DiscreteRangeMap::insert_strict()`].
+	/// Collects a `NoditMap` from an iterator of (interval,
+	/// value) tuples using [`NoditMap::insert_strict()`].
 	///
 	/// May return an `Err` while inserting. See
-	/// [`DiscreteRangeMap::insert_strict()`] for details.
+	/// [`NoditMap::insert_strict()`] for details.
 	///
 	/// # Panics
 	///
-	/// Panics if the given range is an invalid range. See [`Invalid
-	/// Ranges`](https://docs.rs/discrete_range_map/latest/discrete_range_map/index.html#invalid-ranges)
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
 	/// let slice =
 	/// 	[(ie(1, 4), false), (ie(4, 8), true), (ie(8, 100), false)];
 	///
-	/// let map: DiscreteRangeMap<_, _, _> =
-	/// 	DiscreteRangeMap::from_iter_strict(
-	/// 		slice.into_iter().filter(|(range, _)| range.start() > 2),
+	/// let map: NoditMap<_, _, _> =
+	/// 	NoditMap::from_iter_strict(
+	/// 		slice.into_iter().filter(|(interval, _)| interval.start() > 2),
 	/// 	)
 	/// 	.unwrap();
 	/// ```
 	pub fn from_iter_strict(
 		iter: impl Iterator<Item = (K, V)>,
-	) -> Result<DiscreteRangeMap<I, K, V>, OverlapError<V>> {
-		let mut map = DiscreteRangeMap::new();
-		for (range, value) in iter {
-			map.insert_strict(range, value)?;
+	) -> Result<NoditMap<I, K, V>, OverlapError<V>> {
+		let mut map = NoditMap::new();
+		for (interval, value) in iter {
+			map.insert_strict(interval, value)?;
 		}
 		return Ok(map);
 	}
 }
 
-impl<I, K, V> DiscreteRangeMap<I, K, V> {
-	/// Makes a new, empty `DiscreteRangeMap`.
+impl<I, K, V> NoditMap<I, K, V> {
+	/// Makes a new, empty `NoditMap`.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::{DiscreteRangeMap, InclusiveInterval};
+	/// use nodit::{NoditMap, Interval};
 	///
-	/// let map: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool> =
-	/// 	DiscreteRangeMap::new();
+	/// let map: NoditMap<i8, Interval<i8>, bool> =
+	/// 	NoditMap::new();
 	/// ```
 	pub fn new() -> Self {
-		DiscreteRangeMap {
+		NoditMap {
 			inner: BTreeMap::new(),
 			phantom: PhantomData,
 		}
 	}
 
-	/// Returns the number of ranges in the map.
+	/// Returns the number of intervals in the map.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let mut map = DiscreteRangeMap::new();
+	/// let mut map = NoditMap::new();
 	///
 	/// assert_eq!(map.len(), 0);
 	/// map.insert_strict(ie(0, 1), false).unwrap();
@@ -1406,15 +1406,15 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 		self.inner.len()
 	}
 
-	/// Returns `true` if the map contains no ranges, and
+	/// Returns `true` if the map contains no intervals, and
 	/// `false` if it does.
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let mut map = DiscreteRangeMap::new();
+	/// let mut map = NoditMap::new();
 	///
 	/// assert_eq!(map.is_empty(), true);
 	/// map.insert_strict(ie(0, 1), false).unwrap();
@@ -1429,10 +1429,10 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -1455,18 +1455,18 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let mut map = DiscreteRangeMap::from_slice_strict([
+	/// let mut map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
 	/// ])
 	/// .unwrap();
 	///
-	/// for (range, value) in map.iter_mut() {
-	/// 	if *range == ie(4, 8) {
+	/// for (interval, value) in map.iter_mut() {
+	/// 	if *interval == ie(4, 8) {
 	/// 		*value = false
 	/// 	} else {
 	/// 		*value = true
@@ -1483,10 +1483,10 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::inclusive_interval::ie;
-	/// use discrete_range_map::DiscreteRangeMap;
+	/// use nodit::interval::ie;
+	/// use nodit::NoditMap;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -1503,10 +1503,10 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 	///
 	/// # Examples
 	/// ```
-	/// use discrete_range_map::DiscreteRangeMap;
-	/// use discrete_range_map::inclusive_interval::ie;
+	/// use nodit::NoditMap;
+	/// use nodit::interval::ie;
 	///
-	/// let map = DiscreteRangeMap::from_slice_strict([
+	/// let map = NoditMap::from_slice_strict([
 	/// 	(ie(1, 4), false),
 	/// 	(ie(4, 8), true),
 	/// 	(ie(8, 100), false),
@@ -1524,14 +1524,14 @@ impl<I, K, V> DiscreteRangeMap<I, K, V> {
 
 // Helper Functions ==========================
 
-pub(crate) fn invalid_range_panic<Q, I>(range: Q)
+pub(crate) fn invalid_interval_panic<Q, I>(interval: Q)
 where
 	I: PointType,
-	Q: RangeType<I>,
+	Q: IntervalType<I>,
 {
-	if !range.is_valid() {
+	if !interval.is_valid() {
 		panic!(
-			"invalid range given to function see here for more details: https://docs.rs/discrete_range_map/latest/discrete_range_map/#invalid-ranges"
+			"invalid interval given to function see here for more details: https://docs.rs/nodit/latest/nodit/#invalid-intervals"
 		);
 	}
 }
@@ -1539,23 +1539,23 @@ where
 fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
 where
 	I: PointType,
-	K: RangeType<I>,
+	K: IntervalType<I>,
 {
-	|inner_range: &K, new_range: &K| new_range.start().cmp(&inner_range.start())
+	|inner_interval: &K, new_interval: &K| new_interval.start().cmp(&inner_interval.start())
 }
 fn overlapping_comp<I, K>(point: I) -> impl FnMut(&K) -> Ordering
 where
 	I: PointType,
-	K: RangeType<I>,
+	K: IntervalType<I>,
 {
-	move |inner_range: &K| cmp_point_with_range(point, *inner_range)
+	move |inner_interval: &K| cmp_point_with_interval(point, *inner_interval)
 }
 fn touching_start_comp<I, K>(start: I) -> impl FnMut(&K) -> Ordering
 where
 	I: PointType,
-	K: RangeType<I>,
+	K: IntervalType<I>,
 {
-	move |inner_range: &K| match inner_range.end().up() {
+	move |inner_interval: &K| match inner_interval.end().up() {
 		Some(touching_position) => start.cmp(&touching_position),
 		None => Ordering::Less,
 	}
@@ -1563,22 +1563,22 @@ where
 fn touching_end_comp<I, K>(end: I) -> impl FnMut(&K) -> Ordering
 where
 	I: PointType,
-	K: RangeType<I>,
+	K: IntervalType<I>,
 {
-	move |inner_range: &K| match inner_range.start().down() {
+	move |inner_interval: &K| match inner_interval.start().down() {
 		Some(touching_position) => end.cmp(&touching_position),
 		None => Ordering::Greater,
 	}
 }
 
-/// A range that has **Inclusive** end-points.
-pub trait InclusiveRange<I> {
-	/// The start of the range, inclusive.
+/// A interval that has **Inclusive** end-points.
+pub trait InclusiveInterval<I> {
+	/// The start of the interval, inclusive.
 	fn start(&self) -> I;
-	/// The end of the range, inclusive.
+	/// The end of the interval, inclusive.
 	fn end(&self) -> I;
 
-	/// Does the range contain the given point?
+	/// Does the interval contain the given point?
 	fn contains(&self, point: I) -> bool
 	where
 		I: PointType,
@@ -1586,7 +1586,7 @@ pub trait InclusiveRange<I> {
 		point >= self.start() && point <= self.end()
 	}
 
-	/// Is the range is valid, which according to this crate means `start()`
+	/// Is the interval is valid, which according to this crate means `start()`
 	/// <= `end()`
 	fn is_valid(&self) -> bool
 	where
@@ -1611,16 +1611,16 @@ pub trait InclusiveRange<I> {
 		self.contains(other.start()) || self.contains(other.end())
 	}
 
-	/// Intersect the range with the other one, and return Some if the intersection is not empty.
+	/// Intersect the interval with the other one, and return Some if the intersection is not empty.
 	fn intersect(&self, other: &Self) -> Option<Self>
 	where
 		I: PointType,
-		Self: From<InclusiveInterval<I>>,
+		Self: From<Interval<I>>,
 	{
 		let intersect_start = I::max(self.start(), other.start());
 		let intersect_end = I::min(self.end(), other.end());
 		if intersect_start <= intersect_end {
-			Some(Self::from(InclusiveInterval {
+			Some(Self::from(Interval {
 				start: intersect_start,
 				end: intersect_end,
 			}))
@@ -1629,20 +1629,20 @@ pub trait InclusiveRange<I> {
 		}
 	}
 
-	/// Move the entire range by the given amount.
+	/// Move the entire interval by the given amount.
 	fn translate(&self, delta: I) -> Self
 	where
 		I: PointType,
 		I: core::ops::Add<Output = I>,
-		Self: From<InclusiveInterval<I>>,
+		Self: From<Interval<I>>,
 	{
-		Self::from(InclusiveInterval {
+		Self::from(Interval {
 			start: self.start() + delta,
 			end: self.end() + delta,
 		})
 	}
 
-	/// The amount between the start and the end points of the range.
+	/// The amount between the start and the end points of the interval.
 	fn size(&self) -> I
 	where
 		I: PointType,
@@ -1654,9 +1654,9 @@ pub trait InclusiveRange<I> {
 	/// Requires that self comes before other
 	fn merge_ordered(&self, other: &Self) -> Self
 	where
-		Self: From<InclusiveInterval<I>>,
+		Self: From<Interval<I>>,
 	{
-		Self::from(InclusiveInterval {
+		Self::from(Interval {
 			start: self.start(),
 			end: other.end(),
 		})
@@ -1665,7 +1665,7 @@ pub trait InclusiveRange<I> {
 
 // Trait Impls ==========================
 
-impl<I, K, V> IntoIterator for DiscreteRangeMap<I, K, V> {
+impl<I, K, V> IntoIterator for NoditMap<I, K, V> {
 	type Item = (K, V);
 	type IntoIter = IntoIter<I, K, V>;
 	fn into_iter(self) -> Self::IntoIter {
@@ -1675,10 +1675,10 @@ impl<I, K, V> IntoIterator for DiscreteRangeMap<I, K, V> {
 		};
 	}
 }
-/// An owning iterator over the entries of a [`DiscreteRangeMap`].
+/// An owning iterator over the entries of a [`NoditMap`].
 ///
 /// This `struct` is created by the [`into_iter`] method on
-/// [`DiscreteRangeMap`] (provided by the [`IntoIterator`] trait). See
+/// [`NoditMap`] (provided by the [`IntoIterator`] trait). See
 /// its documentation for more.
 ///
 /// [`into_iter`]: IntoIterator::into_iter
@@ -1694,16 +1694,16 @@ impl<I, K, V> Iterator for IntoIter<I, K, V> {
 	}
 }
 
-impl<I, K, V> Default for DiscreteRangeMap<I, K, V> {
+impl<I, K, V> Default for NoditMap<I, K, V> {
 	fn default() -> Self {
-		DiscreteRangeMap {
+		NoditMap {
 			inner: BTreeMap::default(),
 			phantom: PhantomData,
 		}
 	}
 }
 
-impl<I, K, V> Serialize for DiscreteRangeMap<I, K, V>
+impl<I, K, V> Serialize for NoditMap<I, K, V>
 where
 	K: Serialize,
 	V: Serialize,
@@ -1713,24 +1713,24 @@ where
 		S: Serializer,
 	{
 		let mut seq = serializer.serialize_seq(Some(self.len()))?;
-		for (range_bounds, value) in self.iter() {
-			seq.serialize_element(&(range_bounds, value))?;
+		for (interval, value) in self.iter() {
+			seq.serialize_element(&(interval, value))?;
 		}
 		seq.end()
 	}
 }
 
-impl<'de, I, K, V> Deserialize<'de> for DiscreteRangeMap<I, K, V>
+impl<'de, I, K, V> Deserialize<'de> for NoditMap<I, K, V>
 where
 	I: PointType,
-	K: RangeType<I> + Deserialize<'de>,
+	K: IntervalType<I> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: Deserializer<'de>,
 	{
-		deserializer.deserialize_seq(DiscreteRangeMapVisitor {
+		deserializer.deserialize_seq(NoditMapVisitor {
 			i: PhantomData,
 			k: PhantomData,
 			v: PhantomData,
@@ -1738,32 +1738,32 @@ where
 	}
 }
 
-struct DiscreteRangeMapVisitor<I, K, V> {
+struct NoditMapVisitor<I, K, V> {
 	i: PhantomData<I>,
 	k: PhantomData<K>,
 	v: PhantomData<V>,
 }
 
-impl<'de, I, K, V> Visitor<'de> for DiscreteRangeMapVisitor<I, K, V>
+impl<'de, I, K, V> Visitor<'de> for NoditMapVisitor<I, K, V>
 where
 	I: PointType,
-	K: RangeType<I> + Deserialize<'de>,
+	K: IntervalType<I> + Deserialize<'de>,
 	V: Deserialize<'de>,
 {
-	type Value = DiscreteRangeMap<I, K, V>;
+	type Value = NoditMap<I, K, V>;
 
 	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		formatter.write_str("a DiscreteRangeMap")
+		formatter.write_str("a NoditMap")
 	}
 
 	fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
 	where
 		A: SeqAccess<'de>,
 	{
-		let mut map = DiscreteRangeMap::new();
-		while let Some((range_bounds, value)) = access.next_element()? {
-			map.insert_strict(range_bounds, value)
-				.map_err(|_| serde::de::Error::custom("ranges overlap"))?;
+		let mut map = NoditMap::new();
+		while let Some((interval, value)) = access.next_element()? {
+			map.insert_strict(interval, value)
+				.map_err(|_| serde::de::Error::custom("intervals overlap"))?;
 		}
 		Ok(map)
 	}
@@ -1774,7 +1774,7 @@ mod tests {
 	use pretty_assertions::assert_eq;
 
 	use super::*;
-	use crate::inclusive_interval::{ee, ei, ie, ii, iu, ue, ui, uu};
+	use crate::interval::{ee, ei, ie, ii, iu, ue, ui, uu};
 	use crate::utils::{config, contains_point, Config, CutResult};
 
 	//only every other number to allow mathematical_overlapping_definition
@@ -1784,8 +1784,8 @@ mod tests {
 	pub(crate) const NUMBERS_DOMAIN: &[i8] =
 		&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-	fn basic() -> DiscreteRangeMap<i8, InclusiveInterval<i8>, bool> {
-		DiscreteRangeMap::from_slice_strict([
+	fn basic() -> NoditMap<i8, Interval<i8>, bool> {
+		NoditMap::from_slice_strict([
 			(ui(4), false),
 			(ee(5, 7), true),
 			(ii(7, 7), false),
@@ -1793,7 +1793,7 @@ mod tests {
 		])
 		.unwrap()
 	}
-	fn basic_slice() -> [(InclusiveInterval<i8>, bool); 4] {
+	fn basic_slice() -> [(Interval<i8>, bool); 4] {
 		[
 			(ui(4), false),
 			(ee(5, 7), true),
@@ -1836,70 +1836,70 @@ mod tests {
 		);
 	}
 	fn assert_insert_strict<const N: usize>(
-		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		to_insert: (InclusiveInterval<i8>, bool),
+		mut before: NoditMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
 		result: Result<(), OverlapError<bool>>,
-		after: [(InclusiveInterval<i8>, bool); N],
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(before.insert_strict(to_insert.0, to_insert.1), result);
-		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
 	fn overlapping_tests() {
 		//case zero
-		for overlap_range in all_valid_test_bounds() {
+		for overlap_interval in all_valid_test_bounds() {
 			//you can't overlap nothing
 			assert!(
-				DiscreteRangeMap::<i8, InclusiveInterval<i8>, ()>::new()
-					.overlapping(overlap_range)
+				NoditMap::<i8, Interval<i8>, ()>::new()
+					.overlapping(overlap_interval)
 					.next()
 					.is_none()
 			);
 		}
 
 		//case one
-		for overlap_range in all_valid_test_bounds() {
-			for inside_range in all_valid_test_bounds() {
-				let mut map = DiscreteRangeMap::new();
-				map.insert_strict(inside_range, ()).unwrap();
+		for overlap_interval in all_valid_test_bounds() {
+			for inside_interval in all_valid_test_bounds() {
+				let mut map = NoditMap::new();
+				map.insert_strict(inside_interval, ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
-				if overlaps(overlap_range, inside_range) {
-					expected_overlapping.push(inside_range);
+				if overlaps(overlap_interval, inside_interval) {
+					expected_overlapping.push(inside_interval);
 				}
 
 				let overlapping = map
-					.overlapping(overlap_range)
+					.overlapping(overlap_interval)
 					.map(|(key, _)| key)
 					.copied()
 					.collect::<Vec<_>>();
 
 				if overlapping != expected_overlapping {
-					dbg!(overlap_range, inside_range);
+					dbg!(overlap_interval, inside_interval);
 					dbg!(overlapping, expected_overlapping);
 					panic!(
-						"Discrepancy in .overlapping() with single inside range detected!"
+						"Discrepancy in .overlapping() with single inside interval detected!"
 					);
 				}
 			}
 		}
 
 		//case two
-		for overlap_range in all_valid_test_bounds() {
-			for (inside_range1, inside_range2) in
+		for overlap_interval in all_valid_test_bounds() {
+			for (inside_interval1, inside_interval2) in
 				all_non_overlapping_test_bound_entries()
 			{
-				let mut map = DiscreteRangeMap::new();
-				map.insert_strict(inside_range1, ()).unwrap();
-				map.insert_strict(inside_range2, ()).unwrap();
+				let mut map = NoditMap::new();
+				map.insert_strict(inside_interval1, ()).unwrap();
+				map.insert_strict(inside_interval2, ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
-				if overlaps(overlap_range, inside_range1) {
-					expected_overlapping.push(inside_range1);
+				if overlaps(overlap_interval, inside_interval1) {
+					expected_overlapping.push(inside_interval1);
 				}
-				if overlaps(overlap_range, inside_range2) {
-					expected_overlapping.push(inside_range2);
+				if overlaps(overlap_interval, inside_interval2) {
+					expected_overlapping.push(inside_interval2);
 				}
 				//make our expected_overlapping the correct order
 				if expected_overlapping.len() > 1
@@ -1910,16 +1910,16 @@ mod tests {
 				}
 
 				let overlapping = map
-					.overlapping(overlap_range)
+					.overlapping(overlap_interval)
 					.map(|(key, _)| key)
 					.copied()
 					.collect::<Vec<_>>();
 
 				if overlapping != expected_overlapping {
-					dbg!(overlap_range, inside_range1, inside_range2);
+					dbg!(overlap_interval, inside_interval1, inside_interval2);
 					dbg!(overlapping, expected_overlapping);
 					panic!(
-						"Discrepancy in .overlapping() with two inside ranges detected!"
+						"Discrepancy in .overlapping() with two inside intervals detected!"
 					);
 				}
 			}
@@ -1954,16 +1954,16 @@ mod tests {
 		);
 	}
 	fn assert_remove_overlapping<const N: usize, const Y: usize>(
-		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		to_remove: InclusiveInterval<i8>,
-		result: [(InclusiveInterval<i8>, bool); N],
-		after: [(InclusiveInterval<i8>, bool); Y],
+		mut before: NoditMap<i8, Interval<i8>, bool>,
+		to_remove: Interval<i8>,
+		result: [(Interval<i8>, bool); N],
+		after: [(Interval<i8>, bool); Y],
 	) {
 		assert_eq!(
 			before.remove_overlapping(to_remove).collect::<Vec<_>>(),
 			result
 		);
-		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -2004,13 +2004,13 @@ mod tests {
 		);
 	}
 	fn assert_cut<const N: usize, const Y: usize>(
-		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		to_cut: InclusiveInterval<i8>,
-		result: [(InclusiveInterval<i8>, bool); Y],
-		after: [(InclusiveInterval<i8>, bool); N],
+		mut before: NoditMap<i8, Interval<i8>, bool>,
+		to_cut: Interval<i8>,
+		result: [(Interval<i8>, bool); Y],
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(before.cut(to_cut).collect::<Vec<_>>(), result);
-		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap());
+		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap());
 	}
 
 	#[test]
@@ -2036,7 +2036,7 @@ mod tests {
 			[ei(4, 5), ee(7, 14), ii(16, i8::MAX)],
 		);
 		assert_eq!(
-			DiscreteRangeMap::from_slice_strict([(
+			NoditMap::from_slice_strict([(
 				ii(i8::MIN, i8::MAX),
 				false
 			)])
@@ -2047,11 +2047,11 @@ mod tests {
 		);
 	}
 	fn assert_gaps_untrimmed<const N: usize>(
-		map: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		range: InclusiveInterval<i8>,
-		result: [InclusiveInterval<i8>; N],
+		map: NoditMap<i8, Interval<i8>, bool>,
+		interval: Interval<i8>,
+		result: [Interval<i8>; N],
 	) {
-		assert_eq!(map.gaps_untrimmed(range).collect::<Vec<_>>(), result);
+		assert_eq!(map.gaps_untrimmed(interval).collect::<Vec<_>>(), result);
 	}
 
 	#[test]
@@ -2077,7 +2077,7 @@ mod tests {
 			[ei(4, 5), ee(7, 14), ii(16, i8::MAX)],
 		);
 		assert_eq!(
-			DiscreteRangeMap::from_slice_strict([(
+			NoditMap::from_slice_strict([(
 				ii(i8::MIN, i8::MAX),
 				false
 			)])
@@ -2088,11 +2088,11 @@ mod tests {
 		);
 	}
 	fn assert_gaps_trimmed<const N: usize>(
-		map: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		range: InclusiveInterval<i8>,
-		result: [InclusiveInterval<i8>; N],
+		map: NoditMap<i8, Interval<i8>, bool>,
+		interval: Interval<i8>,
+		result: [Interval<i8>; N],
 	) {
-		assert_eq!(map.gaps_trimmed(range).collect::<Vec<_>>(), result);
+		assert_eq!(map.gaps_trimmed(interval).collect::<Vec<_>>(), result);
 	}
 
 	#[test]
@@ -2138,16 +2138,16 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching<const N: usize>(
-		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		to_insert: (InclusiveInterval<i8>, bool),
-		result: Result<InclusiveInterval<i8>, OverlapError<bool>>,
-		after: [(InclusiveInterval<i8>, bool); N],
+		mut before: NoditMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
+		result: Result<Interval<i8>, OverlapError<bool>>,
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_touching(to_insert.0, to_insert.1),
 			result
 		);
-		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap())
 	}
 	#[test]
 	fn insert_merge_touching_if_values_equal_tests() {
@@ -2194,10 +2194,10 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_if_values_equal<const N: usize>(
-		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		to_insert: (InclusiveInterval<i8>, bool),
-		result: Result<InclusiveInterval<i8>, OverlapError<bool>>,
-		after: [(InclusiveInterval<i8>, bool); N],
+		mut before: NoditMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
+		result: Result<Interval<i8>, OverlapError<bool>>,
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_touching_if_values_equal(
@@ -2206,7 +2206,7 @@ mod tests {
 			),
 			result
 		);
-		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -2258,22 +2258,22 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_overlapping<const N: usize>(
-		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		to_insert: (InclusiveInterval<i8>, bool),
-		result: InclusiveInterval<i8>,
-		after: [(InclusiveInterval<i8>, bool); N],
+		mut before: NoditMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
+		result: Interval<i8>,
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before.insert_merge_overlapping(to_insert.0, to_insert.1),
 			result
 		);
-		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
 	fn insert_merge_touching_or_overlapping_tests() {
 		assert_insert_merge_touching_or_overlapping(
-			DiscreteRangeMap::from_slice_strict([(ie(1, 4), false)]).unwrap(),
+			NoditMap::from_slice_strict([(ie(1, 4), false)]).unwrap(),
 			(ie(0, 1), true),
 			ie(0, 4),
 			[(ie(0, 4), true)],
@@ -2334,17 +2334,17 @@ mod tests {
 		);
 	}
 	fn assert_insert_merge_touching_or_overlapping<const N: usize>(
-		mut before: DiscreteRangeMap<i8, InclusiveInterval<i8>, bool>,
-		to_insert: (InclusiveInterval<i8>, bool),
-		result: InclusiveInterval<i8>,
-		after: [(InclusiveInterval<i8>, bool); N],
+		mut before: NoditMap<i8, Interval<i8>, bool>,
+		to_insert: (Interval<i8>, bool),
+		result: Interval<i8>,
+		after: [(Interval<i8>, bool); N],
 	) {
 		assert_eq!(
 			before
 				.insert_merge_touching_or_overlapping(to_insert.0, to_insert.1),
 			result
 		);
-		assert_eq!(before, DiscreteRangeMap::from_slice_strict(after).unwrap())
+		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap())
 	}
 
 	#[test]
@@ -2366,17 +2366,17 @@ mod tests {
 
 	#[test]
 	fn overlaps_tests() {
-		for range1 in all_valid_test_bounds() {
-			for range2 in all_valid_test_bounds() {
-				let our_answer = overlaps(range1, range2);
+		for interval1 in all_valid_test_bounds() {
+			for interval2 in all_valid_test_bounds() {
+				let our_answer = overlaps(interval1, interval2);
 
 				let mathematical_definition_of_overlap =
 					NUMBERS_DOMAIN.iter().any(|x| {
-						contains_point(range1, *x) && contains_point(range2, *x)
+						contains_point(interval1, *x) && contains_point(interval2, *x)
 					});
 
 				if our_answer != mathematical_definition_of_overlap {
-					dbg!(range1, range2);
+					dbg!(interval1, interval2);
 					dbg!(mathematical_definition_of_overlap, our_answer);
 					panic!("Discrepancy in overlaps() detected!");
 				}
@@ -2385,14 +2385,14 @@ mod tests {
 	}
 
 	#[test]
-	fn cut_range_tests() {
+	fn cut_interval_tests() {
 		for base in all_valid_test_bounds() {
 			for cut in all_valid_test_bounds() {
 				let cut_result @ CutResult {
 					before_cut: b,
 					inside_cut: i,
 					after_cut: a,
-				} = cut_range(base, cut);
+				} = cut_interval(base, cut);
 
 				let mut on_left = true;
 
@@ -2435,15 +2435,15 @@ mod tests {
 			}
 		}
 	}
-	fn con(x: Option<InclusiveInterval<i8>>, point: &i8) -> bool {
+	fn con(x: Option<Interval<i8>>, point: &i8) -> bool {
 		match x {
 			Some(y) => contains_point(y, *point),
 			None => false,
 		}
 	}
 	#[test]
-	fn cut_range_bounds_should_return_valid_ranges() {
-		let result: CutResult<i8> = cut_range(ie(3, 8), ie(5, 8));
+	fn cut_interval_should_return_valid_intervals() {
+		let result: CutResult<i8> = cut_interval(ie(3, 8), ie(5, 8));
 		if let Some(x) = result.before_cut {
 			assert!(x.is_valid());
 		}
@@ -2454,7 +2454,7 @@ mod tests {
 			assert!(x.is_valid());
 		}
 
-		let result = cut_range(ie(3, 8), ie(3, 5));
+		let result = cut_interval(ie(3, 8), ie(3, 5));
 		if let Some(x) = result.before_cut {
 			assert!(x.is_valid());
 		}
@@ -2468,38 +2468,38 @@ mod tests {
 
 	#[test]
 	fn test_intersection() {
-		let input = InclusiveInterval { start: 5, end: 10 };
+		let input = Interval { start: 5, end: 10 };
 		assert_eq!(
-			input.intersect(&InclusiveInterval { start: 8, end: 13 }),
-			Some(InclusiveInterval { start: 8, end: 10 })
+			input.intersect(&Interval { start: 8, end: 13 }),
+			Some(Interval { start: 8, end: 10 })
 		);
 		assert_eq!(
-			input.intersect(&InclusiveInterval { start: 10, end: 13 }),
-			Some(InclusiveInterval { start: 10, end: 10 })
+			input.intersect(&Interval { start: 10, end: 13 }),
+			Some(Interval { start: 10, end: 10 })
 		);
 		assert_eq!(
-			input.intersect(&InclusiveInterval { start: 11, end: 13 }),
+			input.intersect(&Interval { start: 11, end: 13 }),
 			None
 		);
 	}
 
 	#[test]
 	fn test_translate() {
-		let input = InclusiveInterval { start: 5, end: 10 };
-		assert_eq!(input.translate(3), InclusiveInterval { start: 8, end: 13 });
-		assert_eq!(input.translate(-2), InclusiveInterval { start: 3, end: 8 });
+		let input = Interval { start: 5, end: 10 };
+		assert_eq!(input.translate(3), Interval { start: 8, end: 13 });
+		assert_eq!(input.translate(-2), Interval { start: 3, end: 8 });
 	}
 
 	#[test]
 	fn test_size() {
-		assert_eq!(InclusiveInterval { start: 5, end: 10 }.size(), 6);
-		assert_eq!(InclusiveInterval { start: 6, end: 6 }.size(), 1);
+		assert_eq!(Interval { start: 5, end: 10 }.size(), 6);
+		assert_eq!(Interval { start: 6, end: 6 }.size(), 1);
 	}
 
 	// Test Helper Functions
 	//======================
 	fn all_non_overlapping_test_bound_entries()
-	-> Vec<(InclusiveInterval<i8>, InclusiveInterval<i8>)> {
+	-> Vec<(Interval<i8>, Interval<i8>)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
@@ -2512,12 +2512,12 @@ mod tests {
 		return output;
 	}
 
-	fn all_valid_test_bounds() -> Vec<InclusiveInterval<i8>> {
+	fn all_valid_test_bounds() -> Vec<Interval<i8>> {
 		let mut output = Vec::new();
 		for i in NUMBERS {
 			for j in NUMBERS {
 				if i <= j {
-					output.push(InclusiveInterval { start: *i, end: *j });
+					output.push(Interval { start: *i, end: *j });
 				}
 			}
 		}

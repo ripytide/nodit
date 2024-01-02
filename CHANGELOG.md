@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   documentation for use by end-users, #56
 - `insert_overwrite()` now returns the cut entries, #51
 - Renamed `gaps()` to `gaps_trimmed()` and added a `gaps_untrimmed()` method
+- Mass replaced renamed from the word "range" to the word "interval" all code
+  items, docs.
+- The crate has been renamed from `discrete_range_map` to `nodit`
+- The `DiscreteRangeMap` is now `NoditMap` and the `DiscreteRangeSet` is now
+  `NoditSet`
 
 ### Fixed
 

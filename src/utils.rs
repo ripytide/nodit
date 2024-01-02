@@ -1,34 +1,34 @@
 /*
 Copyright 2022,2023 James Forster
 
-This file is part of discrete_range_map.
+This file is part of nodit.
 
-discrete_range_map is free software: you can redistribute it and/or
+nodit is free software: you can redistribute it and/or
 modify it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
-discrete_range_map is distributed in the hope that it will be useful,
+nodit is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with discrete_range_map. If not, see <https://www.gnu.org/licenses/>.
+along with nodit. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use core::cmp::Ordering;
 
-use crate::{InclusiveInterval, InclusiveRange, PointType, RangeType};
+use crate::{Interval, InclusiveInterval, PointType, IntervalType};
 
-pub(crate) fn cmp_point_with_range<I, K>(point: I, range: K) -> Ordering
+pub(crate) fn cmp_point_with_interval<I, K>(point: I, interval: K) -> Ordering
 where
 	I: PointType,
-	K: RangeType<I>,
+	K: IntervalType<I>,
 {
-	if point < range.start() {
+	if point < interval.start() {
 		Ordering::Less
-	} else if point > range.end() {
+	} else if point > interval.end() {
 		Ordering::Greater
 	} else {
 		Ordering::Equal
@@ -48,8 +48,8 @@ pub(crate) enum Config {
 pub(crate) fn config<I, A, B>(a: A, b: B) -> Config
 where
 	I: PointType,
-	A: RangeType<I>,
-	B: RangeType<I>,
+	A: IntervalType<I>,
+	B: IntervalType<I>,
 {
 	if a.start() < b.start() {
 		match (contains_point(a, b.start()), contains_point(a, b.end())) {
@@ -69,21 +69,21 @@ where
 }
 
 enum SortedConfig<I> {
-	NonOverlapping(InclusiveInterval<I>, InclusiveInterval<I>),
-	PartialOverlap(InclusiveInterval<I>, InclusiveInterval<I>),
-	Swallowed(InclusiveInterval<I>, InclusiveInterval<I>),
+	NonOverlapping(Interval<I>, Interval<I>),
+	PartialOverlap(Interval<I>, Interval<I>),
+	Swallowed(Interval<I>, Interval<I>),
 }
 fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
 	I: PointType,
-	A: RangeType<I>,
-	B: RangeType<I>,
+	A: IntervalType<I>,
+	B: IntervalType<I>,
 {
-	let ae = InclusiveInterval {
+	let ae = Interval {
 		start: a.start(),
 		end: a.end(),
 	};
-	let be = InclusiveInterval {
+	let be = Interval {
 		start: b.start(),
 		end: b.end(),
 	};
@@ -102,25 +102,25 @@ where
 	}
 }
 
-pub(crate) fn contains_point<I, K>(range: K, point: I) -> bool
+pub(crate) fn contains_point<I, K>(interval: K, point: I) -> bool
 where
 	I: PointType,
-	K: RangeType<I>,
+	K: IntervalType<I>,
 {
-	cmp_point_with_range(point, range).is_eq()
+	cmp_point_with_interval(point, interval).is_eq()
 }
 
 #[derive(Debug)]
 pub(crate) struct CutResult<I> {
-	pub(crate) before_cut: Option<InclusiveInterval<I>>,
-	pub(crate) inside_cut: Option<InclusiveInterval<I>>,
-	pub(crate) after_cut: Option<InclusiveInterval<I>>,
+	pub(crate) before_cut: Option<Interval<I>>,
+	pub(crate) inside_cut: Option<Interval<I>>,
+	pub(crate) after_cut: Option<Interval<I>>,
 }
-pub(crate) fn cut_range<I, A, B>(base: A, cut: B) -> CutResult<I>
+pub(crate) fn cut_interval<I, A, B>(base: A, cut: B) -> CutResult<I>
 where
 	I: PointType,
-	A: RangeType<I>,
-	B: RangeType<I>,
+	A: IntervalType<I>,
+	B: IntervalType<I>,
 {
 	let mut result = CutResult {
 		before_cut: None,
@@ -130,34 +130,34 @@ where
 
 	match config(base, cut) {
 		Config::LeftFirstNonOverlapping => {
-			result.before_cut = Some(InclusiveInterval {
+			result.before_cut = Some(Interval {
 				start: base.start(),
 				end: base.end(),
 			});
 		}
 		Config::LeftFirstPartialOverlap => {
-			result.before_cut = Some(InclusiveInterval {
+			result.before_cut = Some(Interval {
 				start: base.start(),
 				end: cut.start().down().unwrap(),
 			});
-			result.inside_cut = Some(InclusiveInterval {
+			result.inside_cut = Some(Interval {
 				start: cut.start(),
 				end: base.end(),
 			});
 		}
 		Config::LeftContainsRight => {
-			result.before_cut = Some(InclusiveInterval {
+			result.before_cut = Some(Interval {
 				start: base.start(),
 				end: cut.start().down().unwrap(),
 			});
-			result.inside_cut = Some(InclusiveInterval {
+			result.inside_cut = Some(Interval {
 				start: cut.start(),
 				end: cut.end(),
 			});
 			//if cut is already max then we don't need to have an
 			//after_cut
 			if let Some(upped_end) = cut.end().up() {
-				result.after_cut = Some(InclusiveInterval {
+				result.after_cut = Some(Interval {
 					start: upped_end,
 					end: base.end(),
 				});
@@ -165,30 +165,30 @@ where
 		}
 
 		Config::RightFirstNonOverlapping => {
-			result.after_cut = Some(InclusiveInterval {
+			result.after_cut = Some(Interval {
 				start: base.start(),
 				end: base.end(),
 			});
 		}
 		Config::RightFirstPartialOverlap => {
-			result.after_cut = Some(InclusiveInterval {
+			result.after_cut = Some(Interval {
 				start: cut.end().up().unwrap(),
 				end: base.end(),
 			});
-			result.inside_cut = Some(InclusiveInterval {
+			result.inside_cut = Some(Interval {
 				start: base.start(),
 				end: cut.end(),
 			});
 		}
 		Config::RightContainsLeft => {
-			result.inside_cut = Some(InclusiveInterval {
+			result.inside_cut = Some(Interval {
 				start: base.start(),
 				end: base.end(),
 			});
 		}
 	}
 
-	//only return valid ranges
+	//only return valid intervals
 	return CutResult {
 		before_cut: result.before_cut.filter(|x| x.is_valid()),
 		inside_cut: result.inside_cut.filter(|x| x.is_valid()),
@@ -199,8 +199,8 @@ where
 pub(crate) fn overlaps<I, A, B>(a: A, b: B) -> bool
 where
 	I: PointType,
-	A: RangeType<I>,
-	B: RangeType<I>,
+	A: IntervalType<I>,
+	B: IntervalType<I>,
 {
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }

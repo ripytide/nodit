@@ -1,17 +1,16 @@
 [package]
-name = "discrete_range_map"
+name = "nodit"
 version = "0.6.2"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
-This crate provides DiscreteRangeMap and DiscreteRangeSet, Data
-Structures for storing non-overlapping discrete intervals based off
-BTreeMap.
+This crate provides NoditMap and NoditSet, Non-Overlapping Discrete
+Interval Tree data-structures, which are based off BTreeMap.
 """
-documentation = "https://docs.rs/discrete_range_map"
+documentation = "https://docs.rs/nodit"
 readme = "README.md"
-homepage = "https://github.com/ripytide/discrete_range_map"
-repository = "https://github.com/ripytide/discrete_range_map"
+homepage = "https://github.com/ripytide/nodit"
+repository = "https://github.com/ripytide/nodit"
 license = "AGPL-3.0-or-later"
 keywords = ["data-structures", "map", "data", "library"]
 categories = ["data-structures"]

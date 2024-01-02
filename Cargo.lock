@@ -25,17 +25,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
-name = "discrete_range_map"
-version = "0.6.2"
-dependencies = [
- "btree_monstrousity",
- "either",
- "itertools",
- "pretty_assertions",
- "serde",
-]
-
-[[package]]
 name = "either"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -48,6 +37,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "25db6b064527c5d482d0423354fcd07a89a2dfe07b67892e62411946db7f07b0"
 dependencies = [
  "either",
+]
+
+[[package]]
+name = "nodit"
+version = "0.6.2"
+dependencies = [
+ "btree_monstrousity",
+ "either",
+ "itertools",
+ "pretty_assertions",
+ "serde",
 ]
 
 [[package]]
