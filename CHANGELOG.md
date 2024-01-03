@@ -11,8 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.7.0 - 2024-01-03
 
-## 0.7.0 - 2024-01-03
-
 ### Added
 
 - Added a missing implementation of `DiscreteFinite` for `usize`, #54
