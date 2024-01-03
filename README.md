@@ -17,13 +17,13 @@ Interval Tree data-structures, which are based off [`BTreeMap`].
 ## `Copy` is partially required
 
 Due to implementation complications with non-`Copy` types the
-data-structures currently require both the range type and the points the
-ranges are over to be `Copy`. However, the value type used when using
+datastructures currently require both the interval type and the points the
+intervals are over to be `Copy`. However, the value type used when using
 the [`NoditMap`] does not have to be `Copy`. In fact the only
 required traits on the value type are sometimes `Clone` or `Eq` but only
 for some methods so if in doubt check a methods trait bounds.
 
-## Example using an Inclusive-Exclusive range
+## Example using an Inclusive-Exclusive interval
 
 ```rust
 use nodit::interval::ie;
@@ -39,76 +39,75 @@ assert_eq!(map.contains_point(20), false);
 assert_eq!(map.contains_point(5), true);
 ```
 
-## Example using a custom range type
+## Example using a custom interval type
 
 ```rust
 use std::ops::{Bound, RangeBounds};
 
 use nodit::interval::ie;
 use nodit::{
-    DiscreteFinite, NoditMap, InclusiveInterval,
-    InclusiveRange,
+	DiscreteFinite, InclusiveInterval, Interval, NoditMap,
 };
 
 #[derive(Debug, Copy, Clone)]
 enum Reservation {
-    // Start, End (Inclusive-Inclusive)
-    Finite(i8, i8),
-    // Start (Inclusive-Infinity)
-    Infinite(i8),
+	// Start, End (Inclusive-Inclusive)
+	Finite(i8, i8),
+	// Start (Inclusive-Infinity)
+	Infinite(i8),
 }
 
-// First, we need to implement InclusiveRange
-impl InclusiveRange<i8> for Reservation {
-    fn start(&self) -> i8 {
-        match self {
-            Reservation::Finite(start, _) => *start,
-            Reservation::Infinite(start) => *start,
-        }
-    }
-    fn end(&self) -> i8 {
-        match self {
-            Reservation::Finite(_, end) => *end,
-            Reservation::Infinite(_) => i8::MAX,
-        }
-    }
+// First, we need to implement InclusiveInterval
+impl InclusiveInterval<i8> for Reservation {
+	fn start(&self) -> i8 {
+		match self {
+			Reservation::Finite(start, _) => *start,
+			Reservation::Infinite(start) => *start,
+		}
+	}
+	fn end(&self) -> i8 {
+		match self {
+			Reservation::Finite(_, end) => *end,
+			Reservation::Infinite(_) => i8::MAX,
+		}
+	}
 }
 
 // Second, we need to implement From<Interval<i8>>
 impl From<Interval<i8>> for Reservation {
-    fn from(value: Interval<i8>) -> Self {
-        if value.end == i8::MAX {
-            Reservation::Infinite(value.start)
-        } else {
-            Reservation::Finite(
-                value.start,
-                value.end.up().unwrap(),
-            )
-        }
-    }
+	fn from(value: Interval<i8>) -> Self {
+		if value.end() == i8::MAX {
+			Reservation::Infinite(value.start())
+		} else {
+			Reservation::Finite(
+				value.start(),
+				value.end().up().unwrap(),
+			)
+		}
+	}
 }
 
 // Next we can create a custom typed NoditMap
 let reservation_map = NoditMap::from_slice_strict([
-    (Reservation::Finite(10, 20), "Ferris".to_string()),
-    (Reservation::Infinite(21), "Corro".to_string()),
+	(Reservation::Finite(10, 20), "Ferris".to_string()),
+	(Reservation::Infinite(21), "Corro".to_string()),
 ])
 .unwrap();
 
 for (reservation, name) in reservation_map.overlapping(ie(16, 17))
 {
-    println!(
-        "{name} has reserved {reservation:?} inside the range 16..17"
-    );
+	println!(
+		"{name} has reserved {reservation:?} inside the interval 16..17"
+	);
 }
 
 for (reservation, name) in reservation_map.iter() {
-    println!("{name} has reserved {reservation:?}");
+	println!("{name} has reserved {reservation:?}");
 }
 
 assert_eq!(
-    reservation_map.overlaps(Reservation::Infinite(0)),
-    true
+	reservation_map.overlaps(Reservation::Infinite(0)),
+	true
 );
 ```
 
@@ -126,7 +125,7 @@ differ depending on whether the underlying type is `Discrete` or
 `Discrete` but `5.0..=6.0` does **not** touch `7.0..=8.0` since the
 value `6.5` exists.
 
-Importantly, this also makes Inclusive/Exclusive ended ranges really
+Importantly, this also makes Inclusive/Exclusive ended intervals really
 easy to work with as they can be losslessly converted between one
 another. For example, `3..6` is equivalent to `3..=5`.
 
@@ -152,114 +151,109 @@ use nodit::DiscreteFinite;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum WithInfinity<T> {
-    Finite(T),
-    Infinity,
+	Finite(T),
+	Infinity,
 }
 
 impl<T> Ord for WithInfinity<T>
 where
-    T: Ord,
+	T: Ord,
 {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match (self, other) {
-            (
-                WithInfinity::Finite(x),
-                WithInfinity::Finite(y),
-            ) => x.cmp(y),
-            (WithInfinity::Finite(_), WithInfinity::Infinity) => {
-                Ordering::Less
-            }
-            (WithInfinity::Infinity, WithInfinity::Finite(_)) => {
-                Ordering::Greater
-            }
-            (WithInfinity::Infinity, WithInfinity::Infinity) => {
-                Ordering::Equal
-            }
-        }
-    }
+	fn cmp(&self, other: &Self) -> Ordering {
+		match (self, other) {
+			(
+				WithInfinity::Finite(x),
+				WithInfinity::Finite(y),
+			) => x.cmp(y),
+			(WithInfinity::Finite(_), WithInfinity::Infinity) => {
+				Ordering::Less
+			}
+			(WithInfinity::Infinity, WithInfinity::Finite(_)) => {
+				Ordering::Greater
+			}
+			(WithInfinity::Infinity, WithInfinity::Infinity) => {
+				Ordering::Equal
+			}
+		}
+	}
 }
 
 impl<T> PartialOrd for WithInfinity<T>
 where
-    T: Ord,
+	T: Ord,
 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		Some(self.cmp(other))
+	}
 }
 
 impl<T> DiscreteFinite for WithInfinity<T>
 where
-    T: DiscreteFinite,
+	T: DiscreteFinite,
 {
-    const MIN: Self = WithInfinity::Finite(T::MIN);
-    const MAX: Self = WithInfinity::Infinity;
+	const MIN: Self = WithInfinity::Finite(T::MIN);
+	const MAX: Self = WithInfinity::Infinity;
 
-    fn up(self) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        match self {
-            WithInfinity::Finite(x) => match x.up() {
-                Some(y) => Some(WithInfinity::Finite(y)),
-                None => Some(WithInfinity::Infinity),
-            },
-            WithInfinity::Infinity => None,
-        }
-    }
-    fn down(self) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        match self {
-            WithInfinity::Finite(x) => {
-                Some(WithInfinity::Finite(x.down()?))
-            }
-            WithInfinity::Infinity => {
-                Some(WithInfinity::Finite(T::MAX))
-            }
-        }
-    }
+	fn up(self) -> Option<Self>
+	where
+		Self: Sized,
+	{
+		match self {
+			WithInfinity::Finite(x) => match x.up() {
+				Some(y) => Some(WithInfinity::Finite(y)),
+				None => Some(WithInfinity::Infinity),
+			},
+			WithInfinity::Infinity => None,
+		}
+	}
+	fn down(self) -> Option<Self>
+	where
+		Self: Sized,
+	{
+		match self {
+			WithInfinity::Finite(x) => {
+				Some(WithInfinity::Finite(x.down()?))
+			}
+			WithInfinity::Infinity => {
+				Some(WithInfinity::Finite(T::MAX))
+			}
+		}
+	}
 }
 
 // And then you this means you can be explicit with when
 // Infinity is encountered such as when it might be
 // returned by `get_entry_at_point()`, for example:
 
-use nodit::{NoditMap, Interval};
+use nodit::interval::uu;
+use nodit::{Interval, NoditMap};
 
 let map: NoditMap<
-    WithInfinity<u8>,
-    Interval<WithInfinity<u8>>,
-    bool,
+	WithInfinity<u8>,
+	Interval<WithInfinity<u8>>,
+	bool,
 > = NoditMap::new();
 
 let mut gap = map.get_entry_at_point(WithInfinity::Finite(4));
 
-assert_eq!(
-    gap,
-    Err(Interval {
-        start: WithInfinity::Finite(0),
-        end: WithInfinity::Infinity,
-    })
-);
+assert_eq!(gap, Err(uu()));
 ```
 
-### Invalid Ranges
+### Invalid Intervals
 
-Within this crate, not all ranges are considered valid ranges. The
-definition of the validity of a range used within this crate is that a
-range is only valid if it contains at least one value of the underlying
+Within this crate, not all intervals are considered valid intervals. The
+definition of the validity of a interval used within this crate is that a
+interval is only valid if it contains at least one value of the underlying
 domain.
 
 For example, `4..6` is considered valid as it contains the values `4`
 and `5`, however, `4..4` is considered invalid as it contains no
-values. Another example of invalid range are those whose start values
+values. Another example of invalid interval are those whose start values
 are greater than their end values. such as `5..2` or `100..=40`.
 
-Here are a few examples of ranges and whether they are valid:
+Here are a few examples of intervals and whether they are valid:
 
-| range                                  | valid |
+| interval                                  | valid |
 | -------------------------------------- | ----- |
 | 0..=0                                  | YES   |
 | 0..0                                   | NO    |
@@ -270,13 +264,13 @@ Here are a few examples of ranges and whether they are valid:
 
 ### Overlap
 
-Two ranges are "overlapping" if there exists a point that is contained
-within both ranges. For example, `2..4` and `2..6` overlap but `2..4`
+Two intervals are "overlapping" if there exists a point that is contained
+within both intervals. For example, `2..4` and `2..6` overlap but `2..4`
 and `4..8` do not.
 
 ### Touching
 
-Two ranges are "touching" if they do not overlap and there exists no
+Two intervals are "touching" if they do not overlap and there exists no
 value between them. For example, `2..4` and `4..6` are touching but
 `2..4` and `6..8` are not, neither are `2..6` and `4..8`.
 
@@ -297,18 +291,13 @@ The BTreeMap implementation ([`btree_monstrousity`]) used under the
 hood was inspired and forked from the [`copse`] crate.
 
 ## Name Changes
-This crate was later named [`range_bounds_map`] it was renamed
-around about 2023-04-24 due to it no longer being an accurate name.
 
-This crate was previously named [`range_bounds_map`] it was renamed to
-[`discrete_range_map`] around about 2023-04-24 due to the old name no longer
-being very accurate.
+This crate was previously named [`range_bounds_map`] it was renamed around about 2023-04-24 to
+[`discrete_range_map`] due to it no longer being an accurate name.
 
-This crate was then renamed again on 2023-01-02 from [`discrete_range_map`] to
-[`nodit`] due to a change to prefer the word "interval" over "range" whenever
-possible for consistency. Hopefully, even if the library undergoes more changes
-the shorter and more abstract name may be able to be kept even if it loses its
-acronym of Non-Overlapping Discrete Interval Tree.
+This crate was renamed again on 2023-01-02 from [`discrete_range_map`] to [`nodit`] for a
+similar reason, hopefully given the abstractness of the new name it will never need to change
+again.
 
 ## Similar Crates
 
@@ -316,7 +305,7 @@ Here are some relevant crates I found whilst searching around the
 topic area, beware my biases when reading:
 
 - <https://docs.rs/rangemap>
-  Very similar to this crate but can only use [`Range`]s and
+  Very similar to this crate but can only use std [`Range`]s and
   [`RangeInclusive`]s as keys in it's `map` and `set` structs (separately).
 - <https://docs.rs/btree-range-map>
 - <https://docs.rs/ranges>
@@ -326,7 +315,7 @@ topic area, beware my biases when reading:
 - <https://docs.rs/intervaltree>
   Allows overlapping intervals but is immutable unfortunately
 - <https://docs.rs/nonoverlapping_interval_tree>
-  Very similar to rangemap except without a `gaps()` function and only
+  Very similar to `rangemap` except without a `gaps()` function and only
   for [`Range`]s and not [`RangeInclusive`]s. And also no fancy
   merging functions.
 - <https://docs.rs/unbounded-interval-tree>
@@ -369,8 +358,10 @@ topic area, beware my biases when reading:
 [`actual infinity`]: https://en.wikipedia.org/wiki/Actual_infinity
 [`finite`]: https://en.wiktionary.org/wiki/finite#Adjective
 [`range_bounds_map`]: https://docs.rs/range_bounds_map
+[`discrete_range_map`]: https://docs.rs/discrete_range_map
+[`nodit`]: https://docs.rs/nodit
 [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
 [`num_bigint`]: https://docs.rs/num-bigint
 [`get_entry_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#method.get_entry_at_point
-[`NoditMap`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#
-[`NoditSet`]: https://docs.rs/nodit/latest/nodit/discrete_interval_set/struct.NoditSet.html#
+[`NoditMap`]: https://docs.rs/nodit/latest/nodit/map/struct.NoditMap.html
+[`NoditSet`]: https://docs.rs/nodit/latest/nodit/set/struct.NoditSet.html

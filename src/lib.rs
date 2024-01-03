@@ -298,10 +298,14 @@ along with nodit. If not, see <https://www.gnu.org/licenses/>.
 //! The BTreeMap implementation ([`btree_monstrousity`]) used under the
 //! hood was inspired and forked from the [`copse`] crate.
 //!
-//! ## Name Change
+//! ## Name Changes
 //!
-//! This crate was previously named [`range_bounds_map`] it was renamed
-//! around about 2023-04-24 due to it no longer being an accurate name.
+//! This crate was previously named [`range_bounds_map`] it was renamed around about 2023-04-24 to
+//! [`discrete_range_map`] due to it no longer being an accurate name.
+//!
+//! This crate was renamed again on 2023-01-02 from [`discrete_range_map`] to [`nodit`] for a
+//! similar reason, hopefully given the abstractness of the new name it will never need to change
+//! again.
 //!
 //! ## Similar Crates
 //!
@@ -362,11 +366,13 @@ along with nodit. If not, see <https://www.gnu.org/licenses/>.
 //! [`actual infinity`]: https://en.wikipedia.org/wiki/Actual_infinity
 //! [`finite`]: https://en.wiktionary.org/wiki/finite#Adjective
 //! [`range_bounds_map`]: https://docs.rs/range_bounds_map
+//! [`discrete_range_map`]: https://docs.rs/discrete_range_map
+//! [`nodit`]: https://docs.rs/nodit
 //! [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
 //! [`num_bigint`]: https://docs.rs/num-bigint
 //! [`get_entry_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#method.get_entry_at_point
-//! [`NoditMap`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#
-//! [`NoditSet`]: https://docs.rs/nodit/latest/nodit/discrete_interval_set/struct.NoditSet.html#
+//! [`NoditMap`]: https://docs.rs/nodit/latest/nodit/map/struct.NoditMap.html
+//! [`NoditSet`]: https://docs.rs/nodit/latest/nodit/set/struct.NoditSet.html
 
 #![feature(let_chains)]
 #![feature(btree_cursors)]
