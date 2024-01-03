@@ -191,13 +191,13 @@ where
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ui<I>(x: I) -> Interval<I>
+pub fn ui<I>(end: I) -> Interval<I>
 where
 	I: PointType,
 {
 	let interval = Interval {
 		start: I::MIN,
-		end: x,
+		end,
 	};
 
 	invalid_interval_panic(interval);
@@ -220,13 +220,13 @@ where
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ue<I>(x: I) -> Interval<I>
+pub fn ue<I>(end: I) -> Interval<I>
 where
 	I: PointType,
 {
 	let interval = Interval {
 		start: I::MIN,
-		end: x.down().unwrap(),
+		end: end.down().unwrap(),
 	};
 
 	invalid_interval_panic(interval);
@@ -249,12 +249,12 @@ where
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn iu<I>(x: I) -> Interval<I>
+pub fn iu<I>(start: I) -> Interval<I>
 where
 	I: PointType,
 {
 	let interval = Interval {
-		start: x,
+		start,
 		end: I::MAX,
 	};
 
@@ -278,12 +278,12 @@ where
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn eu<I>(x: I) -> Interval<I>
+pub fn eu<I>(start: I) -> Interval<I>
 where
 	I: PointType,
 {
 	let interval = Interval {
-		start: x.up().unwrap(),
+		start: start.up().unwrap(),
 		end: I::MAX,
 	};
 
@@ -307,11 +307,11 @@ where
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ii<I>(x1: I, x2: I) -> Interval<I>
+pub fn ii<I>(start: I, end: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = Interval { start: x1, end: x2 };
+	let interval = Interval { start, end };
 
 	invalid_interval_panic(interval);
 
@@ -333,13 +333,13 @@ where
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ie<I>(x1: I, x2: I) -> Interval<I>
+pub fn ie<I>(start: I, end: I) -> Interval<I>
 where
 	I: PointType,
 {
 	let interval = Interval {
-		start: x1,
-		end: x2.down().unwrap(),
+		start,
+		end: end.down().unwrap(),
 	};
 
 	invalid_interval_panic(interval);
@@ -362,13 +362,13 @@ where
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ei<I>(x1: I, x2: I) -> Interval<I>
+pub fn ei<I>(start: I, end: I) -> Interval<I>
 where
 	I: PointType,
 {
 	let interval = Interval {
-		start: x1.up().unwrap(),
-		end: x2,
+		start: start.up().unwrap(),
+		end,
 	};
 
 	invalid_interval_panic(interval);
@@ -391,13 +391,13 @@ where
 ///
 /// assert_ne!(interval1, interval2)
 /// ```
-pub fn ee<I>(x1: I, x2: I) -> Interval<I>
+pub fn ee<I>(start: I, end: I) -> Interval<I>
 where
 	I: PointType,
 {
 	let interval = Interval {
-		start: x1.up().unwrap(),
-		end: x2.down().unwrap(),
+		start: start.up().unwrap(),
+		end: end.down().unwrap(),
 	};
 
 	invalid_interval_panic(interval);
