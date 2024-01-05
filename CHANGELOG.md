@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased - ReleaseDate
 
+### Added
+
+- Support for stable rust (at least stable `v1.75.0`) added by
+removing/refactoring unused nightly features.
+
 ## 0.7.0 - 2024-01-03
 
 ### Added

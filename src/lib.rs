@@ -374,9 +374,6 @@ along with nodit. If not, see <https://www.gnu.org/licenses/>.
 //! [`NoditMap`]: https://docs.rs/nodit/latest/nodit/map/struct.NoditMap.html
 //! [`NoditSet`]: https://docs.rs/nodit/latest/nodit/set/struct.NoditSet.html
 
-#![feature(let_chains)]
-#![feature(btree_cursors)]
-#![feature(step_trait)]
 #![allow(clippy::tabs_in_doc_comments)]
 #![allow(clippy::needless_return)]
 #![cfg_attr(not(test), no_std)]

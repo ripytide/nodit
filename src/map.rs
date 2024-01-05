@@ -473,18 +473,25 @@ where
 			.map(|(key, _)| key)
 			.copied();
 
-		if let Some(left) = left_overlapping
-			&& let Some(right) = right_overlapping
-			&& left.start() == right.start()
-		{
-			Either::Left(self.cut_single_overlapping(interval, left))
-		} else {
-			Either::Right(self.cut_non_single_overlapping(
+		match (left_overlapping, right_overlapping) {
+			(Some(left), Some(right)) if left.start() == right.start() => {
+				Either::Left(self.cut_single_overlapping(interval, left))
+			}
+			_ => Either::Right(self.cut_non_single_overlapping(
 				interval,
 				left_overlapping,
 				right_overlapping,
-			))
+			)),
 		}
+
+		//todo re-use when let_chains become stable
+		//
+		// if let Some(left) = left_overlapping
+		// 	&& let Some(right) = right_overlapping
+		// 	&& left.start() == right.start()
+		// {
+		// } else {
+		// }
 	}
 	fn cut_single_overlapping<Q>(
 		&mut self,
@@ -1854,12 +1861,10 @@ mod tests {
 		//case zero
 		for overlap_interval in all_valid_test_bounds() {
 			//you can't overlap nothing
-			assert!(
-				NoditMap::<i8, Interval<i8>, ()>::new()
-					.overlapping(overlap_interval)
-					.next()
-					.is_none()
-			);
+			assert!(NoditMap::<i8, Interval<i8>, ()>::new()
+				.overlapping(overlap_interval)
+				.next()
+				.is_none());
 		}
 
 		//case one
@@ -2494,8 +2499,8 @@ mod tests {
 
 	// Test Helper Functions
 	//======================
-	fn all_non_overlapping_test_bound_entries()
-	-> Vec<(Interval<i8>, Interval<i8>)> {
+	fn all_non_overlapping_test_bound_entries(
+	) -> Vec<(Interval<i8>, Interval<i8>)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {

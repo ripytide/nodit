@@ -195,10 +195,7 @@ pub fn ui<I>(end: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = Interval {
-		start: I::MIN,
-		end,
-	};
+	let interval = Interval { start: I::MIN, end };
 
 	invalid_interval_panic(interval);
 
@@ -253,10 +250,7 @@ pub fn iu<I>(start: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = Interval {
-		start,
-		end: I::MAX,
-	};
+	let interval = Interval { start, end: I::MAX };
 
 	invalid_interval_panic(interval);
 
