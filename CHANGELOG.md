@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased - ReleaseDate
 
+## 0.7.1 - 2024-01-05
+
 ### Added
 
 - Support for stable rust (at least stable `v1.75.0`) added by
