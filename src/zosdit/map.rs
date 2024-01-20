@@ -5,8 +5,12 @@ use core::marker::PhantomData;
 
 use btree_monstrousity::btree_map::SearchBoundCustom;
 use btree_monstrousity::BTreeMap;
+use smallvec::SmallVec;
 
+use crate::utils::double_comp;
 use crate::{IntervalType, PointType};
+
+const SMALL_VEC_ARRAY_SIZE: usize = 2;
 
 /// A Zero Overlap Sequential Discrete Interval Tree Map Data-Structure based off [`NoditMap`] and
 /// [`SmallVec`]
@@ -23,7 +27,7 @@ use crate::{IntervalType, PointType};
 /// Phrasing it another way: `I` is the point type, `K` is the interval type, and `V` is the value type.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ZosditMap<I, K, V> {
-	inner: BTreeMap<K, V>,
+	inner: BTreeMap<K, SmallVec<[V; SMALL_VEC_ARRAY_SIZE]>>,
 	phantom: PhantomData<I>,
 }
 
@@ -66,10 +70,19 @@ where
 	/// internal `SmallVec` for that entry.
 	pub fn insert_push_back(
 		&mut self,
-		interval: I,
+		interval: K,
 		value: V,
 	) -> Result<(), NonZeroOverlapError<V>> {
-		todo!()
+		if !self.is_zero_overlap(interval) {
+			Err(NonZeroOverlapError { value })
+		} else {
+			self.inner
+				.entry(interval, double_comp())
+				.or_default()
+				.push(value);
+
+			Ok(())
+		}
 	}
 
 	/// Returns `true` if the given interval zero-overlaps the intervals in
@@ -144,7 +157,11 @@ mod tests {
 		for ((start, end), map_intervals, expected) in test_cases {
 			let mut map = ZosditMap::new();
 			for (mi_start, mi_end) in map_intervals.clone() {
-				map.inner.insert(ii(mi_start, mi_end), (), double_comp());
+				map.inner.insert(
+					ii(mi_start, mi_end),
+					SmallVec::<[(); 2]>::new(),
+					double_comp(),
+				);
 			}
 
 			let search_interval = ii(start, end);

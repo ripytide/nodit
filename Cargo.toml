@@ -23,6 +23,7 @@ btree_monstrousity = { version = "0.0.4", features = [
 ], default-features = false }
 either = { version = "1.9.0", default-features = false }
 itertools = { version = "0.12.0", default-features = false }
+smallvec = { version = "1.13.1", default-features = false }
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
