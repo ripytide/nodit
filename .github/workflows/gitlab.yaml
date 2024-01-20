@@ -10,7 +10,7 @@ jobs:
       - name: Mirror and run GitLab CI
         uses: SvanBoxel/gitlab-mirror-and-ci-action@master
         with:
-          args: "https://gitlab.com/ripytide/discrete_range_map"
+          args: "https://gitlab.com/ripytide/nodit"
         env:
           FOLLOW_TAGS: "true"
           FORCE_PUSH: "false"
