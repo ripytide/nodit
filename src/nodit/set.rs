@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with nodit. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! A module containing [`NoditSet`] and related types.
+//! A module containing [`NoditSet`].
 //!
 //! Since [`NoditSet`] is just a wrapper around
 //! [`NoditMap`], most of the methods' docs will point towards the

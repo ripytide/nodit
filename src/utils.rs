@@ -205,6 +205,43 @@ where
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
 
+pub(crate) fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
+where
+	I: PointType,
+	K: IntervalType<I>,
+{
+	|inner_interval: &K, new_interval: &K| {
+		new_interval.start().cmp(&inner_interval.start())
+	}
+}
+pub(crate) fn overlapping_comp<I, K>(point: I) -> impl FnMut(&K) -> Ordering
+where
+	I: PointType,
+	K: IntervalType<I>,
+{
+	move |inner_interval: &K| cmp_point_with_interval(point, *inner_interval)
+}
+pub(crate) fn touching_start_comp<I, K>(start: I) -> impl FnMut(&K) -> Ordering
+where
+	I: PointType,
+	K: IntervalType<I>,
+{
+	move |inner_interval: &K| match inner_interval.end().up() {
+		Some(touching_position) => start.cmp(&touching_position),
+		None => Ordering::Less,
+	}
+}
+pub(crate) fn touching_end_comp<I, K>(end: I) -> impl FnMut(&K) -> Ordering
+where
+	I: PointType,
+	K: IntervalType<I>,
+{
+	move |inner_interval: &K| match inner_interval.start().down() {
+		Some(touching_position) => end.cmp(&touching_position),
+		None => Ordering::Greater,
+	}
+}
+
 pub(crate) fn invalid_interval_panic<Q, I>(interval: Q)
 where
 	I: PointType,

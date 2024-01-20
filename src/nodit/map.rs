@@ -17,10 +17,9 @@ You should have received a copy of the GNU Affero General Public License
 along with nodit. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! A module containing [`NoditMap`] and related types.
+//! A module containing [`NoditMap`].
 
 use alloc::vec::Vec;
-use core::cmp::Ordering;
 use core::fmt::{self, Debug};
 use core::iter::once;
 use core::marker::PhantomData;
@@ -36,7 +35,8 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::utils::{
-	cmp_point_with_interval, cut_interval, invalid_interval_panic, overlaps,
+	cut_interval, double_comp, invalid_interval_panic, overlapping_comp,
+	overlaps, touching_end_comp, touching_start_comp,
 };
 use crate::{DiscreteFinite, InclusiveInterval, Interval};
 
@@ -118,7 +118,7 @@ where
 	K: IntervalType<I>,
 {
 	/// Returns `true` if the given interval overlaps any of the
-	/// other intervals in the map, and `false` if not.
+	/// intervals in the map, and `false` if not.
 	///
 	/// # Panics
 	///
@@ -1533,45 +1533,6 @@ impl<I, K, V> NoditMap<I, K, V> {
 	}
 }
 
-// Helper Functions ==========================
-
-fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
-where
-	I: PointType,
-	K: IntervalType<I>,
-{
-	|inner_interval: &K, new_interval: &K| {
-		new_interval.start().cmp(&inner_interval.start())
-	}
-}
-fn overlapping_comp<I, K>(point: I) -> impl FnMut(&K) -> Ordering
-where
-	I: PointType,
-	K: IntervalType<I>,
-{
-	move |inner_interval: &K| cmp_point_with_interval(point, *inner_interval)
-}
-fn touching_start_comp<I, K>(start: I) -> impl FnMut(&K) -> Ordering
-where
-	I: PointType,
-	K: IntervalType<I>,
-{
-	move |inner_interval: &K| match inner_interval.end().up() {
-		Some(touching_position) => start.cmp(&touching_position),
-		None => Ordering::Less,
-	}
-}
-fn touching_end_comp<I, K>(end: I) -> impl FnMut(&K) -> Ordering
-where
-	I: PointType,
-	K: IntervalType<I>,
-{
-	move |inner_interval: &K| match inner_interval.start().down() {
-		Some(touching_position) => end.cmp(&touching_position),
-		None => Ordering::Greater,
-	}
-}
-
 // Trait Impls ==========================
 
 impl<I, K, V> IntoIterator for NoditMap<I, K, V> {
@@ -2374,14 +2335,14 @@ mod tests {
 	fn test_intersection() {
 		let input = Interval { start: 5, end: 10 };
 		assert_eq!(
-			input.intersect(&Interval { start: 8, end: 13 }),
+			input.intersection(&Interval { start: 8, end: 13 }),
 			Some(Interval { start: 8, end: 10 })
 		);
 		assert_eq!(
-			input.intersect(&Interval { start: 10, end: 13 }),
+			input.intersection(&Interval { start: 10, end: 13 }),
 			Some(Interval { start: 10, end: 10 })
 		);
-		assert_eq!(input.intersect(&Interval { start: 11, end: 13 }), None);
+		assert_eq!(input.intersection(&Interval { start: 11, end: 13 }), None);
 	}
 
 	#[test]
@@ -2389,12 +2350,6 @@ mod tests {
 		let input = Interval { start: 5, end: 10 };
 		assert_eq!(input.translate(3), Interval { start: 8, end: 13 });
 		assert_eq!(input.translate(-2), Interval { start: 3, end: 8 });
-	}
-
-	#[test]
-	fn test_size() {
-		assert_eq!(Interval { start: 5, end: 10 }.size(), 6);
-		assert_eq!(Interval { start: 6, end: 6 }.size(), 1);
 	}
 
 	// Test Helper Functions

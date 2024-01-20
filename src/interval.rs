@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with nodit. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! A module containing [`InclusiveInterval`] and its constructors.
+//! A module containing [`Interval`] and [`InclusiveInterval`].
 //!
 //! The constructors are not associated functions as then you must write
 //! `InclusiveInterval` before it every time you want create an interval
@@ -402,11 +402,42 @@ where
 /// A interval that has **Inclusive** end-points.
 pub trait InclusiveInterval<I> {
 	/// The start of the interval, inclusive.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ie, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(3, 4).start(), 3);
+	/// assert_eq!(ii(4, 5).start(), 4);
+	/// assert_eq!(ie(5, 6).start(), 5);
+	/// ```
 	fn start(&self) -> I;
 	/// The end of the interval, inclusive.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ei, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(3, 4).end(), 4);
+	/// assert_eq!(ii(4, 5).end(), 5);
+	/// assert_eq!(ei(5, 6).end(), 6);
+	/// ```
 	fn end(&self) -> I;
 
 	/// Does the interval contain the given point?
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ie, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(4, 5).contains(3), false);
+	/// assert_eq!(ii(4, 5).contains(4), true);
+	/// assert_eq!(ii(4, 5).contains(5), true);
+	/// assert_eq!(ii(4, 5).contains(6), false);
+	/// ```
 	fn contains(&self, point: I) -> bool
 	where
 		I: PointType,
@@ -414,8 +445,17 @@ pub trait InclusiveInterval<I> {
 		point >= self.start() && point <= self.end()
 	}
 
-	/// Is the interval is valid, which according to this crate means `start()`
-	/// <= `end()`
+	/// Is the interval is valid, which according to this crate means `start()` <= `end()`
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ie, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(4, 4).is_valid(), true);
+	/// assert_eq!(ii(4, 5).is_valid(), true);
+	/// assert_eq!(ie(4, 5).is_valid(), true);
+	/// ```
 	fn is_valid(&self) -> bool
 	where
 		I: PointType,
@@ -423,24 +463,35 @@ pub trait InclusiveInterval<I> {
 		self.start() <= self.end()
 	}
 
-	/// Requires that self comes before other and they don't overlap
-	fn touches_ordered(&self, other: &Self) -> bool
+	/// Is `self` an interval over a single point?
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ie, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(4, 4).is_singular(), true);
+	/// assert_eq!(ii(4, 5).is_singular(), false);
+	/// assert_eq!(ie(4, 5).is_singular(), true);
+	/// ```
+	fn is_singular(&self) -> bool
 	where
 		I: PointType,
 	{
-		self.end() == other.start().down().unwrap()
+		self.start() == self.end()
 	}
 
-	/// Requires that self comes before other
-	fn overlaps_ordered(&self, other: &Self) -> bool
-	where
-		I: PointType,
-	{
-		self.contains(other.start()) || self.contains(other.end())
-	}
-
-	/// Intersect the interval with the other one, and return Some if the intersection is not empty.
-	fn intersect(&self, other: &Self) -> Option<Self>
+	/// Returns the intersection between `self` and `other` if there is any.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ee, ie, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(4, 6).intersection(&ie(6, 8)), Some(ii(6, 6)));
+	/// assert_eq!(ii(4, 6).intersection(&ee(6, 8)), None);
+	/// ```
+	fn intersection(&self, other: &Self) -> Option<Self>
 	where
 		I: PointType,
 		Self: From<Interval<I>>,
@@ -457,7 +508,16 @@ pub trait InclusiveInterval<I> {
 		}
 	}
 
-	/// Move the entire interval by the given amount.
+	/// Move the entire interval by the given `delta` amount upwards.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ee, ie, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(4, 6).translate(8), ii(12, 14));
+	/// assert_eq!(ee(4, 6).translate(-4), ee(0, 2));
+	/// ```
 	fn translate(&self, delta: I) -> Self
 	where
 		I: PointType,
@@ -470,23 +530,23 @@ pub trait InclusiveInterval<I> {
 		})
 	}
 
-	/// The amount between the start and the end points of the interval.
-	fn size(&self) -> I
+	/// The amount between the start and the end of the interval.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ee, ei, ie, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(4, 6).width(), 2);
+	/// assert_eq!(ie(4, 6).width(), 1);
+	/// assert_eq!(ei(4, 6).width(), 1);
+	/// assert_eq!(ee(4, 6).width(), 0);
+	/// ```
+	fn width(&self) -> I
 	where
 		I: PointType,
 		I: core::ops::Sub<Output = I>,
 	{
-		(self.end() - self.start()).up().unwrap()
-	}
-
-	/// Requires that self comes before other
-	fn merge_ordered(&self, other: &Self) -> Self
-	where
-		Self: From<Interval<I>>,
-	{
-		Self::from(Interval {
-			start: self.start(),
-			end: other.end(),
-		})
+		self.end() - self.start()
 	}
 }

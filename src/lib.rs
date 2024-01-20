@@ -391,3 +391,5 @@ pub use crate::discrete_finite::DiscreteFinite;
 pub use crate::interval::{InclusiveInterval, Interval};
 pub use crate::nodit::map::{IntervalType, NoditMap, OverlapError, PointType};
 pub use crate::nodit::set::NoditSet;
+pub use crate::zosdit::map::{NonZeroOverlapError, ZosditMap};
+pub use crate::zosdit::set::ZosditSet;
