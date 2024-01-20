@@ -384,12 +384,10 @@ pub(crate) mod utils;
 
 pub mod discrete_finite;
 pub mod interval;
-pub mod map;
-pub mod set;
+pub mod nodit;
+pub mod zosdit;
 
 pub use crate::discrete_finite::DiscreteFinite;
-pub use crate::interval::Interval;
-pub use crate::map::{
-	InclusiveInterval, IntervalType, NoditMap, OverlapError, PointType,
-};
-pub use crate::set::NoditSet;
+pub use crate::interval::{InclusiveInterval, Interval};
+pub use crate::nodit::map::{IntervalType, NoditMap, OverlapError, PointType};
+pub use crate::nodit::set::NoditSet;

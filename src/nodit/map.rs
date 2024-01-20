@@ -35,8 +35,10 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::utils::{cmp_point_with_interval, cut_interval, overlaps};
-use crate::{DiscreteFinite, Interval};
+use crate::utils::{
+	cmp_point_with_interval, cut_interval, invalid_interval_panic, overlaps,
+};
+use crate::{DiscreteFinite, InclusiveInterval, Interval};
 
 /// An ordered map of non-overlapping intervals based on [`BTreeMap`].
 ///
@@ -1533,18 +1535,6 @@ impl<I, K, V> NoditMap<I, K, V> {
 
 // Helper Functions ==========================
 
-pub(crate) fn invalid_interval_panic<Q, I>(interval: Q)
-where
-	I: PointType,
-	Q: IntervalType<I>,
-{
-	if !interval.is_valid() {
-		panic!(
-			"invalid interval given to function see here for more details: https://docs.rs/nodit/latest/nodit/#invalid-intervals"
-		);
-	}
-}
-
 fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
 where
 	I: PointType,
@@ -1579,98 +1569,6 @@ where
 	move |inner_interval: &K| match inner_interval.start().down() {
 		Some(touching_position) => end.cmp(&touching_position),
 		None => Ordering::Greater,
-	}
-}
-
-/// A interval that has **Inclusive** end-points.
-pub trait InclusiveInterval<I> {
-	/// The start of the interval, inclusive.
-	fn start(&self) -> I;
-	/// The end of the interval, inclusive.
-	fn end(&self) -> I;
-
-	/// Does the interval contain the given point?
-	fn contains(&self, point: I) -> bool
-	where
-		I: PointType,
-	{
-		point >= self.start() && point <= self.end()
-	}
-
-	/// Is the interval is valid, which according to this crate means `start()`
-	/// <= `end()`
-	fn is_valid(&self) -> bool
-	where
-		I: PointType,
-	{
-		self.start() <= self.end()
-	}
-
-	/// Requires that self comes before other and they don't overlap
-	fn touches_ordered(&self, other: &Self) -> bool
-	where
-		I: PointType,
-	{
-		self.end() == other.start().down().unwrap()
-	}
-
-	/// Requires that self comes before other
-	fn overlaps_ordered(&self, other: &Self) -> bool
-	where
-		I: PointType,
-	{
-		self.contains(other.start()) || self.contains(other.end())
-	}
-
-	/// Intersect the interval with the other one, and return Some if the intersection is not empty.
-	fn intersect(&self, other: &Self) -> Option<Self>
-	where
-		I: PointType,
-		Self: From<Interval<I>>,
-	{
-		let intersect_start = I::max(self.start(), other.start());
-		let intersect_end = I::min(self.end(), other.end());
-		if intersect_start <= intersect_end {
-			Some(Self::from(Interval {
-				start: intersect_start,
-				end: intersect_end,
-			}))
-		} else {
-			None
-		}
-	}
-
-	/// Move the entire interval by the given amount.
-	fn translate(&self, delta: I) -> Self
-	where
-		I: PointType,
-		I: core::ops::Add<Output = I>,
-		Self: From<Interval<I>>,
-	{
-		Self::from(Interval {
-			start: self.start() + delta,
-			end: self.end() + delta,
-		})
-	}
-
-	/// The amount between the start and the end points of the interval.
-	fn size(&self) -> I
-	where
-		I: PointType,
-		I: core::ops::Sub<Output = I>,
-	{
-		(self.end() - self.start()).up().unwrap()
-	}
-
-	/// Requires that self comes before other
-	fn merge_ordered(&self, other: &Self) -> Self
-	where
-		Self: From<Interval<I>>,
-	{
-		Self::from(Interval {
-			start: self.start(),
-			end: other.end(),
-		})
 	}
 }
 
@@ -1861,10 +1759,12 @@ mod tests {
 		//case zero
 		for overlap_interval in all_valid_test_bounds() {
 			//you can't overlap nothing
-			assert!(NoditMap::<i8, Interval<i8>, ()>::new()
-				.overlapping(overlap_interval)
-				.next()
-				.is_none());
+			assert!(
+				NoditMap::<i8, Interval<i8>, ()>::new()
+					.overlapping(overlap_interval)
+					.next()
+					.is_none()
+			);
 		}
 
 		//case one
@@ -2499,8 +2399,8 @@ mod tests {
 
 	// Test Helper Functions
 	//======================
-	fn all_non_overlapping_test_bound_entries(
-	) -> Vec<(Interval<i8>, Interval<i8>)> {
+	fn all_non_overlapping_test_bound_entries()
+	-> Vec<(Interval<i8>, Interval<i8>)> {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {

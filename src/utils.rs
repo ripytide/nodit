@@ -204,3 +204,15 @@ where
 {
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
+
+pub(crate) fn invalid_interval_panic<Q, I>(interval: Q)
+where
+	I: PointType,
+	Q: IntervalType<I>,
+{
+	if !interval.is_valid() {
+		panic!(
+			"invalid interval given to function see here for more details: https://docs.rs/nodit/latest/nodit/#invalid-intervals"
+		);
+	}
+}

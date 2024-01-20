@@ -29,8 +29,8 @@ use core::ops::{Bound, Range, RangeBounds, RangeInclusive};
 
 use serde::{Deserialize, Serialize};
 
-use crate::map::invalid_interval_panic;
-use crate::{InclusiveInterval, PointType};
+use crate::utils::invalid_interval_panic;
+use crate::PointType;
 
 /// An inclusive interval, only valid intervals can be constructed.
 ///
@@ -397,4 +397,96 @@ where
 	invalid_interval_panic(interval);
 
 	interval
+}
+
+/// A interval that has **Inclusive** end-points.
+pub trait InclusiveInterval<I> {
+	/// The start of the interval, inclusive.
+	fn start(&self) -> I;
+	/// The end of the interval, inclusive.
+	fn end(&self) -> I;
+
+	/// Does the interval contain the given point?
+	fn contains(&self, point: I) -> bool
+	where
+		I: PointType,
+	{
+		point >= self.start() && point <= self.end()
+	}
+
+	/// Is the interval is valid, which according to this crate means `start()`
+	/// <= `end()`
+	fn is_valid(&self) -> bool
+	where
+		I: PointType,
+	{
+		self.start() <= self.end()
+	}
+
+	/// Requires that self comes before other and they don't overlap
+	fn touches_ordered(&self, other: &Self) -> bool
+	where
+		I: PointType,
+	{
+		self.end() == other.start().down().unwrap()
+	}
+
+	/// Requires that self comes before other
+	fn overlaps_ordered(&self, other: &Self) -> bool
+	where
+		I: PointType,
+	{
+		self.contains(other.start()) || self.contains(other.end())
+	}
+
+	/// Intersect the interval with the other one, and return Some if the intersection is not empty.
+	fn intersect(&self, other: &Self) -> Option<Self>
+	where
+		I: PointType,
+		Self: From<Interval<I>>,
+	{
+		let intersect_start = I::max(self.start(), other.start());
+		let intersect_end = I::min(self.end(), other.end());
+		if intersect_start <= intersect_end {
+			Some(Self::from(Interval {
+				start: intersect_start,
+				end: intersect_end,
+			}))
+		} else {
+			None
+		}
+	}
+
+	/// Move the entire interval by the given amount.
+	fn translate(&self, delta: I) -> Self
+	where
+		I: PointType,
+		I: core::ops::Add<Output = I>,
+		Self: From<Interval<I>>,
+	{
+		Self::from(Interval {
+			start: self.start() + delta,
+			end: self.end() + delta,
+		})
+	}
+
+	/// The amount between the start and the end points of the interval.
+	fn size(&self) -> I
+	where
+		I: PointType,
+		I: core::ops::Sub<Output = I>,
+	{
+		(self.end() - self.start()).up().unwrap()
+	}
+
+	/// Requires that self comes before other
+	fn merge_ordered(&self, other: &Self) -> Self
+	where
+		Self: From<Interval<I>>,
+	{
+		Self::from(Interval {
+			start: self.start(),
+			end: other.end(),
+		})
+	}
 }

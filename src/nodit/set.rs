@@ -31,7 +31,7 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::map::IntoIter as NoditMapIntoIter;
+use crate::nodit::map::IntoIter as NoditMapIntoIter;
 use crate::{IntervalType, NoditMap, OverlapError, PointType};
 
 /// An ordered set of non-overlapping intervals based on [`NoditMap`].
