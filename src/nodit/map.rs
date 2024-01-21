@@ -416,8 +416,8 @@ where
 		return result.into_iter();
 	}
 
-	/// Cuts a given interval out of the map and returns an iterator of
-	/// the full or partial intervals that were cut in ascending order.
+    /// Cuts a given interval out of the map and returns an iterator of the full or
+    /// partial intervals with their values that were cut in ascending order.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
 	/// of a interval in the map it will split into two different entries

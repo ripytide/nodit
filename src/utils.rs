@@ -26,13 +26,7 @@ where
 	I: PointType,
 	K: IntervalType<I>,
 {
-	if point < interval.start() {
-		Ordering::Less
-	} else if point > interval.end() {
-		Ordering::Greater
-	} else {
-		Ordering::Equal
-	}
+	inclusive_comp_generator(point, Ordering::Equal)(&interval)
 }
 
 #[derive(Debug, PartialEq)]
@@ -214,7 +208,8 @@ where
 		new_interval.start().cmp(&inner_interval.start())
 	}
 }
-pub(crate) fn inclusive_comp_generator<I, K>(
+//todo upstream usages of this from zodit to nodit and other relevant places
+pub(crate) fn exclusive_comp_generator<I, K>(
 	point: I,
 	extraneous_result: Ordering,
 ) -> impl FnMut(&K) -> Ordering
@@ -231,6 +226,24 @@ where
 			Ordering::Greater
 		} else {
 			Ordering::Equal
+		}
+	}
+}
+pub(crate) fn inclusive_comp_generator<I, K>(
+	point: I,
+	extraneous_result: Ordering,
+) -> impl FnMut(&K) -> Ordering
+where
+	I: PointType,
+	K: IntervalType<I>,
+{
+	move |inner_interval: &K| {
+		if point < inner_interval.start() {
+			Ordering::Less
+		} else if point > inner_interval.end() {
+			Ordering::Greater
+		} else {
+			extraneous_result
 		}
 	}
 }

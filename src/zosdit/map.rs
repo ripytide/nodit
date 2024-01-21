@@ -11,7 +11,9 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use smallvec::SmallVec;
 
-use crate::utils::{inclusive_comp_generator, invalid_interval_panic};
+use crate::utils::{
+	exclusive_comp_generator, inclusive_comp_generator, invalid_interval_panic,
+};
 use crate::{IntervalType, NoditMap, PointType};
 
 type ValueStore<V> = SmallVec<[V; 2]>;
@@ -113,20 +115,17 @@ where
 		self.nodit_map
 			.inner
 			.lower_bound(
-				inclusive_comp_generator(point, Ordering::Greater),
+				exclusive_comp_generator(point, Ordering::Greater),
 				SearchBoundCustom::Included,
 			)
 			.value()
 			.and_then(|x| x.last())
 	}
 
-	/// Cuts a given interval out of the map and returns an iterator of
-	/// the full or partial intervals that were cut in ascending order.
+	/// The same as [`NoditMap::cut()`] except it flattens the `SmallVec`s of values into the
+	/// returned iterator.
 	///
-	/// `V` must implement `Clone` as if you try to cut out the center
-	/// of a interval in the map it will split into two different entries
-	/// using `Clone`. Or if you partially cut a interval then
-	/// `V` must be cloned to be returned in the iterator.
+	/// See [`NoditMap::cut()`] for more details.
 	///
 	/// # Panics
 	///
@@ -153,7 +152,6 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// dbg!(&base);
 	/// assert_eq!(
 	/// 	base.cut(ee(2, 6)).collect::<Vec<_>>(),
 	/// 	[
@@ -176,6 +174,59 @@ where
 
 		cut.flat_map(|(interval, value_store)| {
 			value_store.into_iter().map(move |value| (interval, value))
+		})
+	}
+
+	/// The same as [`NoditMap::overlapping()`] except it flattens the `SmallVec`s of values into
+	/// the returned iterator.
+	///
+	/// See [`NoditMap::overlapping()`] for more details.
+	///
+	/// # Panics
+	///
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ee, ii};
+	/// use nodit::ZosditMap;
+	///
+	/// let mut base = ZosditMap::from_slice_strict_back([
+	/// 	(ii(0, 4), -2),
+	/// 	(ii(4, 4), -4),
+	/// 	(ii(4, 4), -6),
+	/// 	(ii(4, 8), -8),
+	/// 	(ii(8, 12), -10),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(
+	/// 	base.overlapping(ii(4, 4)).collect::<Vec<_>>(),
+	/// 	[
+	/// 		(&ii(0, 4), &-2),
+	/// 		(&ii(4, 4), &-4),
+	/// 		(&ii(4, 4), &-6),
+	/// 		(&ii(4, 8), &-8),
+	/// 	]
+	/// );
+	/// ```
+	pub fn overlapping<Q>(&self, interval: Q) -> impl Iterator<Item = (&K, &V)>
+	where
+		Q: IntervalType<I>,
+	{
+		invalid_interval_panic(interval);
+
+		let overlapping = self.nodit_map.inner.range(
+			inclusive_comp_generator(interval.start(), Ordering::Less),
+			SearchBoundCustom::Included,
+			inclusive_comp_generator(interval.end(), Ordering::Greater),
+			SearchBoundCustom::Included,
+		);
+
+		overlapping.flat_map(|(interval, value_store)| {
+			value_store.iter().map(move |value| (interval, value))
 		})
 	}
 
@@ -223,11 +274,11 @@ where
 			self.nodit_map
 				.inner
 				.entry(interval, |inner_interval, new_interval| {
-					let start_result = inclusive_comp_generator(
+					let start_result = exclusive_comp_generator(
 						new_interval.start(),
 						Ordering::Greater,
 					)(inner_interval);
-					let end_result = inclusive_comp_generator(
+					let end_result = exclusive_comp_generator(
 						new_interval.end(),
 						Ordering::Less,
 					)(inner_interval);
@@ -294,16 +345,13 @@ where
 		//this elegant solution, there are a surprising amount of different scenarios when you
 		//start considering zero-sized intervals and things
 
-		let start_bound = SearchBoundCustom::Included;
-		let end_bound = SearchBoundCustom::Included;
-
 		self.nodit_map
 			.inner
 			.range(
-				inclusive_comp_generator(interval.start(), Ordering::Greater),
-				start_bound,
-				inclusive_comp_generator(interval.end(), Ordering::Less),
-				end_bound,
+				exclusive_comp_generator(interval.start(), Ordering::Greater),
+				SearchBoundCustom::Included,
+				exclusive_comp_generator(interval.end(), Ordering::Less),
+				SearchBoundCustom::Included,
 			)
 			.next()
 			.is_none()
