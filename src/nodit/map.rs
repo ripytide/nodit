@@ -35,7 +35,7 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::utils::{
-	cut_interval, double_comp, invalid_interval_panic, overlapping_comp,
+	cut_interval, starts_comp, invalid_interval_panic, overlapping_comp,
 	overlaps, touching_end_comp, touching_start_comp,
 };
 use crate::{DiscreteFinite, InclusiveInterval, Interval};
@@ -82,7 +82,7 @@ use crate::{DiscreteFinite, InclusiveInterval, Interval};
 /// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NoditMap<I, K, V> {
-	inner: BTreeMap<K, V>,
+	pub(crate) inner: BTreeMap<K, V>,
 	phantom: PhantomData<I>,
 }
 
@@ -860,7 +860,7 @@ where
 		return Ok(());
 	}
 	fn insert_unchecked(&mut self, interval: K, value: V) {
-		self.inner.insert(interval, value, double_comp());
+		self.inner.insert(interval, value, starts_comp());
 	}
 
 	fn insert_merge_with_comps<G1, G2, R1, R2>(
@@ -1629,7 +1629,7 @@ where
 		let mut map = NoditMap::new();
 		while let Some((interval, value)) = access.next_element()? {
 			map.insert_strict(interval, value)
-				.map_err(|_| serde::de::Error::custom("intervals overlap"))?;
+				.or(Err(serde::de::Error::custom("intervals overlap")))?;
 		}
 		Ok(map)
 	}

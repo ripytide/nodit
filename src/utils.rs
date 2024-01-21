@@ -205,13 +205,33 @@ where
 	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
 
-pub(crate) fn double_comp<K, I>() -> impl FnMut(&K, &K) -> Ordering
+pub(crate) fn starts_comp<I, K>() -> impl FnMut(&K, &K) -> Ordering
 where
 	I: PointType,
 	K: IntervalType<I>,
 {
 	|inner_interval: &K, new_interval: &K| {
 		new_interval.start().cmp(&inner_interval.start())
+	}
+}
+pub(crate) fn exclusive_comp_generator<I, K>(
+	point: I,
+	extraneous_result: Ordering,
+) -> impl FnMut(&K) -> Ordering
+where
+	I: PointType,
+	K: IntervalType<I>,
+{
+	move |inner_interval: &K| {
+		if point == inner_interval.start() && point == inner_interval.end() {
+			extraneous_result
+		} else if point <= inner_interval.start() {
+			Ordering::Less
+		} else if point >= inner_interval.end() {
+			Ordering::Greater
+		} else {
+			Ordering::Equal
+		}
 	}
 }
 pub(crate) fn overlapping_comp<I, K>(point: I) -> impl FnMut(&K) -> Ordering
