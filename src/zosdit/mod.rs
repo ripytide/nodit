@@ -1,4 +1,3 @@
-//! A module containing the [`ZosditMap`] and [`ZosditSet`] data-structures.
+//! A module containing the `zosdit` data-structures.
 
 pub mod map;
-pub mod set;

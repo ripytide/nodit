@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased - ReleaseDate
 
+### Added
+
+- Added a new data-structure the [`ZosditMap`] for zero-overlap sequential
+  discrete interval trees
+
+### Changed
+
+- Many of the methods of the `InclusiveInterval` trait have been reworked and
+  they have all been given documentation examples
+
 ## 0.7.1 - 2024-01-05
 
 ### Added
