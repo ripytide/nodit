@@ -107,10 +107,10 @@ where
 	///
 	/// assert_eq!(
 	/// 	map.first_key_value(),
-	/// 	Some((&ii(4, 4), &-2))
+	/// 	Some((&ii(0, 4), &-2))
 	/// );
 	pub fn first_key_value(&self) -> Option<(&K, &V)> {
-		let (key, value_store) = self.nodit_map.first_entry()?;
+		let (key, value_store) = self.nodit_map.first_key_value()?;
 
 		let first_value = value_store.first()?;
 
@@ -136,7 +136,7 @@ where
 	/// 	Some((&ii(4, 4), &-8))
 	/// );
 	pub fn last_key_value(&self) -> Option<(&K, &V)> {
-		let (key, value_store) = self.nodit_map.last_entry()?;
+		let (key, value_store) = self.nodit_map.last_key_value()?;
 
 		let last_value = value_store.last()?;
 
@@ -177,7 +177,7 @@ where
 	/// Appends the value to the `SmallVec` corresponding to the interval.
 	///
 	/// If the given interval non-zero-overlaps one or more intervals already in the
-	/// map, then an [`NonzeroOverlapError`] is returned and the map is not
+	/// map, then an [`NonZeroOverlapError`] is returned and the map is not
 	/// updated.
 	///
 	/// If the given interval is singular and there is an identical singular interval entry already
@@ -468,10 +468,10 @@ where
 	}
 
 	/// Collects a `ZosditMap` from an iterator of (interval,
-	/// value) tuples using [`Zosdit::insert_strict_back()`].
+	/// value) tuples using [`ZosditMap::insert_strict_back()`].
 	///
 	/// May return an `Err` while inserting. See
-	/// [`NoditMap::insert_strict_back()`] for details.
+	/// [`ZosditMap::insert_strict_back()`] for details.
 	///
 	/// # Panics
 	///

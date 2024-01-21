@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Many of the methods of the `InclusiveInterval` trait have been reworked and
   they have all been given documentation examples
+- Renamed methods to match the std `BTreeMap` methods
+  - `NoditMap::last_entry()` -> `NoditMap::last_key_value()`
+  - `NoditMap::first_entry()` -> `NoditMap::first_key_value()`
+  - `NoditMap::get_entry_at_point()` -> `NoditMap::get_key_value_at_point()`
 
 ## 0.7.1 - 2024-01-05
 

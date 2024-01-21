@@ -134,7 +134,7 @@ another. For example, `3..6` is equivalent to `3..=5`.
 At the moment this crate is also designed to work only with [`Finite`]
 types such as `u8` or `i128`, but not with `Infinite` types such as
 [`BigInt`] from the [`num_bigint`] crate. This is because the
-[`get_entry_at_point()`] method would not be able to return anything
+[`get_key_value_at_point()`] method would not be able to return anything
 from an empty map if the type was an infinite type such as `BigInt`
 since it has no maximum value.
 
@@ -223,7 +223,7 @@ where
 
 // And then you this means you can be explicit with when
 // Infinity is encountered such as when it might be
-// returned by `get_entry_at_point()`, for example:
+// returned by `get_key_value_at_point()`, for example:
 
 use nodit::interval::uu;
 use nodit::{Interval, NoditMap};
@@ -234,7 +234,7 @@ let map: NoditMap<
 	bool,
 > = NoditMap::new();
 
-let mut gap = map.get_entry_at_point(WithInfinity::Finite(4));
+let mut gap = map.get_key_value_at_point(WithInfinity::Finite(4));
 
 assert_eq!(gap, Err(uu()));
 ```
@@ -362,6 +362,6 @@ topic area, beware my biases when reading:
 [`nodit`]: https://docs.rs/nodit
 [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
 [`num_bigint`]: https://docs.rs/num-bigint
-[`get_entry_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#method.get_entry_at_point
+[`get_key_value_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#method.get_key_value_at_point
 [`NoditMap`]: https://docs.rs/nodit/latest/nodit/map/struct.NoditMap.html
 [`NoditSet`]: https://docs.rs/nodit/latest/nodit/set/struct.NoditSet.html

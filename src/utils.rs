@@ -208,8 +208,6 @@ where
 		new_interval.start().cmp(&inner_interval.start())
 	}
 }
-//todo upstream usages of this from zodit to nodit and other relevant places
-//todo replace entry with key_value to follow std
 pub(crate) fn exclusive_comp_generator<I, K>(
 	point: I,
 	extraneous_result: Ordering,

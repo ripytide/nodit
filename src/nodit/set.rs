@@ -72,9 +72,9 @@ where
 	{
 		self.inner.overlapping(interval).map(first)
 	}
-	/// See [`NoditMap::get_entry_at_point()`] for more details.
+	/// See [`NoditMap::get_key_value_at_point()`] for more details.
 	pub fn get_at_point(&self, point: I) -> Result<&K, K> {
-		self.inner.get_entry_at_point(point).map(first)
+		self.inner.get_key_value_at_point(point).map(first)
 	}
 	/// See [`NoditMap::contains_point()`] for more details.
 	pub fn contains_point(&self, point: I) -> bool {
@@ -192,13 +192,13 @@ impl<I, K> NoditSet<I, K> {
 	pub fn iter(&self) -> impl DoubleEndedIterator<Item = &K> {
 		self.inner.iter().map(first)
 	}
-	/// See [`NoditMap::first_entry()`] for more details.
+	/// See [`NoditMap::first_key_value()`] for more details.
 	pub fn first(&self) -> Option<&K> {
-		self.inner.first_entry().map(first)
+		self.inner.first_key_value().map(first)
 	}
-	/// See [`NoditMap::last_entry()`] for more details.
+	/// See [`NoditMap::last_key_value()`] for more details.
 	pub fn last(&self) -> Option<&K> {
-		self.inner.last_entry().map(first)
+		self.inner.last_key_value().map(first)
 	}
 }
 

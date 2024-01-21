@@ -265,7 +265,7 @@ where
 	/// assert_eq!(map.get_at_point(101), None);
 	/// ```
 	pub fn get_at_point(&self, point: I) -> Option<&V> {
-		self.get_entry_at_point(point).map(|(_, value)| value).ok()
+		self.get_key_value_at_point(point).map(|(_, value)| value).ok()
 	}
 
 	/// Returns a mutable reference to the value corresponding to the
@@ -308,7 +308,7 @@ where
 	/// assert_eq!(map.contains_point(101), false);
 	/// ```
 	pub fn contains_point(&self, point: I) -> bool {
-		self.get_entry_at_point(point).is_ok()
+		self.get_key_value_at_point(point).is_ok()
 	}
 
 	/// Returns the entry corresponding to the interval that
@@ -329,12 +329,12 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.get_entry_at_point(3), Ok((&ie(1, 4), &false)));
-	/// assert_eq!(map.get_entry_at_point(5), Ok((&ie(4, 6), &true)));
-	/// assert_eq!(map.get_entry_at_point(7), Err(ie(6, 8)));
-	/// assert_eq!(map.get_entry_at_point(101), Err(iu(100)));
+	/// assert_eq!(map.get_key_value_at_point(3), Ok((&ie(1, 4), &false)));
+	/// assert_eq!(map.get_key_value_at_point(5), Ok((&ie(4, 6), &true)));
+	/// assert_eq!(map.get_key_value_at_point(7), Err(ie(6, 8)));
+	/// assert_eq!(map.get_key_value_at_point(101), Err(iu(100)));
 	/// ```
-	pub fn get_entry_at_point(&self, point: I) -> Result<(&K, &V), K> {
+	pub fn get_key_value_at_point(&self, point: I) -> Result<(&K, &V), K> {
 		self.inner
 			.get_key_value(overlapping_comp(point))
 			.ok_or_else(|| K::from(self.get_gap_at_raw(point)))
@@ -1500,9 +1500,9 @@ impl<I, K, V> NoditMap<I, K, V> {
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.first_entry(), Some((&ie(1, 4), &false)));
+	/// assert_eq!(map.first_key_value(), Some((&ie(1, 4), &false)));
 	/// ```
-	pub fn first_entry(&self) -> Option<(&K, &V)> {
+	pub fn first_key_value(&self) -> Option<(&K, &V)> {
 		self.inner.first_key_value()
 	}
 
@@ -1521,10 +1521,10 @@ impl<I, K, V> NoditMap<I, K, V> {
 	/// .unwrap();
 	///
 	/// assert_eq!(
-	/// 	map.last_entry(),
+	/// 	map.last_key_value(),
 	/// 	Some((&ie(8, 100), &false))
 	/// );
-	pub fn last_entry(&self) -> Option<(&K, &V)> {
+	pub fn last_key_value(&self) -> Option<(&K, &V)> {
 		self.inner.last_key_value()
 	}
 }

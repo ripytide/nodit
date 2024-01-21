@@ -1,4 +1,4 @@
-//! A module containing the [`NoditMap`] and [`NoditSet`] data-structures.
+//! A module containing the `nodit` data-structures.
 
 pub mod map;
 pub mod set;
