@@ -11,7 +11,7 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use smallvec::SmallVec;
 
-use crate::utils::{exclusive_comp_generator, invalid_interval_panic};
+use crate::utils::{inclusive_comp_generator, invalid_interval_panic};
 use crate::{IntervalType, NoditMap, PointType};
 
 type ValueStore<V> = SmallVec<[V; 2]>;
@@ -89,6 +89,37 @@ where
 		self.nodit_map.is_empty()
 	}
 
+	/// Gets the last value stored in the `SmallVec` for the interval(s)
+	/// that contain that point.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::ii;
+	/// use nodit::ZosditMap;
+	///
+	/// let map = ZosditMap::from_slice_strict_back([
+	/// 	(ii(0, 4), -2),
+	/// 	(ii(4, 4), -4),
+	/// 	(ii(4, 4), -8),
+	/// 	(ii(4, 8), -10),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(map.get_last_value_at_point(0), Some(&-2));
+	/// assert_eq!(map.get_last_value_at_point(4), Some(&-10));
+	/// assert_eq!(map.get_last_value_at_point(10), None);
+	/// ```
+	pub fn get_last_value_at_point(&self, point: I) -> Option<&V> {
+		self.nodit_map
+			.inner
+			.lower_bound(
+				inclusive_comp_generator(point, Ordering::Greater),
+				SearchBoundCustom::Included,
+			)
+			.value()
+			.and_then(|x| x.last())
+	}
+
 	/// Cuts a given interval out of the map and returns an iterator of
 	/// the full or partial intervals that were cut in ascending order.
 	///
@@ -109,16 +140,16 @@ where
 	/// use nodit::ZosditMap;
 	///
 	/// let mut base = ZosditMap::from_slice_strict_back([
-	/// 	(ii(0, 4), false),
-	/// 	(ii(4, 4), true),
-	/// 	(ii(4, 4), false),
-	/// 	(ii(4, 8), true),
+	/// 	(ii(0, 4), -2),
+	/// 	(ii(4, 4), -4),
+	/// 	(ii(4, 4), -6),
+	/// 	(ii(4, 8), -8),
 	/// ])
 	/// .unwrap();
 	///
 	/// let after_cut = ZosditMap::from_slice_strict_back([
-	/// 	(ii(0, 2), false),
-	/// 	(ii(6, 8), true),
+	/// 	(ii(0, 2), -2),
+	/// 	(ii(6, 8), -8),
 	/// ])
 	/// .unwrap();
 	///
@@ -126,10 +157,10 @@ where
 	/// assert_eq!(
 	/// 	base.cut(ee(2, 6)).collect::<Vec<_>>(),
 	/// 	[
-	/// 		(ii(3, 4), false),
-	/// 		(ii(4, 4), true),
-	/// 		(ii(4, 4), false),
-	/// 		(ii(4, 5), true)
+	/// 		(ii(3, 4), -2),
+	/// 		(ii(4, 4), -4),
+	/// 		(ii(4, 4), -6),
+	/// 		(ii(4, 5), -8)
 	/// 	]
 	/// );
 	/// assert_eq!(base, after_cut);
@@ -170,13 +201,13 @@ where
 	///
 	/// let mut map = ZosditMap::new();
 	///
-	/// assert_eq!(map.insert_strict_back(ii(0, 10), true), Ok(()));
-	/// assert_eq!(map.insert_strict_back(ii(10, 10), true), Ok(()));
-	/// assert_eq!(map.insert_strict_back(ii(10, 10), false), Ok(()));
+	/// assert_eq!(map.insert_strict_back(ii(0, 10), -2), Ok(()));
+	/// assert_eq!(map.insert_strict_back(ii(10, 10), -4), Ok(()));
+	/// assert_eq!(map.insert_strict_back(ii(10, 10), -6), Ok(()));
 	///
 	/// assert_eq!(
 	/// 	map.into_iter().collect::<Vec<_>>(),
-	/// 	[(ii(0, 10), true), (ii(10, 10), true), (ii(10, 10), false)]
+	/// 	[(ii(0, 10), -2), (ii(10, 10), -4), (ii(10, 10), -6)]
 	/// );
 	/// ```
 	pub fn insert_strict_back(
@@ -192,11 +223,11 @@ where
 			self.nodit_map
 				.inner
 				.entry(interval, |inner_interval, new_interval| {
-					let start_result = exclusive_comp_generator(
+					let start_result = inclusive_comp_generator(
 						new_interval.start(),
 						Ordering::Greater,
 					)(inner_interval);
-					let end_result = exclusive_comp_generator(
+					let end_result = inclusive_comp_generator(
 						new_interval.end(),
 						Ordering::Less,
 					)(inner_interval);
@@ -240,9 +271,9 @@ where
 	///
 	/// let mut map = ZosditMap::new();
 	///
-	/// assert_eq!(map.insert_strict_back(ii(0, 10), true), Ok(()));
-	/// assert_eq!(map.insert_strict_back(ii(10, 10), true), Ok(()));
-	/// assert_eq!(map.insert_strict_back(ii(10, 10), false), Ok(()));
+	/// assert_eq!(map.insert_strict_back(ii(0, 10), -2), Ok(()));
+	/// assert_eq!(map.insert_strict_back(ii(10, 10), -4), Ok(()));
+	/// assert_eq!(map.insert_strict_back(ii(10, 10), -6), Ok(()));
 	///
 	/// assert_eq!(map.is_zero_overlap(ii(0, 0)), true);
 	/// assert_eq!(map.is_zero_overlap(ii(10, 10)), true);
@@ -269,9 +300,9 @@ where
 		self.nodit_map
 			.inner
 			.range(
-				exclusive_comp_generator(interval.start(), Ordering::Greater),
+				inclusive_comp_generator(interval.start(), Ordering::Greater),
 				start_bound,
-				exclusive_comp_generator(interval.end(), Ordering::Less),
+				inclusive_comp_generator(interval.end(), Ordering::Less),
 				end_bound,
 			)
 			.next()
@@ -287,17 +318,17 @@ where
 	/// use nodit::ZosditMap;
 	///
 	/// let map = ZosditMap::from_slice_strict_back([
-	/// 	(ie(1, 4), false),
-	/// 	(ie(4, 8), true),
-	/// 	(ie(8, 100), false),
+	/// 	(ie(1, 4), -2),
+	/// 	(ie(4, 8), -4),
+	/// 	(ie(8, 100), -6),
 	/// ])
 	/// .unwrap();
 	///
 	/// let mut iter = map.iter();
 	///
-	/// assert_eq!(iter.next(), Some((&ie(1, 4), &false)));
-	/// assert_eq!(iter.next(), Some((&ie(4, 8), &true)));
-	/// assert_eq!(iter.next(), Some((&ie(8, 100), &false)));
+	/// assert_eq!(iter.next(), Some((&ie(1, 4), &-2)));
+	/// assert_eq!(iter.next(), Some((&ie(4, 8), &-4)));
+	/// assert_eq!(iter.next(), Some((&ie(8, 100), &-6)));
 	/// assert_eq!(iter.next(), None);
 	/// ```
 	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
@@ -324,9 +355,9 @@ where
 	/// use nodit::ZosditMap;
 	///
 	/// let map = ZosditMap::from_slice_strict_back([
-	/// 	(ie(1, 4), false),
-	/// 	(ie(4, 8), true),
-	/// 	(ie(8, 100), false),
+	/// 	(ie(1, 4), -2),
+	/// 	(ie(4, 8), -4),
+	/// 	(ie(8, 100), -6),
 	/// ])
 	/// .unwrap();
 	/// ```
@@ -353,8 +384,7 @@ where
 	/// use nodit::interval::ie;
 	/// use nodit::ZosditMap;
 	///
-	/// let slice =
-	/// 	[(ie(1, 4), false), (ie(4, 8), true), (ie(8, 100), false)];
+	/// let slice = [(ie(1, 4), -2), (ie(4, 8), -4), (ie(8, 100), -6)];
 	///
 	/// let map: ZosditMap<_, _, _> = ZosditMap::from_iter_strict_back(
 	/// 	slice

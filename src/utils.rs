@@ -214,7 +214,7 @@ where
 		new_interval.start().cmp(&inner_interval.start())
 	}
 }
-pub(crate) fn exclusive_comp_generator<I, K>(
+pub(crate) fn inclusive_comp_generator<I, K>(
 	point: I,
 	extraneous_result: Ordering,
 ) -> impl FnMut(&K) -> Ordering
