@@ -91,6 +91,58 @@ where
 		self.nodit_map.is_empty()
 	}
 
+	/// Returns the first key-value pair in the map.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::ii;
+	/// use nodit::ZosditMap;
+	///
+	/// let map = ZosditMap::from_slice_strict_back([
+	/// 	(ii(0, 4), -2),
+	/// 	(ii(4, 4), -4),
+	/// 	(ii(4, 4), -8),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(
+	/// 	map.first_key_value(),
+	/// 	Some((&ii(4, 4), &-2))
+	/// );
+	pub fn first_key_value(&self) -> Option<(&K, &V)> {
+		let (key, value_store) = self.nodit_map.first_entry()?;
+
+		let first_value = value_store.first()?;
+
+		Some((key, first_value))
+	}
+
+	/// Returns the last key-value pair in the map.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::ii;
+	/// use nodit::ZosditMap;
+	///
+	/// let map = ZosditMap::from_slice_strict_back([
+	/// 	(ii(0, 4), -2),
+	/// 	(ii(4, 4), -4),
+	/// 	(ii(4, 4), -8),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(
+	/// 	map.last_key_value(),
+	/// 	Some((&ii(4, 4), &-8))
+	/// );
+	pub fn last_key_value(&self) -> Option<(&K, &V)> {
+		let (key, value_store) = self.nodit_map.last_entry()?;
+
+		let last_value = value_store.last()?;
+
+		Some((key, last_value))
+	}
+
 	/// Gets the last value stored in the `SmallVec` for the interval(s)
 	/// that contain that point.
 	///
@@ -120,114 +172,6 @@ where
 			)
 			.value()
 			.and_then(|x| x.last())
-	}
-
-	/// The same as [`NoditMap::cut()`] except it flattens the `SmallVec`s of values into the
-	/// returned iterator.
-	///
-	/// See [`NoditMap::cut()`] for more details.
-	///
-	/// # Panics
-	///
-	/// Panics if the given interval is an invalid interval. See [`Invalid
-	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
-	/// for more details.
-	///
-	/// # Examples
-	/// ```
-	/// use nodit::interval::{ee, ii};
-	/// use nodit::ZosditMap;
-	///
-	/// let mut base = ZosditMap::from_slice_strict_back([
-	/// 	(ii(0, 4), -2),
-	/// 	(ii(4, 4), -4),
-	/// 	(ii(4, 4), -6),
-	/// 	(ii(4, 8), -8),
-	/// ])
-	/// .unwrap();
-	///
-	/// let after_cut = ZosditMap::from_slice_strict_back([
-	/// 	(ii(0, 2), -2),
-	/// 	(ii(6, 8), -8),
-	/// ])
-	/// .unwrap();
-	///
-	/// assert_eq!(
-	/// 	base.cut(ee(2, 6)).collect::<Vec<_>>(),
-	/// 	[
-	/// 		(ii(3, 4), -2),
-	/// 		(ii(4, 4), -4),
-	/// 		(ii(4, 4), -6),
-	/// 		(ii(4, 5), -8)
-	/// 	]
-	/// );
-	/// assert_eq!(base, after_cut);
-	/// ```
-	pub fn cut<'a, Q>(&'a mut self, interval: Q) -> impl Iterator<Item = (K, V)>
-	where
-		Q: IntervalType<I> + 'a,
-		V: Clone,
-	{
-		invalid_interval_panic(interval);
-
-		let cut = self.nodit_map.cut(interval);
-
-		cut.flat_map(|(interval, value_store)| {
-			value_store.into_iter().map(move |value| (interval, value))
-		})
-	}
-
-	/// The same as [`NoditMap::overlapping()`] except it flattens the `SmallVec`s of values into
-	/// the returned iterator.
-	///
-	/// See [`NoditMap::overlapping()`] for more details.
-	///
-	/// # Panics
-	///
-	/// Panics if the given interval is an invalid interval. See [`Invalid
-	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
-	/// for more details.
-	///
-	/// # Examples
-	/// ```
-	/// use nodit::interval::{ee, ii};
-	/// use nodit::ZosditMap;
-	///
-	/// let mut base = ZosditMap::from_slice_strict_back([
-	/// 	(ii(0, 4), -2),
-	/// 	(ii(4, 4), -4),
-	/// 	(ii(4, 4), -6),
-	/// 	(ii(4, 8), -8),
-	/// 	(ii(8, 12), -10),
-	/// ])
-	/// .unwrap();
-	///
-	/// assert_eq!(
-	/// 	base.overlapping(ii(4, 4)).collect::<Vec<_>>(),
-	/// 	[
-	/// 		(&ii(0, 4), &-2),
-	/// 		(&ii(4, 4), &-4),
-	/// 		(&ii(4, 4), &-6),
-	/// 		(&ii(4, 8), &-8),
-	/// 	]
-	/// );
-	/// ```
-	pub fn overlapping<Q>(&self, interval: Q) -> impl Iterator<Item = (&K, &V)>
-	where
-		Q: IntervalType<I>,
-	{
-		invalid_interval_panic(interval);
-
-		let overlapping = self.nodit_map.inner.range(
-			inclusive_comp_generator(interval.start(), Ordering::Less),
-			SearchBoundCustom::Included,
-			inclusive_comp_generator(interval.end(), Ordering::Greater),
-			SearchBoundCustom::Included,
-		);
-
-		overlapping.flat_map(|(interval, value_store)| {
-			value_store.iter().map(move |value| (interval, value))
-		})
 	}
 
 	/// Appends the value to the `SmallVec` corresponding to the interval.
@@ -355,6 +299,114 @@ where
 			)
 			.next()
 			.is_none()
+	}
+
+	/// The same as [`NoditMap::cut()`] except it flattens the `SmallVec`s of values into the
+	/// returned iterator.
+	///
+	/// See [`NoditMap::cut()`] for more details.
+	///
+	/// # Panics
+	///
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ee, ii};
+	/// use nodit::ZosditMap;
+	///
+	/// let mut base = ZosditMap::from_slice_strict_back([
+	/// 	(ii(0, 4), -2),
+	/// 	(ii(4, 4), -4),
+	/// 	(ii(4, 4), -6),
+	/// 	(ii(4, 8), -8),
+	/// ])
+	/// .unwrap();
+	///
+	/// let after_cut = ZosditMap::from_slice_strict_back([
+	/// 	(ii(0, 2), -2),
+	/// 	(ii(6, 8), -8),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(
+	/// 	base.cut(ee(2, 6)).collect::<Vec<_>>(),
+	/// 	[
+	/// 		(ii(3, 4), -2),
+	/// 		(ii(4, 4), -4),
+	/// 		(ii(4, 4), -6),
+	/// 		(ii(4, 5), -8)
+	/// 	]
+	/// );
+	/// assert_eq!(base, after_cut);
+	/// ```
+	pub fn cut<'a, Q>(&'a mut self, interval: Q) -> impl Iterator<Item = (K, V)>
+	where
+		Q: IntervalType<I> + 'a,
+		V: Clone,
+	{
+		invalid_interval_panic(interval);
+
+		let cut = self.nodit_map.cut(interval);
+
+		cut.flat_map(|(interval, value_store)| {
+			value_store.into_iter().map(move |value| (interval, value))
+		})
+	}
+
+	/// The same as [`NoditMap::overlapping()`] except it flattens the `SmallVec`s of values into
+	/// the returned iterator.
+	///
+	/// See [`NoditMap::overlapping()`] for more details.
+	///
+	/// # Panics
+	///
+	/// Panics if the given interval is an invalid interval. See [`Invalid
+	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
+	/// for more details.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ee, ii};
+	/// use nodit::ZosditMap;
+	///
+	/// let mut base = ZosditMap::from_slice_strict_back([
+	/// 	(ii(0, 4), -2),
+	/// 	(ii(4, 4), -4),
+	/// 	(ii(4, 4), -6),
+	/// 	(ii(4, 8), -8),
+	/// 	(ii(8, 12), -10),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(
+	/// 	base.overlapping(ii(4, 4)).collect::<Vec<_>>(),
+	/// 	[
+	/// 		(&ii(0, 4), &-2),
+	/// 		(&ii(4, 4), &-4),
+	/// 		(&ii(4, 4), &-6),
+	/// 		(&ii(4, 8), &-8),
+	/// 	]
+	/// );
+	/// ```
+	pub fn overlapping<Q>(&self, interval: Q) -> impl Iterator<Item = (&K, &V)>
+	where
+		Q: IntervalType<I>,
+	{
+		invalid_interval_panic(interval);
+
+		let overlapping = self.nodit_map.inner.range(
+			inclusive_comp_generator(interval.start(), Ordering::Less),
+			SearchBoundCustom::Included,
+			inclusive_comp_generator(interval.end(), Ordering::Greater),
+			SearchBoundCustom::Included,
+		);
+
+		overlapping.flat_map(|(interval, value_store)| {
+			value_store.iter().map(move |value| (interval, value))
+		})
 	}
 
 	/// Returns an iterator over every entry in the map in ascending
