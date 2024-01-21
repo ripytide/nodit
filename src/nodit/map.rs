@@ -1339,11 +1339,7 @@ where
 	pub fn from_slice_strict<const N: usize>(
 		slice: [(K, V); N],
 	) -> Result<NoditMap<I, K, V>, OverlapError<V>> {
-		let mut map = NoditMap::new();
-		for (interval, value) in slice {
-			map.insert_strict(interval, value)?;
-		}
-		return Ok(map);
+        NoditMap::from_iter_strict(slice.into_iter())
 	}
 
 	/// Collects a `NoditMap` from an iterator of (interval,
@@ -1539,10 +1535,10 @@ impl<I, K, V> IntoIterator for NoditMap<I, K, V> {
 	type Item = (K, V);
 	type IntoIter = IntoIter<I, K, V>;
 	fn into_iter(self) -> Self::IntoIter {
-		return IntoIter {
+		IntoIter {
 			inner: self.inner.into_iter(),
 			phantom: PhantomData,
-		};
+		}
 	}
 }
 /// An owning iterator over the entries of a [`NoditMap`].
