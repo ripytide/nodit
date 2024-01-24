@@ -35,8 +35,8 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::utils::{
-	cut_interval, starts_comp, invalid_interval_panic, overlapping_comp,
-	overlaps, touching_end_comp, touching_start_comp,
+	cut_interval, invalid_interval_panic, overlapping_comp, overlaps,
+	starts_comp, touching_end_comp, touching_start_comp,
 };
 use crate::{DiscreteFinite, InclusiveInterval, Interval};
 
@@ -187,14 +187,12 @@ where
 	{
 		invalid_interval_panic(interval);
 
-		let start_comp = overlapping_comp(interval.start());
-		let end_comp = overlapping_comp(interval.end());
-
-		let start_bound = SearchBoundCustom::Included;
-		let end_bound = SearchBoundCustom::Included;
-
-		self.inner
-			.range(start_comp, start_bound, end_comp, end_bound)
+		self.inner.range(
+			overlapping_comp(interval.start()),
+			SearchBoundCustom::Included,
+			overlapping_comp(interval.end()),
+			SearchBoundCustom::Included,
+		)
 	}
 
 	/// Returns an mutable iterator over every entry in the map that
@@ -235,14 +233,12 @@ where
 	{
 		invalid_interval_panic(interval);
 
-		let start_comp = overlapping_comp(interval.start());
-		let end_comp = overlapping_comp(interval.end());
-
-		let start_bound = SearchBoundCustom::Included;
-		let end_bound = SearchBoundCustom::Included;
-
-		self.inner
-			.range_mut(start_comp, start_bound, end_comp, end_bound)
+		self.inner.range_mut(
+			overlapping_comp(interval.start()),
+			SearchBoundCustom::Included,
+			overlapping_comp(interval.end()),
+			SearchBoundCustom::Included,
+		)
 	}
 
 	/// Returns a reference to the value corresponding to the interval in
@@ -265,7 +261,9 @@ where
 	/// assert_eq!(map.get_at_point(101), None);
 	/// ```
 	pub fn get_at_point(&self, point: I) -> Option<&V> {
-		self.get_key_value_at_point(point).map(|(_, value)| value).ok()
+		self.get_key_value_at_point(point)
+			.map(|(_, value)| value)
+			.ok()
 	}
 
 	/// Returns a mutable reference to the value corresponding to the
@@ -329,7 +327,10 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.get_key_value_at_point(3), Ok((&ie(1, 4), &false)));
+	/// assert_eq!(
+	/// 	map.get_key_value_at_point(3),
+	/// 	Ok((&ie(1, 4), &false))
+	/// );
 	/// assert_eq!(map.get_key_value_at_point(5), Ok((&ie(4, 6), &true)));
 	/// assert_eq!(map.get_key_value_at_point(7), Err(ie(6, 8)));
 	/// assert_eq!(map.get_key_value_at_point(101), Err(iu(100)));
@@ -416,8 +417,8 @@ where
 		return result.into_iter();
 	}
 
-    /// Cuts a given interval out of the map and returns an iterator of the full or
-    /// partial intervals with their values that were cut in ascending order.
+	/// Cuts a given interval out of the map and returns an iterator of the full or
+	/// partial intervals with their values that were cut in ascending order.
 	///
 	/// `V` must implement `Clone` as if you try to cut out the center
 	/// of a interval in the map it will split into two different entries
@@ -461,17 +462,14 @@ where
 	{
 		invalid_interval_panic(interval);
 
-		let start_comp = overlapping_comp(interval.start());
-		let end_comp = overlapping_comp(interval.end());
-
 		let left_overlapping = self
 			.inner
-			.get_key_value(start_comp)
+			.get_key_value(overlapping_comp(interval.start()))
 			.map(|(key, _)| key)
 			.copied();
 		let right_overlapping = self
 			.inner
-			.get_key_value(end_comp)
+			.get_key_value(overlapping_comp(interval.end()))
 			.map(|(key, _)| key)
 			.copied();
 
@@ -1339,7 +1337,7 @@ where
 	pub fn from_slice_strict<const N: usize>(
 		slice: [(K, V); N],
 	) -> Result<NoditMap<I, K, V>, OverlapError<V>> {
-        NoditMap::from_iter_strict(slice.into_iter())
+		NoditMap::from_iter_strict(slice.into_iter())
 	}
 
 	/// Collects a `NoditMap` from an iterator of (interval,

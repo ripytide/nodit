@@ -1,11 +1,16 @@
 //! A module containing [`ZosditMap`].
 
+//todo remove the inner Nodit since I't/don use it
+//todo make nodit use the more robust comparators in general and refactor them to remove all the
+//temporary variables before the comp calls
+//remove overlapping_mut and replace with overlapping_start_comp and overlapping_end_comp
 use alloc::boxed::Box;
 use core::cmp::Ordering;
 use core::fmt;
 use core::marker::PhantomData;
 
 use btree_monstrousity::btree_map::SearchBoundCustom;
+use btree_monstrousity::BTreeMap;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -14,11 +19,11 @@ use smallvec::SmallVec;
 use crate::utils::{
 	exclusive_comp_generator, inclusive_comp_generator, invalid_interval_panic,
 };
-use crate::{IntervalType, NoditMap, PointType};
+use crate::{IntervalType, PointType};
 
 type ValueStore<V> = SmallVec<[V; 2]>;
 
-/// A Zero Overlap Sequential Discrete Interval Tree Map Data-Structure based off [`NoditMap`] and
+/// A Zero Overlap Sequential Discrete Interval Tree Map Data-Structure based off [`BTreeMap`] and
 /// [`SmallVec`]
 ///
 /// `I` is the generic type parameter for the [`Ord`] type the `K`
@@ -52,7 +57,11 @@ type ValueStore<V> = SmallVec<[V; 2]>;
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ZosditMap<I, K, V> {
-	nodit_map: NoditMap<I, K, ValueStore<V>>,
+	//we can't use the btreemaps's len
+	//since we can have multiples values per key
+	len: usize,
+	inner: BTreeMap<K, ValueStore<V>>,
+	phantom: PhantomData<I>,
 }
 
 /// The error returned when inserting a interval that non-zero-overlaps another interval when it
@@ -77,18 +86,16 @@ where
 	/// let map: ZosditMap<i8, Interval<i8>, bool> = ZosditMap::new();
 	/// ```
 	pub fn new() -> Self {
-		ZosditMap {
-			nodit_map: NoditMap::new(),
-		}
+		ZosditMap::default()
 	}
 
 	/// See [`NoditMap::len()`] for more details.
 	pub fn len(&self) -> usize {
-		self.nodit_map.len()
+		self.len
 	}
 	/// See [`NoditMap::is_empty()`] for more details.
 	pub fn is_empty(&self) -> bool {
-		self.nodit_map.is_empty()
+		self.len == 0
 	}
 
 	/// Returns the first key-value pair in the map.
@@ -110,7 +117,7 @@ where
 	/// 	Some((&ii(0, 4), &-2))
 	/// );
 	pub fn first_key_value(&self) -> Option<(&K, &V)> {
-		let (key, value_store) = self.nodit_map.first_key_value()?;
+		let (key, value_store) = self.inner.first_key_value()?;
 
 		let first_value = value_store.first()?;
 
@@ -136,7 +143,7 @@ where
 	/// 	Some((&ii(4, 4), &-8))
 	/// );
 	pub fn last_key_value(&self) -> Option<(&K, &V)> {
-		let (key, value_store) = self.nodit_map.last_key_value()?;
+		let (key, value_store) = self.inner.last_key_value()?;
 
 		let last_value = value_store.last()?;
 
@@ -164,8 +171,7 @@ where
 	/// assert_eq!(map.get_last_value_at_point(10), None);
 	/// ```
 	pub fn get_last_value_at_point(&self, point: I) -> Option<&V> {
-		self.nodit_map
-			.inner
+		self.inner
 			.lower_bound(
 				exclusive_comp_generator(point, Ordering::Greater),
 				SearchBoundCustom::Included,
@@ -215,8 +221,7 @@ where
 		if !self.is_zero_overlap(interval) {
 			Err(NonZeroOverlapError { value })
 		} else {
-			self.nodit_map
-				.inner
+			self.inner
 				.entry(interval, |inner_interval, new_interval| {
 					let start_result = exclusive_comp_generator(
 						new_interval.start(),
@@ -245,6 +250,8 @@ where
 				})
 				.or_default()
 				.push(value);
+
+			self.len += 1;
 
 			Ok(())
 		}
@@ -289,8 +296,7 @@ where
 		//this elegant solution, there are a surprising amount of different scenarios when you
 		//start considering zero-sized intervals and things
 
-		self.nodit_map
-			.inner
+		self.inner
 			.range(
 				exclusive_comp_generator(interval.start(), Ordering::Greater),
 				SearchBoundCustom::Included,
@@ -349,11 +355,9 @@ where
 	{
 		invalid_interval_panic(interval);
 
-		let cut = self.nodit_map.cut(interval);
+		todo!();
 
-		cut.flat_map(|(interval, value_store)| {
-			value_store.into_iter().map(move |value| (interval, value))
-		})
+		[].into_iter()
 	}
 
 	/// The same as [`NoditMap::overlapping()`] except it flattens the `SmallVec`s of values into
@@ -397,7 +401,7 @@ where
 	{
 		invalid_interval_panic(interval);
 
-		let overlapping = self.nodit_map.inner.range(
+		let overlapping = self.inner.range(
 			inclusive_comp_generator(interval.start(), Ordering::Less),
 			SearchBoundCustom::Included,
 			inclusive_comp_generator(interval.end(), Ordering::Greater),
@@ -432,7 +436,7 @@ where
 	/// assert_eq!(iter.next(), None);
 	/// ```
 	pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&K, &V)> {
-		self.nodit_map.iter().flat_map(|(interval, value_store)| {
+		self.inner.iter().flat_map(|(interval, value_store)| {
 			value_store.iter().map(move |value| (interval, value))
 		})
 	}
@@ -507,7 +511,9 @@ where
 impl<I, K, V> Default for ZosditMap<I, K, V> {
 	fn default() -> Self {
 		ZosditMap {
-			nodit_map: NoditMap::default(),
+			len: 0,
+			inner: BTreeMap::new(),
+			phantom: PhantomData,
 		}
 	}
 }
@@ -522,11 +528,9 @@ where
 	type IntoIter = Box<dyn Iterator<Item = (K, V)>>;
 
 	fn into_iter(self) -> Self::IntoIter {
-		Box::new(self.nodit_map.into_iter().flat_map(
-			|(interval, value_store)| {
-				value_store.into_iter().map(move |value| (interval, value))
-			},
-		))
+		Box::new(self.inner.into_iter().flat_map(|(interval, value_store)| {
+			value_store.into_iter().map(move |value| (interval, value))
+		}))
 	}
 }
 
@@ -600,6 +604,8 @@ where
 
 #[cfg(test)]
 mod tests {
+	use pretty_assertions::assert_eq;
+
 	use super::*;
 	use crate::interval::ii;
 
@@ -643,5 +649,46 @@ mod tests {
 				panic!("result not equal to expected")
 			}
 		}
+	}
+
+	#[test]
+	fn insert_strict_back_tests() {
+		let mut map = ZosditMap::new();
+		assert_eq!(map.len(), 0);
+
+		map.insert_strict_back(ii(0_u8, 0), -8_i8).unwrap();
+		assert_eq!(map.len(), 1);
+
+		map.insert_strict_back(ii(0_u8, u8::MAX), -4_i8).unwrap();
+		assert_eq!(map.len(), 2);
+
+		let _ = map.insert_strict_back(ii(9_u8, 10), -4_i8);
+		assert_eq!(map.len(), 2);
+	}
+
+	#[test]
+	fn cut_tests() {
+		let mut map = ZosditMap::new();
+
+		map.insert_strict_back(ii(0_u8, 0), -8_i8).unwrap();
+		map.insert_strict_back(ii(0_u8, u8::MAX), -4_i8).unwrap();
+
+		assert_eq!(
+			map.iter().collect::<Vec<_>>(),
+			vec![(&ii(0, 0), &-8), (&ii(0, u8::MAX), &-4)]
+		);
+
+		let cut = map.cut(ii(0, u8::MAX));
+
+		assert_eq!(
+			map.iter().collect::<Vec<_>>(),
+			vec![],
+			"invalid map after cut"
+		);
+		assert_eq!(
+			cut.collect::<Vec<_>>(),
+			vec![(ii(0, 0), -8), (ii(0, u8::MAX), -4)],
+			"invalid cut"
+		);
 	}
 }
