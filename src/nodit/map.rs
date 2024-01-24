@@ -19,16 +19,14 @@ along with nodit. If not, see <https://www.gnu.org/licenses/>.
 
 //! A module containing [`NoditMap`].
 
+use alloc::fmt;
 use alloc::vec::Vec;
-use core::fmt::{self, Debug};
-use core::iter::once;
 use core::marker::PhantomData;
 
 use btree_monstrousity::btree_map::{
 	IntoIter as BTreeMapIntoIter, SearchBoundCustom,
 };
 use btree_monstrousity::BTreeMap;
-use either::Either;
 use itertools::Itertools;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
@@ -482,10 +480,10 @@ where
 				cursor.insert_before(K::from(before_cut), value.clone());
 			}
 			if let Some(after_cut) = cut_result.after_cut {
-				cursor.insert_after(K::from(after_cut), value.clone());
+				cursor.insert_before(K::from(after_cut), value.clone());
 			}
 
-			result.push((key, value));
+			result.push((K::from(cut_result.inside_cut.unwrap()), value));
 		}
 
 		result.into_iter()

@@ -44,7 +44,6 @@ name = "nodit"
 version = "0.7.1"
 dependencies = [
  "btree_monstrousity",
- "either",
  "itertools",
  "pretty_assertions",
  "serde",

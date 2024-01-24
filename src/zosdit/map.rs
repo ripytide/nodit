@@ -367,6 +367,10 @@ where
 			SearchBoundCustom::Included,
 		);
 
+		if cursor.key().is_none() {
+			cursor.move_next();
+		}
+
 		while let Some(key) = cursor.key() {
 			if !overlaps(*key, interval) {
 				break;
@@ -380,7 +384,7 @@ where
 				cursor.insert_before(K::from(before_cut), value_store.clone());
 			}
 			if let Some(after_cut) = cut_result.after_cut {
-				cursor.insert_after(K::from(after_cut), value_store.clone());
+				cursor.insert_before(K::from(after_cut), value_store.clone());
 			}
 
 			result.extend(value_store.into_iter().map(|value| (key, value)));
@@ -718,12 +722,6 @@ mod tests {
 
 		map.insert_strict_back(ii(0_u8, 0), -8_i8).unwrap();
 		map.insert_strict_back(ii(0_u8, u8::MAX), -4_i8).unwrap();
-
-		let mut cursor = map.inner.upper_bound_mut(
-			exclusive_comp_generator(0, Ordering::Less),
-			SearchBoundCustom::Included,
-		);
-		dbg!(cursor.key_value());
 
 		assert_eq!(
 			map.iter().collect::<Vec<_>>(),
