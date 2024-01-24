@@ -179,10 +179,13 @@ where
 		);
 
 		if cursor.key().is_none() {
-			cursor.move_prev()
+			cursor.move_prev();
 		}
 
-		cursor.value().and_then(|x| x.last())
+		cursor
+			.key_value()
+			.filter(|(x, _)| x.contains(point))
+			.and_then(|(_, x)| x.last())
 	}
 
 	/// Appends the value to the `SmallVec` corresponding to the interval.
@@ -336,6 +339,8 @@ where
 	/// ])
 	/// .unwrap();
 	///
+	/// assert_eq!(base.len(), 4);
+	///
 	/// let after_cut = ZosditMap::from_slice_strict_back([
 	/// 	(ii(0, 2), -2),
 	/// 	(ii(6, 8), -8),
@@ -351,6 +356,7 @@ where
 	/// 		(ii(4, 5), -8)
 	/// 	]
 	/// );
+	/// assert_eq!(base.len(), 2);
 	/// assert_eq!(base, after_cut);
 	/// ```
 	pub fn cut<'a, Q>(&'a mut self, interval: Q) -> impl Iterator<Item = (K, V)>
@@ -382,12 +388,19 @@ where
 
 			if let Some(before_cut) = cut_result.before_cut {
 				cursor.insert_before(K::from(before_cut), value_store.clone());
+				self.len += value_store.len();
 			}
 			if let Some(after_cut) = cut_result.after_cut {
+				self.len += value_store.len();
 				cursor.insert_before(K::from(after_cut), value_store.clone());
 			}
 
-			result.extend(value_store.into_iter().map(|value| (key, value)));
+			self.len -= value_store.len();
+			result.extend(
+				value_store.into_iter().map(|value| {
+					(K::from(cut_result.inside_cut.unwrap()), value)
+				}),
+			);
 		}
 
 		result.into_iter()
@@ -723,12 +736,16 @@ mod tests {
 		map.insert_strict_back(ii(0_u8, 0), -8_i8).unwrap();
 		map.insert_strict_back(ii(0_u8, u8::MAX), -4_i8).unwrap();
 
+		assert_eq!(map.len(), 2);
+
 		assert_eq!(
 			map.iter().collect::<Vec<_>>(),
 			vec![(&ii(0, 0), &-8), (&ii(0, u8::MAX), &-4)]
 		);
 
 		let cut = map.cut(ii(0, u8::MAX));
+
+		assert_eq!(map.len(), 0);
 
 		assert_eq!(
 			map.iter().collect::<Vec<_>>(),
