@@ -402,16 +402,16 @@ where
 
 		let mut result = Vec::new();
 
-		let mut leftmost_cursor = self.inner.lower_bound_mut(
+		let mut cursor = self.inner.lower_bound_mut(
 			overlapping_comp(interval.start()),
 			SearchBoundCustom::Included,
 		);
 
-		while leftmost_cursor
+		while cursor
 			.key()
 			.is_some_and(|inner_interval| overlaps(*inner_interval, interval))
 		{
-			result.push(leftmost_cursor.remove_current().unwrap());
+			result.push(cursor.remove_current().unwrap());
 		}
 
 		return result.into_iter();
@@ -462,136 +462,33 @@ where
 	{
 		invalid_interval_panic(interval);
 
-		let left_overlapping = self
-			.inner
-			.get_key_value(overlapping_comp(interval.start()))
-			.map(|(key, _)| key)
-			.copied();
-		let right_overlapping = self
-			.inner
-			.get_key_value(overlapping_comp(interval.end()))
-			.map(|(key, _)| key)
-			.copied();
+		let mut result = Vec::new();
 
-		match (left_overlapping, right_overlapping) {
-			(Some(left), Some(right)) if left.start() == right.start() => {
-				Either::Left(self.cut_single_overlapping(interval, left))
+		let mut cursor = self.inner.lower_bound_mut(
+			overlapping_comp(interval.start()),
+			SearchBoundCustom::Included,
+		);
+
+		while let Some(key) = cursor.key() {
+			if !overlaps(*key, interval) {
+				break;
 			}
-			_ => Either::Right(self.cut_non_single_overlapping(
-				interval,
-				left_overlapping,
-				right_overlapping,
-			)),
-		}
 
-		//todo re-use when let_chains become stable
-		//
-		// if let Some(left) = left_overlapping
-		// 	&& let Some(right) = right_overlapping
-		// 	&& left.start() == right.start()
-		// {
-		// } else {
-		// }
-	}
-	fn cut_single_overlapping<Q>(
-		&mut self,
-		interval: Q,
-		single_overlapping_interval: K,
-	) -> impl Iterator<Item = (K, V)>
-	where
-		Q: IntervalType<I>,
-		V: Clone,
-	{
-		invalid_interval_panic(interval);
+			let (key, value) = cursor.remove_current().unwrap();
 
-		let cut_result = cut_interval(single_overlapping_interval, interval);
+			let cut_result = cut_interval(key, interval);
 
-		let returning_before_cut = cut_result.before_cut.map(K::from);
-		let returning_after_cut = cut_result.after_cut.map(K::from);
-
-		let value = self
-			.inner
-			.remove(overlapping_comp(interval.start()))
-			.unwrap();
-
-		if let Some(before) = returning_before_cut {
-			self.insert_unchecked(before, value.clone());
-		}
-		if let Some(after) = returning_after_cut {
-			self.insert_unchecked(after, value.clone());
-		}
-
-		once((cut_result.inside_cut.map(K::from).unwrap(), value))
-	}
-	fn cut_non_single_overlapping<'a, Q>(
-		&'a mut self,
-		interval: Q,
-		left_overlapping: Option<K>,
-		right_overlapping: Option<K>,
-	) -> impl Iterator<Item = (K, V)>
-	where
-		Q: IntervalType<I> + 'a,
-		V: Clone,
-	{
-		invalid_interval_panic(interval);
-
-		let (returning_before_cut, keeping_before) = match left_overlapping {
-			Some(before) => {
-				let cut_result = cut_interval(before, interval);
-
-				(
-					cut_result.before_cut.map(K::from),
-					cut_result.inside_cut.map(K::from),
-				)
+			if let Some(before_cut) = cut_result.before_cut {
+				cursor.insert_before(K::from(before_cut), value.clone());
 			}
-			None => (None, None),
-		};
-		let (returning_after_cut, keeping_after) = match right_overlapping {
-			Some(after) => {
-				let cut_result = cut_interval(after, interval);
-
-				(
-					cut_result.after_cut.map(K::from),
-					cut_result.inside_cut.map(K::from),
-				)
+			if let Some(after_cut) = cut_result.after_cut {
+				cursor.insert_after(K::from(after_cut), value.clone());
 			}
-			None => (None, None),
-		};
 
-		let before_value =
-			self.inner.remove(overlapping_comp(interval.start()));
-		let after_value = self.inner.remove(overlapping_comp(interval.end()));
-
-		if let Some(returning_before_cut) = returning_before_cut {
-			self.insert_unchecked(
-				returning_before_cut,
-				before_value.as_ref().cloned().unwrap(),
-			);
-		}
-		if let Some(returning_after_cut) = returning_after_cut {
-			self.insert_unchecked(
-				returning_after_cut,
-				after_value.as_ref().cloned().unwrap(),
-			);
+			result.push((key, value));
 		}
 
-		let keeping_before_entry = keeping_before
-			.map(|keeping_before| (keeping_before, before_value.unwrap()));
-		let keeping_after_entry = keeping_after
-			.map(|keeping_after| (keeping_after, after_value.unwrap()));
-
-		return keeping_before_entry
-			.into_iter()
-			.chain(self.remove_overlapping(interval).map(|(key, value)| {
-				(
-					K::from(Interval {
-						start: key.start(),
-						end: key.end(),
-					}),
-					value,
-				)
-			}))
-			.chain(keeping_after_entry);
+		result.into_iter()
 	}
 
 	/// Returns an iterator of all the gaps in the map that overlap the given
@@ -674,11 +571,11 @@ where
 			.filter(|interval| interval.is_valid());
 
 		//possibly add the trimmed start and end gaps
-		return start_gap
+		start_gap
 			.map(K::from)
 			.into_iter()
 			.chain(inner_gaps)
-			.chain(end_gap.map(K::from));
+			.chain(end_gap.map(K::from))
 	}
 
 	/// Returns an iterator of all the gaps in the map that overlap the given
@@ -774,11 +671,11 @@ where
 			.filter(|interval| interval.is_valid());
 
 		//possibly add the trimmed start and end gaps
-		return trimmed_start_gap
+		trimmed_start_gap
 			.map(K::from)
 			.into_iter()
 			.chain(inner_gaps)
-			.chain(trimmed_end_gap.map(K::from));
+			.chain(trimmed_end_gap.map(K::from))
 	}
 
 	/// Returns `true` if the map covers every point in the given
@@ -855,7 +752,7 @@ where
 
 		self.insert_unchecked(interval, value);
 
-		return Ok(());
+		Ok(())
 	}
 	fn insert_unchecked(&mut self, interval: K, value: V) {
 		self.inner.insert(interval, value, starts_comp());
@@ -904,7 +801,7 @@ where
 
 		self.insert_unchecked(returning, value);
 
-		return returning;
+		returning
 	}
 
 	/// Adds a new entry to the map and merges into other intervals in
@@ -1374,7 +1271,7 @@ where
 		for (interval, value) in iter {
 			map.insert_strict(interval, value)?;
 		}
-		return Ok(map);
+		Ok(map)
 	}
 }
 
@@ -2359,7 +2256,7 @@ mod tests {
 			}
 		}
 
-		return output;
+		output
 	}
 
 	fn all_valid_test_bounds() -> Vec<Interval<i8>> {
@@ -2371,6 +2268,6 @@ mod tests {
 				}
 			}
 		}
-		return output;
+		output
 	}
 }

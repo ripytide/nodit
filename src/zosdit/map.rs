@@ -5,6 +5,7 @@
 //temporary variables before the comp calls
 //remove overlapping_mut and replace with overlapping_start_comp and overlapping_end_comp
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::fmt;
 use core::marker::PhantomData;
@@ -17,7 +18,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use smallvec::SmallVec;
 
 use crate::utils::{
-	exclusive_comp_generator, inclusive_comp_generator, invalid_interval_panic,
+	cut_interval, exclusive_comp_generator, inclusive_comp_generator,
+	invalid_interval_panic, overlaps,
 };
 use crate::{IntervalType, PointType};
 
@@ -171,13 +173,16 @@ where
 	/// assert_eq!(map.get_last_value_at_point(10), None);
 	/// ```
 	pub fn get_last_value_at_point(&self, point: I) -> Option<&V> {
-		self.inner
-			.lower_bound(
-				exclusive_comp_generator(point, Ordering::Greater),
-				SearchBoundCustom::Included,
-			)
-			.value()
-			.and_then(|x| x.last())
+		let mut cursor = self.inner.lower_bound(
+			exclusive_comp_generator(point, Ordering::Greater),
+			SearchBoundCustom::Included,
+		);
+
+		if cursor.key().is_none() {
+			cursor.move_prev()
+		}
+
+		cursor.value().and_then(|x| x.last())
 	}
 
 	/// Appends the value to the `SmallVec` corresponding to the interval.
@@ -355,9 +360,33 @@ where
 	{
 		invalid_interval_panic(interval);
 
-		todo!();
+		let mut result = Vec::new();
 
-		[].into_iter()
+		let mut cursor = self.inner.upper_bound_mut(
+			exclusive_comp_generator(interval.start(), Ordering::Less),
+			SearchBoundCustom::Included,
+		);
+
+		while let Some(key) = cursor.key() {
+			if !overlaps(*key, interval) {
+				break;
+			}
+
+			let (key, value_store) = cursor.remove_current().unwrap();
+
+			let cut_result = cut_interval(key, interval);
+
+			if let Some(before_cut) = cut_result.before_cut {
+				cursor.insert_before(K::from(before_cut), value_store.clone());
+			}
+			if let Some(after_cut) = cut_result.after_cut {
+				cursor.insert_after(K::from(after_cut), value_store.clone());
+			}
+
+			result.extend(value_store.into_iter().map(|value| (key, value)));
+		}
+
+		result.into_iter()
 	}
 
 	/// The same as [`NoditMap::overlapping()`] except it flattens the `SmallVec`s of values into
@@ -504,7 +533,7 @@ where
 		for (interval, value) in iter {
 			map.insert_strict_back(interval, value)?;
 		}
-		return Ok(map);
+		Ok(map)
 	}
 }
 
@@ -667,11 +696,34 @@ mod tests {
 	}
 
 	#[test]
+	fn get_last_value_at_point_tests() {
+		let mut map = ZosditMap::new();
+
+		map.insert_strict_back(ii(0_u8, 4), -1_i8).unwrap();
+		map.insert_strict_back(ii(4_u8, 8), -2_i8).unwrap();
+		map.insert_strict_back(ii(8_u8, u8::MAX), -3_i8).unwrap();
+
+		assert_eq!(map.get_last_value_at_point(0_u8), Some(&-1));
+		assert_eq!(map.get_last_value_at_point(2_u8), Some(&-1));
+		assert_eq!(map.get_last_value_at_point(4_u8), Some(&-2));
+		assert_eq!(map.get_last_value_at_point(6_u8), Some(&-2));
+		assert_eq!(map.get_last_value_at_point(8_u8), Some(&-3));
+		assert_eq!(map.get_last_value_at_point(10_u8), Some(&-3));
+		assert_eq!(map.get_last_value_at_point(u8::MAX), Some(&-3));
+	}
+
+	#[test]
 	fn cut_tests() {
 		let mut map = ZosditMap::new();
 
 		map.insert_strict_back(ii(0_u8, 0), -8_i8).unwrap();
 		map.insert_strict_back(ii(0_u8, u8::MAX), -4_i8).unwrap();
+
+		let mut cursor = map.inner.upper_bound_mut(
+			exclusive_comp_generator(0, Ordering::Less),
+			SearchBoundCustom::Included,
+		);
+		dbg!(cursor.key_value());
 
 		assert_eq!(
 			map.iter().collect::<Vec<_>>(),
