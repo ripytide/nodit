@@ -62,12 +62,12 @@ where
 	}
 }
 
-enum SortedConfig<I> {
+pub(crate) enum SortedConfig<I> {
 	NonOverlapping(Interval<I>, Interval<I>),
 	PartialOverlap(Interval<I>, Interval<I>),
 	Swallowed(Interval<I>, Interval<I>),
 }
-fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
+pub(crate) fn sorted_config<I, A, B>(a: A, b: B) -> SortedConfig<I>
 where
 	I: PointType,
 	A: IntervalType<I>,
@@ -188,15 +188,6 @@ where
 		inside_cut: result.inside_cut.filter(|x| x.is_valid()),
 		after_cut: result.after_cut.filter(|x| x.is_valid()),
 	};
-}
-
-pub(crate) fn overlaps<I, A, B>(a: A, b: B) -> bool
-where
-	I: PointType,
-	A: IntervalType<I>,
-	B: IntervalType<I>,
-{
-	!matches!(sorted_config(a, b), SortedConfig::NonOverlapping(_, _))
 }
 
 pub(crate) fn starts_comp<I, K>() -> impl FnMut(&K, &K) -> Ordering

@@ -33,8 +33,8 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::utils::{
-	cut_interval, invalid_interval_panic, overlapping_comp, overlaps,
-	starts_comp, touching_end_comp, touching_start_comp,
+	cut_interval, invalid_interval_panic, overlapping_comp, starts_comp,
+	touching_end_comp, touching_start_comp,
 };
 use crate::{DiscreteFinite, InclusiveInterval, Interval};
 
@@ -99,10 +99,7 @@ impl<I> PointType for I where I: Ord + Copy + DiscreteFinite {}
 
 /// The marker trait for valid interval types, a blanket implementation is provided for all types
 /// which implement this traits' super-traits so you shouln't need to implement this yourself.
-pub trait IntervalType<I>:
-	InclusiveInterval<I> + Copy + From<Interval<I>>
-{
-}
+pub trait IntervalType<I>: InclusiveInterval<I> {}
 impl<I, K> IntervalType<I> for K
 where
 	I: PointType,
@@ -407,7 +404,7 @@ where
 
 		while cursor
 			.key()
-			.is_some_and(|inner_interval| overlaps(*inner_interval, interval))
+			.is_some_and(|inner_interval| interval.overlaps(inner_interval))
 		{
 			result.push(cursor.remove_current().unwrap());
 		}
@@ -468,7 +465,7 @@ where
 		);
 
 		while let Some(key) = cursor.key() {
-			if !overlaps(*key, interval) {
+			if !key.overlaps(&interval) {
 				break;
 			}
 

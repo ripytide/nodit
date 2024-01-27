@@ -19,7 +19,7 @@ use smallvec::SmallVec;
 
 use crate::utils::{
 	cut_interval, exclusive_comp_generator, inclusive_comp_generator,
-	invalid_interval_panic, overlaps,
+	invalid_interval_panic,
 };
 use crate::{IntervalType, PointType};
 
@@ -378,7 +378,7 @@ where
 		}
 
 		while let Some(key) = cursor.key() {
-			if !overlaps(*key, interval) {
+			if !key.overlaps(&interval) {
 				break;
 			}
 

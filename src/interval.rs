@@ -29,8 +29,8 @@ use core::ops::{Bound, Range, RangeBounds, RangeInclusive};
 
 use serde::{Deserialize, Serialize};
 
-use crate::utils::invalid_interval_panic;
-use crate::PointType;
+use crate::utils::{invalid_interval_panic, sorted_config, SortedConfig};
+use crate::{IntervalType, PointType};
 
 /// An inclusive interval, only valid intervals can be constructed.
 ///
@@ -400,7 +400,7 @@ where
 }
 
 /// A interval that has **Inclusive** end-points.
-pub trait InclusiveInterval<I> {
+pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 	/// The start of the interval, inclusive.
 	///
 	/// # Examples
@@ -506,6 +506,27 @@ pub trait InclusiveInterval<I> {
 		} else {
 			None
 		}
+	}
+
+	/// Returns true if the intervals overlap and false if they do not.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ee, ie, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(4, 6).overlaps(&ii(6, 8)), true);
+	/// assert_eq!(ii(4, 6).overlaps(&ii(8, 10)), false);
+	/// ```
+	fn overlaps<Q>(&self, other: &Q) -> bool
+	where
+		I: PointType,
+		Q: IntervalType<I>,
+	{
+		!matches!(
+			sorted_config(*self, *other),
+			SortedConfig::NonOverlapping(_, _)
+		)
 	}
 
 	/// Move the entire interval by the given `delta` amount upwards.
