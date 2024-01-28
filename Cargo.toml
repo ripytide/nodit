@@ -1,6 +1,6 @@
 [package]
 name = "nodit"
-version = "0.7.1"
+version = "0.8.0"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased - ReleaseDate
 
+## 0.8.0 - 2024-01-28
+
 ### Added
 
 - Added a new data-structure the [`ZosditMap`] for zero-overlap sequential
