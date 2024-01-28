@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `NoditMap::first_entry()` -> `NoditMap::first_key_value()`
   - `NoditMap::get_entry_at_point()` -> `NoditMap::get_key_value_at_point()`
 
+### License
+
+- The library has been relicensed under the MIT license to better fit within the
+  rust library ecosystem
+
 ## 0.7.1 - 2024-01-05
 
 ### Added

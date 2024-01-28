@@ -1,6 +1,6 @@
 # nodit
 
-[![License](https://img.shields.io/github/license/ripytide/nodit)](https://www.gnu.org/licenses/agpl-3.0.en.html)
+![License](https://img.shields.io/github/license/ripytide/nodit)
 [![Docs](https://docs.rs/nodit/badge.svg)](https://docs.rs/nodit)
 [![Maintained](https://img.shields.io/maintenance/yes/2024)](https://github.com/ripytide)
 [![Crates.io](https://img.shields.io/crates/v/nodit)](https://crates.io/crates/nodit)
