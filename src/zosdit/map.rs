@@ -9,6 +9,8 @@ use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::fmt;
 use core::marker::PhantomData;
+#[cfg(doc)]
+use crate::NoditMap;
 
 use btree_monstrousity::btree_map::SearchBoundCustom;
 use btree_monstrousity::BTreeMap;
@@ -27,6 +29,9 @@ type ValueStore<V> = SmallVec<[V; 2]>;
 
 /// A Zero Overlap Sequential Discrete Interval Tree Map Data-Structure based off [`BTreeMap`] and
 /// [`SmallVec`]
+///
+/// See the `zosdit` module documentation for a more detailed explanation of how this
+/// data-structure works.
 ///
 /// `I` is the generic type parameter for the [`Ord`] type the `K`
 /// type is a interval over.

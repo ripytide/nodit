@@ -4,7 +4,7 @@ version = "0.7.1"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
-This crate provides NoditMap and NoditSet, Non-Overlapping Discrete
+This crate provides NoditMap, NoditSet and ZosditMap, Discrete
 Interval Tree data-structures, which are based off BTreeMap.
 """
 documentation = "https://docs.rs/nodit"

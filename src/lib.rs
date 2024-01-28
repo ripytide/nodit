@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with nodit. If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! This crate provides [`NoditMap`] and [`NoditSet`], Non-Overlapping Discrete
+//! This crate provides [`NoditMap`], [`NoditSet`] and [`ZosditMap`], Discrete
 //! Interval Tree data-structures, which are based off [`BTreeMap`].
 //!
 //! `no_std` is supported and should work with the default features.
@@ -372,6 +372,7 @@ along with nodit. If not, see <https://www.gnu.org/licenses/>.
 //! [`num_bigint`]: https://docs.rs/num-bigint
 //! [`get_key_value_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#method.get_key_value_at_point
 //! [`NoditMap`]: https://docs.rs/nodit/latest/nodit/map/struct.NoditMap.html
+//! [`ZosditMap`]: https://docs.rs/nodit/latest/zosdit/map/struct.ZosditMap.html
 //! [`NoditSet`]: https://docs.rs/nodit/latest/nodit/set/struct.NoditSet.html
 
 #![allow(clippy::tabs_in_doc_comments)]

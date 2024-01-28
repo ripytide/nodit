@@ -1621,7 +1621,7 @@ mod tests {
 				map.insert_strict(inside_interval, ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
-				if overlaps(overlap_interval, inside_interval) {
+				if overlap_interval.overlaps(&inside_interval) {
 					expected_overlapping.push(inside_interval);
 				}
 
@@ -1651,10 +1651,10 @@ mod tests {
 				map.insert_strict(inside_interval2, ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
-				if overlaps(overlap_interval, inside_interval1) {
+				if overlap_interval.overlaps(&inside_interval1) {
 					expected_overlapping.push(inside_interval1);
 				}
-				if overlaps(overlap_interval, inside_interval2) {
+				if overlap_interval.overlaps(&inside_interval2) {
 					expected_overlapping.push(inside_interval2);
 				}
 				//make our expected_overlapping the correct order
@@ -2118,7 +2118,7 @@ mod tests {
 	fn overlaps_tests() {
 		for interval1 in all_valid_test_bounds() {
 			for interval2 in all_valid_test_bounds() {
-				let our_answer = overlaps(interval1, interval2);
+				let our_answer = interval1.overlaps(&interval2);
 
 				let mathematical_definition_of_overlap =
 					NUMBERS_DOMAIN.iter().any(|x| {
@@ -2245,7 +2245,7 @@ mod tests {
 		let mut output = Vec::new();
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
-				if !overlaps(test_bounds1, test_bounds2) {
+				if !test_bounds1.overlaps(&test_bounds2) {
 					output.push((test_bounds1, test_bounds2));
 				}
 			}
