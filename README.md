@@ -362,7 +362,7 @@ topic area, beware my biases when reading:
 [`nodit`]: https://docs.rs/nodit
 [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
 [`num_bigint`]: https://docs.rs/num-bigint
-[`get_key_value_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/struct.NoditMap.html#method.get_key_value_at_point
-[`NoditMap`]: https://docs.rs/nodit/latest/nodit/map/struct.NoditMap.html
-[`ZosditMap`]: https://docs.rs/nodit/latest/zosdit/map/struct.ZosditMap.html
-[`NoditSet`]: https://docs.rs/nodit/latest/nodit/set/struct.NoditSet.html
+[`get_key_value_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/map/struct.NoditMap.html#method.get_key_value_at_point
+[`NoditMap`]: https://docs.rs/nodit/latest/nodit/nodit/map/struct.NoditMap.html
+[`NoditSet`]: https://docs.rs/nodit/latest/nodit/nodit/set/struct.NoditSet.html
+[`ZosditMap`]: https://docs.rs/nodit/latest/nodit/zosdit/map/struct.ZosditMap.html
