@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a new table to the readme/top-level module docs for describing all
   the different data-structures in the crate for comparison with one
   another
+- Added another method to `InclusiveInterval`, `contains_interval()`
+
+### Changed
+- Renamed `contains_entire_interval()` methods to `contains_interval()` to match
+  `InclusiveInterval::contains_interval()`
+- Renamed `InclusiveInterval::contains()` to
+  `InclusiveInterval::contains_point()` to match the new
+  `InclusiveInterval::contains_interval()` method
 
 ## 0.8.0 - 2024-01-28
 

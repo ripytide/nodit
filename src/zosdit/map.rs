@@ -189,7 +189,7 @@ where
 
 		cursor
 			.key_value()
-			.filter(|(x, _)| x.contains(point))
+			.filter(|(x, _)| x.contains_point(point))
 			.and_then(|(_, x)| x.last())
 	}
 

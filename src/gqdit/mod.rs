@@ -190,7 +190,7 @@ where
 		//we don't want end ones as they are
 		//handled separately
 		let non_end_gaps = valid_gaps.filter(|gap| {
-			!gap.contains(interval.start()) && !gap.contains(interval.end())
+			!gap.contains_point(interval.start()) && !gap.contains_point(interval.end())
 		});
 
 		//instead of using possibly-partial end gaps we will
@@ -522,7 +522,7 @@ where
 	A: IntervalType<I>,
 	B: IntervalType<I>,
 {
-	a.contains(b.start()) || a.contains(b.end())
+	a.contains_point(b.start()) || a.contains_point(b.end())
 }
 /// Requires that self comes before other
 fn touches_ordered<I, A, B>(a: A, b: B) -> bool

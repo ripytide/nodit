@@ -382,7 +382,7 @@ where
 
 /// A interval that has **Inclusive** end-points.
 pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
-	/// The start of the interval, inclusive.
+	/// The start of `self`, inclusive.
 	///
 	/// # Examples
 	/// ```
@@ -394,7 +394,7 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 	/// assert_eq!(ie(5, 6).start(), 5);
 	/// ```
 	fn start(&self) -> I;
-	/// The end of the interval, inclusive.
+	/// The end of `self`, inclusive.
 	///
 	/// # Examples
 	/// ```
@@ -407,26 +407,50 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 	/// ```
 	fn end(&self) -> I;
 
-	/// Does the interval contain the given point?
+	/// Does `self` contain the given point?
 	///
 	/// # Examples
 	/// ```
 	/// use nodit::interval::{ie, ii};
 	/// use nodit::InclusiveInterval;
 	///
-	/// assert_eq!(ii(4, 5).contains(3), false);
-	/// assert_eq!(ii(4, 5).contains(4), true);
-	/// assert_eq!(ii(4, 5).contains(5), true);
-	/// assert_eq!(ii(4, 5).contains(6), false);
+	/// assert_eq!(ii(4, 5).contains_point(3), false);
+	/// assert_eq!(ii(4, 5).contains_point(4), true);
+	/// assert_eq!(ii(4, 5).contains_point(5), true);
+	/// assert_eq!(ii(4, 5).contains_point(6), false);
 	/// ```
-	fn contains(&self, point: I) -> bool
+	fn contains_point(&self, point: I) -> bool
 	where
 		I: PointType,
 	{
 		point >= self.start() && point <= self.end()
 	}
 
-	/// Is the interval is valid, which according to this crate means `start()` <= `end()`
+	/// Does `self` contain the given interval?
+	///
+	/// This means all points of the given interval must also be contained within `self`.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::{ie, ii};
+	/// use nodit::InclusiveInterval;
+	///
+	/// assert_eq!(ii(4, 5).contains_interval(&ii(4, 4)), true);
+	/// assert_eq!(ii(4, 5).contains_interval(&ii(5, 5)), true);
+	/// assert_eq!(ii(4, 5).contains_interval(&ii(4, 6)), false);
+	/// assert_eq!(ii(4, 5).contains_interval(&ii(4, 5)), true);
+	/// ```
+	fn contains_interval<Q>(&self, interval: &Q) -> bool
+	where
+		I: PointType,
+		Q: IntervalType<I>,
+	{
+		self.start() <= interval.start() && self.end() >= interval.end()
+	}
+
+	/// Is `self` valid?
+	///
+	/// This uses this crates definition of valid intervals which means `start()` <= `end()`.
 	///
 	/// # Examples
 	/// ```
@@ -472,9 +496,10 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 	/// assert_eq!(ii(4, 6).intersection(&ie(6, 8)), Some(ii(6, 6)));
 	/// assert_eq!(ii(4, 6).intersection(&ee(6, 8)), None);
 	/// ```
-	fn intersection(&self, other: &Self) -> Option<Self>
+	fn intersection<Q>(&self, other: &Q) -> Option<Self>
 	where
 		I: PointType,
+        Q: IntervalType<I>,
 		Self: From<Interval<I>>,
 	{
 		let intersect_start = I::max(self.start(), other.start());
@@ -489,7 +514,7 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 		}
 	}
 
-	/// Returns true if the intervals overlap and false if they do not.
+	/// Returns true if the `self` and `other` overlap and false if they do not.
 	///
 	/// # Examples
 	/// ```
@@ -510,7 +535,7 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 		)
 	}
 
-	/// Move the entire interval by the given `delta` amount upwards.
+	/// Move `self` by the given `delta` amount upwards.
 	///
 	/// # Examples
 	/// ```
@@ -532,7 +557,7 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 		})
 	}
 
-	/// The amount between the start and the end of the interval.
+	/// The amount from the start to the end of the `self`.
 	///
 	/// # Examples
 	/// ```

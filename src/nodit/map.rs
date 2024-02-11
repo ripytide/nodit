@@ -675,11 +675,11 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.contains_entire_interval(ie(1, 3)), true);
-	/// assert_eq!(map.contains_entire_interval(ie(2, 6)), false);
-	/// assert_eq!(map.contains_entire_interval(ie(6, 100)), true);
+	/// assert_eq!(map.contains_interval(ie(1, 3)), true);
+	/// assert_eq!(map.contains_interval(ie(2, 6)), false);
+	/// assert_eq!(map.contains_interval(ie(6, 100)), true);
 	/// ```
-	pub fn contains_entire_interval<Q>(&self, interval: Q) -> bool
+	pub fn contains_interval<Q>(&self, interval: Q) -> bool
 	where
 		Q: IntervalType<I>,
 	{

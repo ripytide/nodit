@@ -98,12 +98,12 @@ where
 	{
 		self.inner.gaps_trimmed(interval)
 	}
-	/// See [`NoditMap::contains_entire_interval()`] for more details.
-	pub fn contains_entire_interval<Q>(&self, interval: Q) -> bool
+	/// See [`NoditMap::contains_interval()`] for more details.
+	pub fn contains_interval<Q>(&self, interval: Q) -> bool
 	where
 		Q: IntervalType<I>,
 	{
-		self.inner.contains_entire_interval(interval)
+		self.inner.contains_interval(interval)
 	}
 	/// See [`NoditMap::insert_strict()`] for more details.
 	pub fn insert_strict(
