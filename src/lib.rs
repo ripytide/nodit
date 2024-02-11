@@ -1,34 +1,45 @@
-//! This crate provides [`NoditMap`], [`NoditSet`] and [`ZosditMap`], Discrete
-//! Interval Tree data-structures, which are based off [`BTreeMap`].
+//! This crate provides Discrete Interval Tree Data-Structures, which are based
+//! off [`BTreeMap`].
 //!
 //! `no_std` is supported and should work with the default features.
+//!
+//! Several Discrete Interval Tree data-structures have been implemented, here
+//! is a brief summary of each of them and why you might use them:
+//!
+//! | Struct|Abreviation|Use-Case|
+//! |-----|------|------|
+//! |[`NoditMap`]|Non-Overlapping Discrete Interval Tree Map| General purpose way of associating data with intervals that do not overlap|
+//! |[`NoditSet`]|Non-Overlapping Discrete Interval Tree Set| Useful for when you want to store intervals but don't want/need to associate data with each interval|
+//! |[`ZosditMap`]|Zero-Overlap Sequential Discrete Interval Tree Map| Useful for time-graph traversal algorithms and possibly other things|
+//! |[`Gqdit`]|Gap-Query Discrete Interval Tree| Useful for when you have a set of different non-overlapping intervals and want to perform efficient gap-query searches over all the sets of intervals|
 //!
 //! ## `Copy` is partially required
 //!
 //! Due to implementation complications with non-`Copy` types the
-//! datastructures currently require both the interval type and the points the
+//! data-structures currently require both the interval type and the points the
 //! intervals are over to be `Copy`. However, the value type used when using
-//! the [`NoditMap`] does not have to be `Copy`. In fact the only
-//! required traits on the value type are sometimes `Clone` or `Eq` but only
-//! for some methods so if in doubt check a methods trait bounds.
+//! the [`NoditMap`] does not have to be `Copy`. In fact the only required
+//! traits on the value type are sometimes `Clone` or `Eq` but only for some
+//! methods so if in doubt check a methods trait bounds.
 //!
-//! ## Example using an Inclusive-Exclusive interval
+//! ## `NoditMap` Example using an Inclusive-Inclusive interval
 //!
 //! ```rust
-//! use nodit::interval::ie;
+//! use nodit::interval::ii;
 //! use nodit::NoditMap;
 //!
 //! let mut map = NoditMap::new();
 //!
-//! map.insert_strict(ie(0, 5), true);
-//! map.insert_strict(ie(5, 10), false);
+//! map.insert_strict(ii(0, 4), true);
+//! map.insert_strict(ii(5, 10), false);
 //!
-//! assert_eq!(map.overlaps(ie(-2, 12)), true);
+//! assert_eq!(map.overlaps(ii(-2, 12)), true);
 //! assert_eq!(map.contains_point(20), false);
 //! assert_eq!(map.contains_point(5), true);
+//! assert_eq!(map.get_key_value_at_point(2), Ok((&ii(0, 4), &true)));
 //! ```
 //!
-//! ## Example using a custom interval type
+//! ## `NoditMap` Example using a custom interval type
 //!
 //! ```rust
 //! use std::ops::{Bound, RangeBounds};
@@ -299,7 +310,7 @@
 //! - <https://docs.rs/btree-range-map>
 //! - <https://docs.rs/ranges>
 //!   Cool library for fully-generic ranges (unlike std::ops ranges), along
-//!   with a `Ranges` datastructure for storing them (Vec-based
+//!   with a `Ranges` data-structure for storing them (Vec-based
 //!   unfortunately)
 //! - <https://docs.rs/intervaltree>
 //!   Allows overlapping intervals but is immutable unfortunately
@@ -319,8 +330,8 @@
 //!   unsafe.
 //! - <https://docs.rs/rust-lapper>
 //!   Another sort-of immutable (can insert but its very expensive)
-//!   interval datastructure optimised for lots of intervals of the same
-//!   size such as their staple usecase of genomic datasets.
+//!   interval data-structure optimised for lots of intervals of the same
+//!   size such as their staple use-case of genomic datasets.
 //! - <https://docs.rs/store-interval-tree>
 //!   An interval tree very similar to this crate and `rangemap` with many
 //!   of the same methods (and lots of doc examples!) except using a custom
@@ -355,6 +366,7 @@
 //! [`NoditMap`]: https://docs.rs/nodit/latest/nodit/nodit/map/struct.NoditMap.html
 //! [`NoditSet`]: https://docs.rs/nodit/latest/nodit/nodit/set/struct.NoditSet.html
 //! [`ZosditMap`]: https://docs.rs/nodit/latest/nodit/zosdit/map/struct.ZosditMap.html
+//! [`Gqdit`]: https://docs.rs/nodit/latest/nodit/gqdit/struct.Gqdit.html
 
 #![allow(clippy::tabs_in_doc_comments)]
 #![allow(clippy::needless_return)]
@@ -365,11 +377,13 @@ extern crate alloc;
 pub(crate) mod utils;
 
 pub mod discrete_finite;
+pub mod gqdit;
 pub mod interval;
 pub mod nodit;
 pub mod zosdit;
 
 pub use crate::discrete_finite::DiscreteFinite;
+pub use crate::gqdit::{Gqdit, IdType};
 pub use crate::interval::{InclusiveInterval, Interval};
 pub use crate::nodit::map::{IntervalType, NoditMap, OverlapError, PointType};
 pub use crate::nodit::set::NoditSet;

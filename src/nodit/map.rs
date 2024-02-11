@@ -1252,7 +1252,7 @@ where
 }
 
 impl<I, K, V> NoditMap<I, K, V> {
-	/// Makes a new, empty `NoditMap`.
+	/// Makes a new, empty [`NoditMap`].
 	///
 	/// # Examples
 	/// ```
@@ -1261,10 +1261,7 @@ impl<I, K, V> NoditMap<I, K, V> {
 	/// let map: NoditMap<i8, Interval<i8>, bool> = NoditMap::new();
 	/// ```
 	pub fn new() -> Self {
-		NoditMap {
-			inner: BTreeMap::new(),
-			phantom: PhantomData,
-		}
+        Self::default()
 	}
 
 	/// Returns the number of intervals in the map.

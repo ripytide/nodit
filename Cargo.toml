@@ -4,8 +4,8 @@ version = "0.8.0"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
-This crate provides NoditMap, NoditSet and ZosditMap, Discrete
-Interval Tree data-structures, which are based off BTreeMap.
+This crate provides Discrete Interval Tree Data-Structures, which are based
+off BTreeMap.
 """
 documentation = "https://docs.rs/nodit"
 readme = "README.md"

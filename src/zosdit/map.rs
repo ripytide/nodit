@@ -84,7 +84,7 @@ where
 	I: PointType,
 	K: IntervalType<I>,
 {
-	/// Makes a new, empty `ZosditMap`.
+	/// Makes a new, empty [`ZosditMap`].
 	///
 	/// # Examples
 	/// ```

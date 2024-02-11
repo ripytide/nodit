@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased - ReleaseDate
 
+### Added
+- Added the `Gqdit` data-structure with all the proper documentation and
+  examples for all its methods
+- Added a new table to the readme/top-level module docs for describing all
+  the different data-structures in the crate for comparison with one
+  another
+
 ## 0.8.0 - 2024-01-28
 
 ### Added
