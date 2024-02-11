@@ -1,6 +1,5 @@
 //! A module containing [`NoditMap`].
 
-use alloc::fmt;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
@@ -9,9 +8,6 @@ use btree_monstrousity::btree_map::{
 };
 use btree_monstrousity::BTreeMap;
 use itertools::Itertools;
-use serde::de::{SeqAccess, Visitor};
-use serde::ser::SerializeSeq;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::utils::{
 	cut_interval, invalid_interval_panic, overlapping_comp, starts_comp,
@@ -1261,7 +1257,7 @@ impl<I, K, V> NoditMap<I, K, V> {
 	/// let map: NoditMap<i8, Interval<i8>, bool> = NoditMap::new();
 	/// ```
 	pub fn new() -> Self {
-        Self::default()
+		Self::default()
 	}
 
 	/// Returns the number of intervals in the map.
@@ -1437,69 +1433,83 @@ impl<I, K, V> Default for NoditMap<I, K, V> {
 	}
 }
 
-impl<I, K, V> Serialize for NoditMap<I, K, V>
-where
-	K: Serialize,
-	V: Serialize,
-{
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+#[cfg(feature = "serde")]
+mod serde {
+	use core::marker::PhantomData;
+
+	use serde::de::{SeqAccess, Visitor};
+	use serde::ser::SerializeSeq;
+	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+	use crate::{IntervalType, NoditMap, PointType};
+
+	impl<I, K, V> Serialize for NoditMap<I, K, V>
 	where
-		S: Serializer,
+		K: Serialize,
+		V: Serialize,
 	{
-		let mut seq = serializer.serialize_seq(Some(self.len()))?;
-		for (interval, value) in self.iter() {
-			seq.serialize_element(&(interval, value))?;
+		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+		where
+			S: Serializer,
+		{
+			let mut seq = serializer.serialize_seq(Some(self.len()))?;
+			for (interval, value) in self.iter() {
+				seq.serialize_element(&(interval, value))?;
+			}
+			seq.end()
 		}
-		seq.end()
 	}
-}
 
-impl<'de, I, K, V> Deserialize<'de> for NoditMap<I, K, V>
-where
-	I: PointType,
-	K: IntervalType<I> + Deserialize<'de>,
-	V: Deserialize<'de>,
-{
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	impl<'de, I, K, V> Deserialize<'de> for NoditMap<I, K, V>
 	where
-		D: Deserializer<'de>,
+		I: PointType,
+		K: IntervalType<I> + Deserialize<'de>,
+		V: Deserialize<'de>,
 	{
-		deserializer.deserialize_seq(NoditMapVisitor {
-			i: PhantomData,
-			k: PhantomData,
-			v: PhantomData,
-		})
-	}
-}
-
-struct NoditMapVisitor<I, K, V> {
-	i: PhantomData<I>,
-	k: PhantomData<K>,
-	v: PhantomData<V>,
-}
-
-impl<'de, I, K, V> Visitor<'de> for NoditMapVisitor<I, K, V>
-where
-	I: PointType,
-	K: IntervalType<I> + Deserialize<'de>,
-	V: Deserialize<'de>,
-{
-	type Value = NoditMap<I, K, V>;
-
-	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		formatter.write_str("a NoditMap")
-	}
-
-	fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
-	where
-		A: SeqAccess<'de>,
-	{
-		let mut map = NoditMap::new();
-		while let Some((interval, value)) = access.next_element()? {
-			map.insert_strict(interval, value)
-				.or(Err(serde::de::Error::custom("intervals overlap")))?;
+		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+		where
+			D: Deserializer<'de>,
+		{
+			deserializer.deserialize_seq(NoditMapVisitor {
+				i: PhantomData,
+				k: PhantomData,
+				v: PhantomData,
+			})
 		}
-		Ok(map)
+	}
+
+	struct NoditMapVisitor<I, K, V> {
+		i: PhantomData<I>,
+		k: PhantomData<K>,
+		v: PhantomData<V>,
+	}
+
+	impl<'de, I, K, V> Visitor<'de> for NoditMapVisitor<I, K, V>
+	where
+		I: PointType,
+		K: IntervalType<I> + Deserialize<'de>,
+		V: Deserialize<'de>,
+	{
+		type Value = NoditMap<I, K, V>;
+
+		fn expecting(
+			&self,
+			formatter: &mut alloc::fmt::Formatter,
+		) -> alloc::fmt::Result {
+			formatter.write_str("a NoditMap")
+		}
+
+		fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
+		where
+			A: SeqAccess<'de>,
+		{
+			let mut map = NoditMap::new();
+			while let Some((interval, value)) = access.next_element()? {
+				map.insert_strict(interval, value)
+					.or(Err(serde::de::Error::custom("intervals overlap")))?;
+			}
+			Ok(map)
+		}
 	}
 }
 

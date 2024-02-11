@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `InclusiveInterval::contains()` to
   `InclusiveInterval::contains_point()` to match the new
   `InclusiveInterval::contains_interval()` method
+- `serde`'s Serialize and Deserialize implementations are now optional via a
+  "serde" feature which is documented in the features section of the
+  readme/top-level module docs
 
 ## 0.8.0 - 2024-01-28
 

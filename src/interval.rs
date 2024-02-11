@@ -8,8 +8,6 @@
 
 use core::ops::{Bound, Range, RangeBounds, RangeInclusive};
 
-use serde::{Deserialize, Serialize};
-
 use crate::utils::{invalid_interval_panic, sorted_config, SortedConfig};
 use crate::{IntervalType, PointType};
 
@@ -39,7 +37,8 @@ use crate::{IntervalType, PointType};
 ///
 /// let invalid_interval = ee(4, 4);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Interval<I> {
 	/// The start of the interval, inclusive.
 	pub(crate) start: I,
@@ -499,7 +498,7 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 	fn intersection<Q>(&self, other: &Q) -> Option<Self>
 	where
 		I: PointType,
-        Q: IntervalType<I>,
+		Q: IntervalType<I>,
 		Self: From<Interval<I>>,
 	{
 		let intersect_start = I::max(self.start(), other.start());

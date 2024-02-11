@@ -22,24 +22,23 @@
 //! traits on the value type are sometimes `Clone` or `Eq` but only for some
 //! methods so if in doubt check a methods trait bounds.
 //!
-//! ## `NoditMap` Example using an Inclusive-Inclusive interval
+//! ## Example using an Inclusive-Exclusive interval
 //!
 //! ```rust
-//! use nodit::interval::ii;
+//! use nodit::interval::ie;
 //! use nodit::NoditMap;
 //!
 //! let mut map = NoditMap::new();
 //!
-//! map.insert_strict(ii(0, 4), true);
-//! map.insert_strict(ii(5, 10), false);
+//! map.insert_strict(ie(0, 5), true);
+//! map.insert_strict(ie(5, 10), false);
 //!
-//! assert_eq!(map.overlaps(ii(-2, 12)), true);
+//! assert_eq!(map.overlaps(ie(-2, 12)), true);
 //! assert_eq!(map.contains_point(20), false);
 //! assert_eq!(map.contains_point(5), true);
-//! assert_eq!(map.get_key_value_at_point(2), Ok((&ii(0, 4), &true)));
 //! ```
 //!
-//! ## `NoditMap` Example using a custom interval type
+//! ## Example using a custom interval type
 //!
 //! ```rust
 //! use std::ops::{Bound, RangeBounds};
@@ -139,8 +138,7 @@
 //! since it has no maximum value.
 //!
 //! A handy trick you can use to pretend to have infinite types when you
-//! don't expect to reach to top end of your type is to use [`Actual
-//! Infinity`] to pretend you have an `Infinity`. For example, if you were
+//! don't expect to reach to top end of your type is to use [`Actual Infinity`] to pretend you have an `Infinity`. For example, if you were
 //! using `u8` as your point type then you could create a wrapper type such
 //! as this:
 //!
@@ -281,7 +279,10 @@
 //!
 //! ## Features
 //!
-//! This crate currently has no features
+//! |Feature Name| Description|
+//! |-----------|-----|
+//! |`default`|The implicit default feature enabled by default which currently does not activate any other features|
+//! |`serde`|Enables the optional `serde` dependency and implements `serde::Serialize` and `serde::Deserialize` on all the types in this crate|
 //!
 //! ## Credit
 //!
@@ -344,29 +345,29 @@
 //! - <https://docs.rs/bio> and <https://docs.rs/rudac>
 //!   Both essentially identical to `store-interval-tree` as it looks like
 //!   `store-interval-tree` is a fork of `rudac`'s interval tree. `bio` in
-//!   particular seems targeted at bioinfographics.
+//!   particular seems targeted at bio-infographics.
 //!
+//! [`actual infinity`]: https://en.wikipedia.org/wiki/Actual_infinity
+//! [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
 //! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 //! [`btree_monstrousity`]: https://github.com/ripytide/btree_monstrousity
-//! [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
-//! [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
-//! [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
-//! [`copse`]: https://github.com/eggyal/copse
-//! [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
 //! [`continuous`]: https://en.wikipedia.org/wiki/List_of_continuity-related_mathematical_topics
-//! [`interval-mathematics`]: https://en.wikipedia.org/wiki/Interval_(mathematics)
-//! [`actual infinity`]: https://en.wikipedia.org/wiki/Actual_infinity
-//! [`finite`]: https://en.wiktionary.org/wiki/finite#Adjective
-//! [`range_bounds_map`]: https://docs.rs/range_bounds_map
+//! [`copse`]: https://github.com/eggyal/copse
 //! [`discrete_range_map`]: https://docs.rs/discrete_range_map
-//! [`nodit`]: https://docs.rs/nodit
-//! [`bigint`]: https://docs.rs/num-bigint/latest/num_bigint/struct.BigInt.html
-//! [`num_bigint`]: https://docs.rs/num-bigint
+//! [`discrete`]: https://en.wikipedia.org/wiki/Discrete_mathematics
+//! [`finite`]: https://en.wiktionary.org/wiki/finite#Adjective
 //! [`get_key_value_at_point()`]: https://docs.rs/nodit/latest/nodit/nodit/map/struct.NoditMap.html#method.get_key_value_at_point
-//! [`NoditMap`]: https://docs.rs/nodit/latest/nodit/nodit/map/struct.NoditMap.html
-//! [`NoditSet`]: https://docs.rs/nodit/latest/nodit/nodit/set/struct.NoditSet.html
-//! [`ZosditMap`]: https://docs.rs/nodit/latest/nodit/zosdit/map/struct.ZosditMap.html
-//! [`Gqdit`]: https://docs.rs/nodit/latest/nodit/gqdit/struct.Gqdit.html
+//! [`gqdit`]: https://docs.rs/nodit/latest/nodit/gqdit/struct.Gqdit.html
+//! [`interval-mathematics`]: https://en.wikipedia.org/wiki/Interval_(mathematics)
+//! [`noditmap`]: https://docs.rs/nodit/latest/nodit/nodit/map/struct.NoditMap.html
+//! [`noditset`]: https://docs.rs/nodit/latest/nodit/nodit/set/struct.NoditSet.html
+//! [`nodit`]: https://docs.rs/nodit
+//! [`num_bigint`]: https://docs.rs/num-bigint
+//! [`rangeinclusive`]: https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html
+//! [`rangemap`]: https://docs.rs/rangemap/latest/rangemap/
+//! [`range_bounds_map`]: https://docs.rs/range_bounds_map
+//! [`range`]: https://doc.rust-lang.org/std/ops/struct.Range.html
+//! [`zosditmap`]: https://docs.rs/nodit/latest/nodit/zosdit/map/struct.ZosditMap.html
 
 #![allow(clippy::tabs_in_doc_comments)]
 #![allow(clippy::needless_return)]

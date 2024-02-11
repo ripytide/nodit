@@ -6,7 +6,6 @@ use alloc::collections::BTreeSet;
 use alloc::vec::Vec;
 
 use itertools::Itertools;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::interval::{ii, iu, ui, uu};
 use crate::utils::invalid_interval_panic;
@@ -190,7 +189,8 @@ where
 		//we don't want end ones as they are
 		//handled separately
 		let non_end_gaps = valid_gaps.filter(|gap| {
-			!gap.contains_point(interval.start()) && !gap.contains_point(interval.end())
+			!gap.contains_point(interval.start())
+				&& !gap.contains_point(interval.end())
 		});
 
 		//instead of using possibly-partial end gaps we will
@@ -558,32 +558,41 @@ where
 	}
 }
 
-impl<I, K, D> Serialize for Gqdit<I, K, D>
-where
-	I: PointType,
-	K: IntervalType<I> + Serialize,
-	D: IdType,
-	BTreeSet<D>: Serialize,
-{
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: Serializer,
-	{
-		self.inner.serialize(serializer)
-	}
-}
+#[cfg(feature = "serde")]
+mod serde {
+	use alloc::collections::BTreeSet;
 
-impl<'de, I, K, D> Deserialize<'de> for Gqdit<I, K, D>
-where
-	I: PointType,
-	K: IntervalType<I> + Deserialize<'de>,
-	D: IdType,
-	BTreeSet<D>: Deserialize<'de>,
-{
-	fn deserialize<De>(deserializer: De) -> Result<Self, De::Error>
+	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+	use crate::{Gqdit, IdType, IntervalType, NoditMap, PointType};
+
+	impl<I, K, D> Serialize for Gqdit<I, K, D>
 	where
-		De: Deserializer<'de>,
+		I: PointType,
+		K: IntervalType<I> + Serialize,
+		D: IdType,
+		BTreeSet<D>: Serialize,
 	{
-		NoditMap::deserialize(deserializer).map(|x| Gqdit { inner: x })
+		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+		where
+			S: Serializer,
+		{
+			self.inner.serialize(serializer)
+		}
+	}
+
+	impl<'de, I, K, D> Deserialize<'de> for Gqdit<I, K, D>
+	where
+		I: PointType,
+		K: IntervalType<I> + Deserialize<'de>,
+		D: IdType,
+		BTreeSet<D>: Deserialize<'de>,
+	{
+		fn deserialize<De>(deserializer: De) -> Result<Self, De::Error>
+		where
+			De: Deserializer<'de>,
+		{
+			NoditMap::deserialize(deserializer).map(|x| Gqdit { inner: x })
+		}
 	}
 }

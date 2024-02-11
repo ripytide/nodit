@@ -5,13 +5,6 @@
 //! equivalent method's docs on [`NoditMap`] to prevent
 //! inconsistency.
 
-use core::fmt;
-use core::marker::PhantomData;
-
-use serde::de::{SeqAccess, Visitor};
-use serde::ser::SerializeSeq;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 use crate::nodit::map::IntoIter as NoditMapIntoIter;
 use crate::{IntervalType, NoditMap, OverlapError, PointType};
 
@@ -229,63 +222,78 @@ where
 	}
 }
 
-impl<I, K> Serialize for NoditSet<I, K>
-where
-	K: Serialize,
-{
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+#[cfg(feature = "serde")]
+mod serde {
+	use core::marker::PhantomData;
+
+	use serde::de::{SeqAccess, Visitor};
+	use serde::ser::SerializeSeq;
+	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+	use crate::{IntervalType, NoditSet, PointType};
+
+	impl<I, K> Serialize for NoditSet<I, K>
 	where
-		S: Serializer,
+		K: Serialize,
 	{
-		let mut seq = serializer.serialize_seq(Some(self.len()))?;
-		for interval in self.iter() {
-			seq.serialize_element(&interval)?;
+		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+		where
+			S: Serializer,
+		{
+			let mut seq = serializer.serialize_seq(Some(self.len()))?;
+			for interval in self.iter() {
+				seq.serialize_element(&interval)?;
+			}
+			seq.end()
 		}
-		seq.end()
 	}
-}
 
-impl<'de, I, K> Deserialize<'de> for NoditSet<I, K>
-where
-	I: PointType,
-	K: IntervalType<I> + Deserialize<'de>,
-{
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	impl<'de, I, K> Deserialize<'de> for NoditSet<I, K>
 	where
-		D: Deserializer<'de>,
+		I: PointType,
+		K: IntervalType<I> + Deserialize<'de>,
 	{
-		deserializer.deserialize_seq(NoditSetVisitor {
-			i: PhantomData,
-			k: PhantomData,
-		})
-	}
-}
-
-struct NoditSetVisitor<I, K> {
-	i: PhantomData<I>,
-	k: PhantomData<K>,
-}
-
-impl<'de, I, K> Visitor<'de> for NoditSetVisitor<I, K>
-where
-	I: PointType,
-	K: IntervalType<I> + Deserialize<'de>,
-{
-	type Value = NoditSet<I, K>;
-
-	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		formatter.write_str("a NoditSet")
-	}
-
-	fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
-	where
-		A: SeqAccess<'de>,
-	{
-		let mut set = NoditSet::new();
-		while let Some(interval) = access.next_element()? {
-			set.insert_strict(interval)
-				.map_err(|_| serde::de::Error::custom("intervals overlap"))?;
+		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+		where
+			D: Deserializer<'de>,
+		{
+			deserializer.deserialize_seq(NoditSetVisitor {
+				i: PhantomData,
+				k: PhantomData,
+			})
 		}
-		Ok(set)
+	}
+
+	struct NoditSetVisitor<I, K> {
+		i: PhantomData<I>,
+		k: PhantomData<K>,
+	}
+
+	impl<'de, I, K> Visitor<'de> for NoditSetVisitor<I, K>
+	where
+		I: PointType,
+		K: IntervalType<I> + Deserialize<'de>,
+	{
+		type Value = NoditSet<I, K>;
+
+		fn expecting(
+			&self,
+			formatter: &mut alloc::fmt::Formatter,
+		) -> alloc::fmt::Result {
+			formatter.write_str("a NoditSet")
+		}
+
+		fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
+		where
+			A: SeqAccess<'de>,
+		{
+			let mut set = NoditSet::new();
+			while let Some(interval) = access.next_element()? {
+				set.insert_strict(interval).map_err(|_| {
+					serde::de::Error::custom("intervals overlap")
+				})?;
+			}
+			Ok(set)
+		}
 	}
 }
