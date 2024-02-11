@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased - ReleaseDate
 
+### Added
+- Added the `Gqdit` data-structure with all the proper documentation and
+  examples for all its methods
+- Added a new table to the readme/top-level module docs for describing all
+  the different data-structures in the crate for comparison with one
+  another
+- Added another method to `InclusiveInterval`, `contains_interval()`
+
+### Changed
+- Renamed `contains_entire_interval()` methods to `contains_interval()` to match
+  `InclusiveInterval::contains_interval()`
+- Renamed `InclusiveInterval::contains()` to
+  `InclusiveInterval::contains_point()` to match the new
+  `InclusiveInterval::contains_interval()` method
+- `serde`'s Serialize and Deserialize implementations are now optional via a
+  "serde" feature which is documented in the features section of the
+  readme/top-level module docs
+
 ## 0.8.0 - 2024-01-28
 
 ### Added
