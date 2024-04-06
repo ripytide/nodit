@@ -17,7 +17,7 @@ off [`BTreeMap`].
 Several Discrete Interval Tree data-structures have been implemented, here
 is a brief summary of each of them and why you might use them:
 
-| Struct|Abreviation|Use-Case|
+| Struct|Abbreviation|Use-Case|
 |-----|------|------|
 |[`NoditMap`]|Non-Overlapping Discrete Interval Tree Map| General purpose way of associating data with intervals that do not overlap|
 |[`NoditSet`]|Non-Overlapping Discrete Interval Tree Set| Useful for when you want to store intervals but don't want/need to associate data with each interval|

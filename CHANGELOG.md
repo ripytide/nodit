@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased - ReleaseDate
 
+### Added
+
+- Added the `ZosditMap::remove_last_value_at_point()` method similar to the
+  existing `ZosditMap::get_last_value_at_point()` method.
+
+### Changed
+- Some spelling errors corrected
+
 ## 0.9.0 - 2024-02-11
 
 ### Added

@@ -340,8 +340,8 @@ where
 	/// Inserts an interval into the structure assigned to the given
 	/// identifiers.
 	///
-	/// How overlapping/touching intervals of the same specificer are
-	/// stored internally is unspecificed since only the gaps are able to
+	/// How overlapping/touching intervals of the same specifier are
+	/// stored internally is unspecified since only the gaps are able to
 	/// be queried and regardless of how they are stored the gaps will be
 	/// the same.
 	///

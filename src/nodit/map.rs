@@ -1515,6 +1515,10 @@ mod serde {
 
 #[cfg(test)]
 mod tests {
+	extern crate std;
+
+	use std::dbg;
+
 	use pretty_assertions::assert_eq;
 
 	use super::*;

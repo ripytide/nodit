@@ -189,6 +189,62 @@ where
 			.and_then(|(_, x)| x.last())
 	}
 
+	/// Removes the last value stored in the `SmallVec` for the interval(s)
+	/// that contain that point.
+	///
+	/// # Examples
+	/// ```
+	/// use nodit::interval::ii;
+	/// use nodit::ZosditMap;
+	///
+	/// let mut map = ZosditMap::from_slice_strict_back([
+	/// 	(ii(0, 4), -2),
+	/// 	(ii(4, 4), -4),
+	/// 	(ii(4, 4), -8),
+	/// 	(ii(4, 8), -10),
+	/// ])
+	/// .unwrap();
+	///
+	/// assert_eq!(map.get_last_value_at_point(4), Some(&-10));
+	/// assert_eq!(map.remove_last_value_at_point(4), Some(-10));
+	///
+	/// assert_eq!(map.get_last_value_at_point(4), Some(&-8));
+	/// assert_eq!(map.remove_last_value_at_point(4), Some(-8));
+	///
+	/// assert_eq!(map.get_last_value_at_point(4), Some(&-4));
+	/// assert_eq!(map.remove_last_value_at_point(4), Some(-4));
+	///
+	/// assert_eq!(map.get_last_value_at_point(4), Some(&-2));
+	/// assert_eq!(map.remove_last_value_at_point(4), Some(-2));
+	///
+	/// assert_eq!(map.get_last_value_at_point(4), None);
+	/// assert_eq!(map.remove_last_value_at_point(4), None);
+	/// ```
+	pub fn remove_last_value_at_point(&mut self, point: I) -> Option<V> {
+		let mut cursor = self.inner.lower_bound_mut(
+			exclusive_comp_generator(point, Ordering::Greater),
+			SearchBoundCustom::Included,
+		);
+
+		if cursor.key().is_none() {
+			cursor.move_prev();
+		}
+
+		if let Some((key, value)) = cursor.key_value_mut() {
+			if key.contains_point(point) {
+				let last = value.pop().unwrap();
+
+				if value.is_empty() {
+					cursor.remove_current();
+				}
+
+				return Some(last);
+			}
+		}
+
+		None
+	}
+
 	/// Appends the value to the `SmallVec` corresponding to the interval.
 	///
 	/// If the given interval non-zero-overlaps one or more intervals already in the
@@ -665,6 +721,11 @@ mod serde {
 
 #[cfg(test)]
 mod tests {
+	extern crate std;
+
+	use alloc::vec;
+	use std::dbg;
+
 	use pretty_assertions::assert_eq;
 
 	use super::*;
