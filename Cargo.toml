@@ -1,6 +1,6 @@
 [package]
 name = "nodit"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
@@ -16,15 +16,15 @@ keywords = ["data-structures", "map", "data", "library"]
 categories = ["data-structures"]
 
 [dependencies]
-serde = { version = "1.0.193", features = [
+serde = { version = "1.0.204", features = [
 	"derive",
 ], default-features = false, optional = true }
-btree_monstrousity = { version = "0.0.4", features = [
+btree_monstrousity = { version = "0.0.5", features = [
 	"btree_drain_filter",
 	"btree_cursors",
 ], default-features = false }
-itertools = { version = "0.12.0", default-features = false }
-smallvec = { version = "1.13.1", default-features = false }
+itertools = { version = "0.13.0", default-features = false }
+smallvec = { version = "1.13.2", default-features = false }
 
 [features]
 default = []
