@@ -24,14 +24,15 @@ is a brief summary of each of them and why you might use them:
 |[`ZosditMap`]|Zero-Overlap Sequential Discrete Interval Tree Map| Useful for time-graph traversal algorithms and possibly other things|
 |[`Gqdit`]|Gap-Query Discrete Interval Tree| Useful for when you have a set of different non-overlapping intervals and want to perform efficient gap-query searches over all the sets of intervals|
 
-## `Copy` is partially required
+## `Clone` is partially required
 
-Due to implementation complications with non-`Copy` types the
-data-structures currently require both the interval type and the points the
-intervals are over to be `Copy`. However, the value type used when using
-the [`NoditMap`] does not have to be `Copy`. In fact the only required
-traits on the value type are sometimes `Clone` or `Eq` but only for some
-methods so if in doubt check a methods trait bounds.
+`Clone` trait is required on both keys and values
+
+## Reference based APIs 
+
+In case the intervals and points are of significant size and cannot be cloned in arbitrary volumes the APIs 
+that use only references are provided and apply a clone only where necessary. This allows working with Rc<..> 
+and Rc<Ref<..>> patterns easily to store points and intervals. 
 
 ## Example using an Inclusive-Exclusive interval
 
@@ -44,7 +45,7 @@ let mut map = NoditMap::new();
 map.insert_strict(ie(0, 5), true);
 map.insert_strict(ie(5, 10), false);
 
-assert_eq!(map.overlaps(ie(-2, 12)), true);
+assert_eq!(map.overlaps(&ie(-2, 12)), true);
 assert_eq!(map.contains_point(20), false);
 assert_eq!(map.contains_point(5), true);
 ```
@@ -69,16 +70,16 @@ enum Reservation {
 
 // First, we need to implement InclusiveInterval
 impl InclusiveInterval<i8> for Reservation {
-	fn start(&self) -> i8 {
+	fn start(&self) -> &i8 {
 		match self {
-			Reservation::Finite(start, _) => *start,
-			Reservation::Infinite(start) => *start,
+			Reservation::Finite(start, _) => start,
+			Reservation::Infinite(start) => start,
 		}
 	}
-	fn end(&self) -> i8 {
+	fn end(&self) -> &i8 {
 		match self {
-			Reservation::Finite(_, end) => *end,
-			Reservation::Infinite(_) => i8::MAX,
+			Reservation::Finite(_, end) => end,
+			Reservation::Infinite(_) => &i8::MAX,
 		}
 	}
 }
@@ -86,11 +87,11 @@ impl InclusiveInterval<i8> for Reservation {
 // Second, we need to implement From<Interval<i8>>
 impl From<Interval<i8>> for Reservation {
 	fn from(value: Interval<i8>) -> Self {
-		if value.end() == i8::MAX {
-			Reservation::Infinite(value.start())
+		if value.end() == &i8::MAX {
+			Reservation::Infinite(*value.start())
 		} else {
 			Reservation::Finite(
-				value.start(),
+				*value.start(),
 				value.end().up().unwrap(),
 			)
 		}
@@ -104,7 +105,7 @@ let reservation_map = NoditMap::from_slice_strict([
 ])
 .unwrap();
 
-for (reservation, name) in reservation_map.overlapping(ie(16, 17))
+for (reservation, name) in reservation_map.overlapping(&ie(16, 17))
 {
 	println!(
 		"{name} has reserved {reservation:?} inside the interval 16..17"
@@ -116,7 +117,7 @@ for (reservation, name) in reservation_map.iter() {
 }
 
 assert_eq!(
-	reservation_map.overlaps(Reservation::Infinite(0)),
+	reservation_map.overlaps(&Reservation::Infinite(0)),
 	true
 );
 ```
@@ -158,7 +159,7 @@ use std::cmp::Ordering;
 
 use nodit::DiscreteFinite;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum WithInfinity<T> {
 	Finite(T),
 	Infinity,
@@ -203,7 +204,7 @@ where
 	const MIN: Self = WithInfinity::Finite(T::MIN);
 	const MAX: Self = WithInfinity::Infinity;
 
-	fn up(self) -> Option<Self>
+	fn up(&self) -> Option<Self>
 	where
 		Self: Sized,
 	{
@@ -215,7 +216,7 @@ where
 			WithInfinity::Infinity => None,
 		}
 	}
-	fn down(self) -> Option<Self>
+	fn down(&self) -> Option<Self>
 	where
 		Self: Sized,
 	{

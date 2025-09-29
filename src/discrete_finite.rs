@@ -11,11 +11,11 @@ pub trait DiscreteFinite {
 	const MAX: Self;
 
 	/// The smallest value greater than `self` if one exists.
-	fn up(self) -> Option<Self>
+	fn up(&self) -> Option<Self>
 	where
 		Self: Sized;
 	/// The greatest value smaller than `self` if one exists.
-	fn down(self) -> Option<Self>
+	fn down(&self) -> Option<Self>
 	where
 		Self: Sized;
 }
@@ -27,10 +27,10 @@ macro_rules! foo {
 			const MIN: Self = $ident::MIN;
 			const MAX: Self = $ident::MAX;
 
-			fn up(self) -> Option<Self> {
+			fn up(&self) -> Option<Self> {
 				self.checked_add(1)
 			}
-			fn down(self) -> Option<Self> {
+			fn down(&self) -> Option<Self> {
 				self.checked_sub(1)
 			}
 		}

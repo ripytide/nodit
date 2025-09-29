@@ -174,6 +174,12 @@ where
 	/// assert_eq!(map.get_last_value_at_point(10), None);
 	/// ```
 	pub fn get_last_value_at_point(&self, point: I) -> Option<&V> {
+		self.get_last_value_at_point_by_ref(&point)
+	}
+
+	/// Gets the last value stored in the `SmallVec` for the interval(s)
+	/// that contain that point by ref.
+	pub fn get_last_value_at_point_by_ref(&self, point: &I) -> Option<&V> {
 		let mut cursor = self.inner.lower_bound(
 			exclusive_comp_generator(point, Ordering::Greater),
 			SearchBoundCustom::Included,
@@ -185,7 +191,7 @@ where
 
 		cursor
 			.key_value()
-			.filter(|(x, _)| x.contains_point(point))
+			.filter(|(x, _)| x.contains_point_by_ref(point))
 			.and_then(|(_, x)| x.last())
 	}
 
@@ -221,6 +227,12 @@ where
 	/// assert_eq!(map.remove_last_value_at_point(4), None);
 	/// ```
 	pub fn remove_last_value_at_point(&mut self, point: I) -> Option<V> {
+		self.remove_last_value_at_point_by_ref(&point)
+	}
+
+	/// Removes the last value stored in the `SmallVec` for the interval(s)
+	/// that contain that point by ref.
+	pub fn remove_last_value_at_point_by_ref(&mut self, point: &I) -> Option<V> {
 		let mut cursor = self.inner.lower_bound_mut(
 			exclusive_comp_generator(point, Ordering::Greater),
 			SearchBoundCustom::Included,
@@ -231,7 +243,7 @@ where
 		}
 
 		if let Some((key, value)) = cursor.key_value_mut() {
-			if key.contains_point(point) {
+			if key.contains_point_by_ref(point) {
 				let last = value.pop().unwrap();
 
 				if value.is_empty() {
@@ -281,9 +293,9 @@ where
 		interval: K,
 		value: V,
 	) -> Result<(), NonZeroOverlapError<V>> {
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
-		if !self.is_zero_overlap(interval) {
+		if !self.is_zero_overlap(&interval) {
 			Err(NonZeroOverlapError { value })
 		} else {
 			self.inner
@@ -322,6 +334,16 @@ where
 		}
 	}
 
+	/// Appends the value to the `SmallVec` corresponding to the interval. Interval by
+	/// reference. It will be cloned in any case due to internal APIs called. 
+	pub fn insert_strict_back_by_ref(
+		&mut self,
+		interval: &K,
+		value: V,
+	) -> Result<(), NonZeroOverlapError<V>> {
+		self.insert_strict_back(interval.clone(), value)
+	}
+
 	/// Returns `true` if the given interval zero-overlaps the intervals in
 	/// the map, and `false` if not.
 	///
@@ -342,16 +364,16 @@ where
 	/// assert_eq!(map.insert_strict_back(ii(10, 10), -4), Ok(()));
 	/// assert_eq!(map.insert_strict_back(ii(10, 10), -6), Ok(()));
 	///
-	/// assert_eq!(map.is_zero_overlap(ii(0, 0)), true);
-	/// assert_eq!(map.is_zero_overlap(ii(10, 10)), true);
-	/// assert_eq!(map.is_zero_overlap(ii(10, 12)), true);
-	/// assert_eq!(map.is_zero_overlap(ii(10, 12)), true);
+	/// assert_eq!(map.is_zero_overlap(&ii(0, 0)), true);
+	/// assert_eq!(map.is_zero_overlap(&ii(10, 10)), true);
+	/// assert_eq!(map.is_zero_overlap(&ii(10, 12)), true);
+	/// assert_eq!(map.is_zero_overlap(&ii(10, 12)), true);
 	///
-	/// assert_eq!(map.is_zero_overlap(ii(0, 2)), false);
-	/// assert_eq!(map.is_zero_overlap(ii(4, 4)), false);
-	/// assert_eq!(map.is_zero_overlap(ii(4, 12)), false);
+	/// assert_eq!(map.is_zero_overlap(&ii(0, 2)), false);
+	/// assert_eq!(map.is_zero_overlap(&ii(4, 4)), false);
+	/// assert_eq!(map.is_zero_overlap(&ii(4, 12)), false);
 	/// ```
-	pub fn is_zero_overlap<Q>(&self, interval: Q) -> bool
+	pub fn is_zero_overlap<Q>(&self, interval: &Q) -> bool
 	where
 		Q: IntervalType<I>,
 	{
@@ -421,7 +443,7 @@ where
 		Q: IntervalType<I> + 'a,
 		V: Clone,
 	{
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
 		let mut result = Vec::new();
 
@@ -441,7 +463,7 @@ where
 
 			let (key, value_store) = cursor.remove_current().unwrap();
 
-			let cut_result = cut_interval(key, interval);
+			let cut_result = cut_interval(&key, &interval);
 
 			if let Some(before_cut) = cut_result.before_cut {
 				cursor.insert_before(K::from(before_cut), value_store.clone());
@@ -455,7 +477,7 @@ where
 			self.len -= value_store.len();
 			result.extend(
 				value_store.into_iter().map(|value| {
-					(K::from(cut_result.inside_cut.unwrap()), value)
+					(K::from(cut_result.inside_cut.clone().unwrap()), value)
 				}),
 			);
 		}
@@ -502,7 +524,7 @@ where
 	where
 		Q: IntervalType<I>,
 	{
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
 		let overlapping = self.inner.range(
 			inclusive_comp_generator(interval.start(), Ordering::Less),
@@ -596,7 +618,7 @@ where
 	/// let map: ZosditMap<_, _, _> = ZosditMap::from_iter_strict_back(
 	/// 	slice
 	/// 		.into_iter()
-	/// 		.filter(|(interval, _)| interval.start() > 2),
+	/// 		.filter(|(interval, _)| interval.start() > &2),
 	/// )
 	/// .unwrap();
 	/// ```
@@ -632,7 +654,7 @@ where
 
 	fn into_iter(self) -> Self::IntoIter {
 		Box::new(self.inner.into_iter().flat_map(|(interval, value_store)| {
-			value_store.into_iter().map(move |value| (interval, value))
+			value_store.into_iter().map(move |value| (interval.clone(), value))
 		}))
 	}
 }
@@ -764,7 +786,7 @@ mod tests {
 
 			let search_interval = ii(start, end);
 
-			let result = map.is_zero_overlap(search_interval);
+			let result = map.is_zero_overlap(&search_interval);
 
 			if result != expected {
 				dbg!(&search_interval, map_intervals);

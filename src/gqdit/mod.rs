@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 
 use itertools::Itertools;
 
-use crate::interval::{ii, iu, ui, uu};
+use crate::interval::{ii_by_ref, iu_by_ref, ui_by_ref, uu};
 use crate::utils::invalid_interval_panic;
 use crate::{Interval, IntervalType, NoditMap, PointType};
 
@@ -54,12 +54,12 @@ impl<D> IdType for D where D: Eq + Ord + Copy {}
 ///
 /// let mut map = Gqdit::new();
 ///
-/// map.insert(BTreeSet::from([0_u8]), ii(0, 4));
-/// map.insert(BTreeSet::from([2_u8]), ii(2, 6));
-/// map.insert(BTreeSet::from([4_u8]), ii(10, 40));
+/// map.insert(BTreeSet::from([0_u8]), &ii(0, 4));
+/// map.insert(BTreeSet::from([2_u8]), &ii(2, 6));
+/// map.insert(BTreeSet::from([4_u8]), &ii(10, 40));
 ///
 /// assert_eq!(
-/// 	map.gaps_no_identifier(ii(0, 100)),
+/// 	map.gaps_no_identifier(&ii(0, 100)),
 /// 	[ii(7, 9), iu(41)]
 /// );
 /// ```
@@ -109,16 +109,16 @@ where
 	///
 	/// let mut map = Gqdit::new();
 	///
-	/// map.insert(BTreeSet::from([0_u8]), ii(0, 4));
-	/// map.insert(BTreeSet::from([2_u8]), ii(2, 6));
-	/// map.insert(BTreeSet::from([4_u8]), ii(10, 40));
+	/// map.insert(BTreeSet::from([0_u8]), &ii(0, 4));
+	/// map.insert(BTreeSet::from([2_u8]), &ii(2, 6));
+	/// map.insert(BTreeSet::from([4_u8]), &ii(10, 40));
 	///
 	/// assert_eq!(
-	/// 	map.gaps_no_identifier(ii(0, 100)),
+	/// 	map.gaps_no_identifier(&ii(0, 100)),
 	/// 	[ii(7, 9), iu(41)]
 	/// );
 	/// ```
-	pub fn gaps_no_identifier<Q>(&self, interval: Q) -> Vec<K>
+	pub fn gaps_no_identifier<Q>(&self, interval: &Q) -> Vec<K>
 	where
 		Q: IntervalType<I>,
 	{
@@ -133,7 +133,7 @@ where
 					None
 				}
 			})
-			.copied()
+			.cloned()
 			.collect()
 	}
 
@@ -160,18 +160,19 @@ where
 	///
 	/// let mut map = Gqdit::new();
 	///
-	/// map.insert(BTreeSet::from([0_u8]), ii(0, 4));
-	/// map.insert(BTreeSet::from([2_u8]), ii(2, 6));
-	/// map.insert(BTreeSet::from([4_u8]), ii(10, 40));
+	/// map.insert(BTreeSet::from([0_u8]), &ii(0, 4));
+	/// map.insert(BTreeSet::from([2_u8]), &ii(2, 6));
+	/// map.insert(BTreeSet::from([4_u8]), &ii(10, 40));
 	///
 	/// assert_eq!(
-	/// 	map.gaps_with_identifier(2_u8, ii(0, 100)),
+	/// 	map.gaps_with_identifier(2_u8, &ii(0, 100)),
 	/// 	[ii(5, 9), iu(41)]
 	/// );
 	/// ```
-	pub fn gaps_with_identifier<Q>(&self, identifier: D, interval: Q) -> Vec<K>
+	pub fn gaps_with_identifier<Q>(&self, identifier: D, interval: &Q) -> Vec<K>
 	where
 		Q: IntervalType<I>,
+		D: IdType,
 	{
 		invalid_interval_panic(interval);
 
@@ -179,31 +180,31 @@ where
 			.inner
 			.overlapping(interval)
 			.filter_map(move |(inner_interval, other_identifiers)| {
-				if valid_identifier(Some(identifier), other_identifiers) {
+				if valid_identifier(Some(identifier.clone()), other_identifiers) {
 					Some(inner_interval)
 				} else {
 					None
 				}
 			})
-			.copied();
+			.cloned();
 		//we don't want end ones as they are
 		//handled separately
 		let non_end_gaps = valid_gaps.filter(|gap| {
-			!gap.contains_point(interval.start())
-				&& !gap.contains_point(interval.end())
+			!gap.contains_point_by_ref(interval.start())
+				&& !gap.contains_point_by_ref(interval.end())
 		});
 
 		//instead of using possibly-partial end gaps we will
 		//replace them with completely_iterated gaps
 		//expanded on both sides outwardly only not inwardly
 		let mut left_gap =
-			self.expand_gaps_at_point_left(identifier, interval.start());
+			self.expand_gaps_at_point_left(identifier.clone(), interval.start());
 		let mut right_gap =
-			self.expand_gaps_at_point_right(identifier, interval.end());
+			self.expand_gaps_at_point_right(identifier.clone(), interval.end());
 		//if they refer to the save gap then merge them
-		if let (Some(left), Some(right)) = (left_gap.as_mut(), right_gap) {
-			if overlaps_ordered(*left, right) {
-				*left = K::from(merge_ordered(*left, right));
+		if let (Some(left), Some(right)) = (left_gap.as_mut(), right_gap.clone()) {
+			if overlaps_ordered(left, &right) {
+				*left = K::from(merge_ordered(left, &right));
 				right_gap = None;
 			}
 		}
@@ -216,8 +217,8 @@ where
 		//the final proper merged result
 		all_non_merged_gaps
 			.coalesce(|x, y| {
-				if touches_ordered(x, y) {
-					Ok(K::from(merge_ordered(x, y)))
+				if touches_ordered(&x, &y) {
+					Ok(K::from(merge_ordered(&x, &y)))
 				} else {
 					Err((x, y))
 				}
@@ -239,14 +240,14 @@ where
 	///
 	/// let mut map = Gqdit::new();
 	///
-	/// map.insert(BTreeSet::from([0_u8]), ii(0, 4));
-	/// map.insert(BTreeSet::from([2_u8]), ii(2, 6));
-	/// map.insert(BTreeSet::from([4_u8]), ii(10, 40));
+	/// map.insert(BTreeSet::from([0_u8]), &ii(0, 4));
+	/// map.insert(BTreeSet::from([2_u8]), &ii(2, 6));
+	/// map.insert(BTreeSet::from([4_u8]), &ii(10, 40));
 	///
-	/// map.cut_with_identifiers(BTreeSet::from([2, 4]), ii(0, 20));
+	/// map.cut_with_identifiers(BTreeSet::from([2, 4]), &ii(0, 20));
 	///
 	/// assert_eq!(
-	/// 	map.gaps_no_identifier(ii(0, 100)),
+	/// 	map.gaps_no_identifier(&ii(0, 100)),
 	/// 	[ii(5, 20), iu(41)]
 	/// );
 	/// ```
@@ -259,7 +260,7 @@ where
 	pub fn cut_with_identifiers<Q>(
 		&mut self,
 		identifiers: BTreeSet<D>,
-		interval: Q,
+		interval: &Q,
 	) where
 		Q: IntervalType<I>,
 	{
@@ -278,8 +279,8 @@ where
 			cut_identifiers.retain(|i| !identifiers.contains(i));
 
 			self.inner
-				.insert_merge_touching_if_values_equal(
-					cut_interval,
+				.insert_merge_touching_if_values_equal_by_ref(
+					&cut_interval,
 					cut_identifiers,
 				)
 				.unwrap_or_else(|_| panic!());
@@ -297,14 +298,14 @@ where
 	///
 	/// let mut map = Gqdit::new();
 	///
-	/// map.insert(BTreeSet::from([0_u8]), ii(0_u8, 4));
-	/// map.insert(BTreeSet::from([2_u8]), ii(2, 6));
-	/// map.insert(BTreeSet::from([4_u8]), ii(10, 40));
+	/// map.insert(BTreeSet::from([0_u8]), &ii(0_u8, 4));
+	/// map.insert(BTreeSet::from([2_u8]), &ii(2, 6));
+	/// map.insert(BTreeSet::from([4_u8]), &ii(10, 40));
 	///
-	/// map.cut_all_identifiers(ii(0, 20));
+	/// map.cut_all_identifiers(&ii(0, 20));
 	///
 	/// assert_eq!(
-	/// 	map.gaps_no_identifier(ii(0, 100)),
+	/// 	map.gaps_no_identifier(&ii(0, 100)),
 	/// 	[ii(0, 20), iu(41)]
 	/// );
 	/// ```
@@ -314,7 +315,7 @@ where
 	/// Panics if the given interval is an invalid interval. See [`Invalid
 	/// Intervals`](https://docs.rs/nodit/latest/nodit/index.html#invalid-intervals)
 	/// for more details.
-	pub fn cut_all_identifiers<Q>(&mut self, interval: Q)
+	pub fn cut_all_identifiers<Q>(&mut self, interval: &Q)
 	where
 		Q: IntervalType<I>,
 	{
@@ -329,8 +330,8 @@ where
 			cut_identifiers.clear();
 
 			self.inner
-				.insert_merge_touching_if_values_equal(
-					cut_interval,
+				.insert_merge_touching_if_values_equal_by_ref(
+					&cut_interval,
 					cut_identifiers,
 				)
 				.unwrap_or_else(|_| panic!());
@@ -362,9 +363,9 @@ where
 	///
 	/// let mut map = Gqdit::new();
 	///
-	/// map.insert(BTreeSet::from([0_u8]), ii(0, 4));
+	/// map.insert(BTreeSet::from([0_u8]), &ii(0, 4));
 	/// ```
-	pub fn insert(&mut self, identifiers: BTreeSet<D>, interval: K) {
+	pub fn insert(&mut self, identifiers: BTreeSet<D>, interval: &K) {
 		invalid_interval_panic(interval);
 
 		if identifiers.is_empty() {
@@ -394,8 +395,8 @@ where
 
 		for (extended_interval, extended_identifiers) in extended_cut {
 			self.inner
-				.insert_merge_touching_if_values_equal(
-					extended_interval,
+				.insert_merge_touching_if_values_equal_by_ref(
+					&extended_interval,
 					extended_identifiers,
 				)
 				.unwrap_or_else(|_| panic!());
@@ -412,18 +413,18 @@ where
 	/// use nodit::Gqdit;
 	///
 	/// let mut map = Gqdit::new();
-	/// map.insert(BTreeSet::from([0_u8]), ii(0, 4));
+	/// map.insert(BTreeSet::from([0_u8]), &ii(0, 4));
 	///
 	/// let mut other = Gqdit::new();
-	/// other.insert(BTreeSet::from([0_u8]), ii(6, 10));
+	/// other.insert(BTreeSet::from([0_u8]), &ii(6, 10));
 	///
 	/// map.append(&mut other);
 	///
-	/// assert_eq!(map.gaps_no_identifier(ii(0, 10)), [ii(5, 5)]);
+	/// assert_eq!(map.gaps_no_identifier(&ii(0, 10)), [ii(5, 5)]);
 	/// ```
 	pub fn append(&mut self, other: &mut Self) {
 		for (interval, identifiers) in other.inner.remove_overlapping(uu()) {
-			self.insert(identifiers, interval);
+			self.insert(identifiers, &interval);
 		}
 	}
 
@@ -438,8 +439,8 @@ where
 	/// use nodit::Gqdit;
 	///
 	/// let mut map = Gqdit::new();
-	/// map.insert(BTreeSet::from([0_u8]), ii(2, 6));
-	/// map.insert(BTreeSet::from([1_u8]), ii(4, 8));
+	/// map.insert(BTreeSet::from([0_u8]), &ii(2, 6));
+	/// map.insert(BTreeSet::from([1_u8]), &ii(4, 8));
 	///
 	/// assert_eq!(map.identifiers_at_point(0), BTreeSet::from([]));
 	/// assert_eq!(map.identifiers_at_point(2), BTreeSet::from([0]));
@@ -454,37 +455,46 @@ where
 			.unwrap_or(BTreeSet::new())
 	}
 
-	fn expand_gaps_at_point_right(&self, identifier: D, point: I) -> Option<K> {
-		let overlapping_right = self.inner.overlapping(iu(point));
+	/// Return all the identifiers with intervals overlapping the given
+	/// `point` given by reference.
+	pub fn identifiers_at_point_by_ref(&self, point: &I) -> BTreeSet<D> {
+		self.inner
+			.get_at_point_by_ref(point)
+			.cloned()
+			.unwrap_or(BTreeSet::new())
+	}
+
+	fn expand_gaps_at_point_right(&self, identifier: D, point: &I) -> Option<K> {
+		let overlapping_right = self.inner.overlapping(&iu_by_ref(point));
 
 		overlapping_right
 			.take_while(|(_, other_identifiers)| {
 				valid_identifier(Some(identifier), other_identifiers)
 			})
-			.map(|(x, _)| *x)
+			.map(|(x, _)| (*x).clone())
 			.coalesce(|x, y| {
 				//since there are no gaps we know they will always
 				//touch
-				Ok(K::from(merge_ordered(x, y)))
+				Ok(K::from(merge_ordered(&x, &y)))
 			})
 			.next()
 	}
-	fn expand_gaps_at_point_left(&self, identifier: D, point: I) -> Option<K> {
+	fn expand_gaps_at_point_left(&self, identifier: D, point: &I) -> Option<K> {
 		//we are going in reverse since we are going left
-		let overlapping_left = self.inner.overlapping(ui(point)).rev();
+		let overlapping_left = self.inner.overlapping(&ui_by_ref(point)).rev();
 
 		overlapping_left
 			.take_while(|(_, other_identifiers)| {
 				valid_identifier(Some(identifier), other_identifiers)
 			})
-			.map(|(x, _)| *x)
+			.map(|(x, _)| (*x).clone())
 			.coalesce(|x, y| {
 				//since we are going from right to left these will
 				//be reversed too
 				//
 				//since there are no gaps we know they will always
 				//touch
-				Ok(K::from(merge_ordered(y, x)))
+				Ok(K::from(merge_ordered(&y, &x)))
 			})
 			.next()
 	}
@@ -507,31 +517,31 @@ where
 	}
 }
 /// Requires that self comes before other
-fn merge_ordered<I, A, B>(a: A, b: B) -> Interval<I>
+fn merge_ordered<I, A, B>(a: &A, b: &B) -> Interval<I>
 where
 	I: PointType,
 	A: IntervalType<I>,
 	B: IntervalType<I>,
 {
-	ii(a.start(), b.end())
+	ii_by_ref(a.start(), b.end())
 }
 /// Requires that self comes before other
-fn overlaps_ordered<I, A, B>(a: A, b: B) -> bool
+fn overlaps_ordered<I, A, B>(a: &A, b: &B) -> bool
 where
 	I: PointType,
 	A: IntervalType<I>,
 	B: IntervalType<I>,
 {
-	a.contains_point(b.start()) || a.contains_point(b.end())
+	a.contains_point_by_ref(b.start()) || a.contains_point_by_ref(b.end())
 }
 /// Requires that self comes before other
-fn touches_ordered<I, A, B>(a: A, b: B) -> bool
+fn touches_ordered<I, A, B>(a: &A, b: &B) -> bool
 where
 	I: PointType,
 	A: IntervalType<I>,
 	B: IntervalType<I>,
 {
-	a.end() == b.start().down().unwrap()
+	a.end() == &b.start().down().unwrap()
 }
 
 impl<I, K, D> PartialEq for Gqdit<I, K, D>
