@@ -350,10 +350,10 @@ where
 		Interval {
 			start: lower
 				.key()
-				.map_or(I::MIN, |lower| lower.end().up().unwrap()),
+				.map_or(I::min_value(), |lower| lower.end().up().unwrap()),
 			end: upper
 				.key()
-				.map_or(I::MAX, |upper| upper.start().down().unwrap()),
+				.map_or(I::max_value(), |upper| upper.start().down().unwrap()),
 		}
 	}
 

@@ -5,10 +5,11 @@
 /// top-level module documentation for more detailed descriptions on
 /// discrete-ness and finite-ness.
 pub trait DiscreteFinite {
-	/// The minimum value of the type.
-	const MIN: Self;
+	/// The minimum value of the type. Kept as function since that allows
+	/// complex shared points, keys that have to initialize OnceLock etc.
+	fn min_value() -> Self;
 	/// The maximum value of the type.
-	const MAX: Self;
+	fn max_value() -> Self;
 
 	/// The smallest value greater than `self` if one exists.
 	fn up(&self) -> Option<Self>
@@ -24,8 +25,8 @@ macro_rules! foo {
     () => {};
 	($ident:ident, $($t:tt)*) => {
 		impl DiscreteFinite for $ident {
-			const MIN: Self = $ident::MIN;
-			const MAX: Self = $ident::MAX;
+			fn min_value () -> Self { $ident::MIN }
+			fn max_value () -> Self { $ident::MAX }
 
 			fn up(&self) -> Option<Self> {
 				self.checked_add(1)

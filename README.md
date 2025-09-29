@@ -201,8 +201,8 @@ impl<T> DiscreteFinite for WithInfinity<T>
 where
 	T: DiscreteFinite,
 {
-	const MIN: Self = WithInfinity::Finite(T::MIN);
-	const MAX: Self = WithInfinity::Infinity;
+	fn min_value() -> Self { WithInfinity::Finite(T::min_value()) }
+    fn max_value() -> Self { WithInfinity::Infinity } 
 
 	fn up(&self) -> Option<Self>
 	where
@@ -225,7 +225,7 @@ where
 				Some(WithInfinity::Finite(x.down()?))
 			}
 			WithInfinity::Infinity => {
-				Some(WithInfinity::Finite(T::MAX))
+				Some(WithInfinity::Finite(T::max_value()))
 			}
 		}
 	}

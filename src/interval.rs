@@ -147,8 +147,8 @@ where
 	I: PointType,
 {
 	let interval = Interval {
-		start: I::MIN,
-		end: I::MAX,
+		start: I::min_value(),
+		end: I::max_value(),
 	};
 
 	invalid_interval_panic(&interval);
@@ -162,8 +162,8 @@ where
 	I: PointType,
 {
 	let interval = Interval {
-		start: I::MIN,
-		end: I::MAX,
+		start: I::min_value(),
+		end: I::max_value(),
 	};
 
 	invalid_interval_panic(&interval);
@@ -191,7 +191,7 @@ pub fn ui<I>(end: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = Interval { start: I::MIN, end };
+	let interval = Interval { start: I::min_value(), end };
 
 	invalid_interval_panic(&interval);
 
@@ -203,7 +203,7 @@ pub fn ui_by_ref<I>(end: &I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = Interval { start: I::MIN, end: end.clone() };
+	let interval = Interval { start: I::min_value(), end: end.clone() };
 
 	invalid_interval_panic(&interval);
 
@@ -230,7 +230,7 @@ where
 	I: PointType,
 {
 	let interval = Interval {
-		start: I::MIN,
+		start: I::min_value(),
 		end: end.down().unwrap(),
 	};
 
@@ -245,7 +245,7 @@ where
 	I: PointType,
 {
 	let interval = Interval {
-		start: I::MIN,
+		start: I::min_value(),
 		end: end.down().unwrap(),
 	};
 
@@ -273,7 +273,7 @@ pub fn iu<I>(start: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = Interval { start, end: I::MAX };
+	let interval = Interval { start, end: I::max_value() };
 
 	invalid_interval_panic(&interval);
 
@@ -285,7 +285,7 @@ pub fn iu_by_ref<I>(start: &I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = Interval { start: start.clone(), end: I::MAX };
+	let interval = Interval { start: start.clone(), end: I::max_value() };
 
 	invalid_interval_panic(&interval);
 
@@ -314,7 +314,7 @@ where
 {
 	let interval = Interval {
 		start: start.up().unwrap(),
-		end: I::MAX,
+		end: I::max_value(),
 	};
 
 	invalid_interval_panic(&interval);
@@ -329,7 +329,7 @@ where
 {
 	let interval = Interval {
 		start: start.up().unwrap(),
-		end: I::MAX,
+		end: I::max_value(),
 	};
 
 	invalid_interval_panic(&interval);
