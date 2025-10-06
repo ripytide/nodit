@@ -37,7 +37,7 @@ use crate::{IntervalType, PointType};
 ///
 /// let invalid_interval = ee(4, 4);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Interval<I> {
 	/// The start of the interval, inclusive.
@@ -54,20 +54,20 @@ where
 	/// ```
 	/// use nodit::interval::ii;
 	///
-	/// assert_eq!(ii(2, 4).start(), 2);
+	/// assert_eq!(ii(2, 4).start(), &2);
 	/// ```
-	pub fn start(&self) -> I {
-		self.start
+	pub fn start(&self) -> &I {
+		&self.start
 	}
 	/// The end of the interval, inclusive.
 	///
 	/// ```
 	/// use nodit::interval::ii;
 	///
-	/// assert_eq!(ii(2, 4).end(), 4);
+	/// assert_eq!(ii(2, 4).end(), &4);
 	/// ```
-	pub fn end(&self) -> I {
-		self.end
+	pub fn end(&self) -> &I {
+		&self.end
 	}
 }
 
@@ -87,12 +87,12 @@ impl<I> InclusiveInterval<I> for Interval<I>
 where
 	I: PointType,
 {
-	fn start(&self) -> I {
-		self.start
+	fn start(&self) -> &I {
+		&self.start
 	}
 
-	fn end(&self) -> I {
-		self.end
+	fn end(&self) -> &I {
+		&self.end
 	}
 }
 impl<I> From<Interval<I>> for RangeInclusive<I> {
@@ -105,7 +105,7 @@ where
 	I: PointType,
 {
 	fn from(value: RangeInclusive<I>) -> Self {
-		ii(*value.start(), *value.end())
+		ii_by_ref(value.start(), value.end())
 	}
 }
 impl<I> From<Interval<I>> for Range<I>
@@ -147,14 +147,30 @@ where
 	I: PointType,
 {
 	let interval = Interval {
-		start: I::MIN,
-		end: I::MAX,
+		start: I::min_value(),
+		end: I::max_value(),
 	};
 
-	invalid_interval_panic(interval);
+	invalid_interval_panic(&interval);
 
 	interval
 }
+
+/// Create an new Unbounded-Unbounded interval by references.
+pub fn uu_by_ref<I>() -> Interval<I>
+where
+	I: PointType,
+{
+	let interval = Interval {
+		start: I::min_value(),
+		end: I::max_value(),
+	};
+
+	invalid_interval_panic(&interval);
+
+	interval
+}
+
 /// Create an new Unbounded-Included interval.
 ///
 /// # Panics
@@ -175,9 +191,21 @@ pub fn ui<I>(end: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = Interval { start: I::MIN, end };
+	let interval = Interval { start: I::min_value(), end };
 
-	invalid_interval_panic(interval);
+	invalid_interval_panic(&interval);
+
+	interval
+}
+
+/// Create an new Unbounded-Included interval by reference.
+pub fn ui_by_ref<I>(end: &I) -> Interval<I>
+where
+	I: PointType,
+{
+	let interval = Interval { start: I::min_value(), end: end.clone() };
+
+	invalid_interval_panic(&interval);
 
 	interval
 }
@@ -202,11 +230,26 @@ where
 	I: PointType,
 {
 	let interval = Interval {
-		start: I::MIN,
+		start: I::min_value(),
 		end: end.down().unwrap(),
 	};
 
-	invalid_interval_panic(interval);
+	invalid_interval_panic(&interval);
+
+	interval
+}
+
+/// Create an new Unbounded-Excluded interval by reference.
+pub fn ue_by_ref<I>(end: &I) -> Interval<I>
+where
+	I: PointType,
+{
+	let interval = Interval {
+		start: I::min_value(),
+		end: end.down().unwrap(),
+	};
+
+	invalid_interval_panic(&interval);
 
 	interval
 }
@@ -230,12 +273,25 @@ pub fn iu<I>(start: I) -> Interval<I>
 where
 	I: PointType,
 {
-	let interval = Interval { start, end: I::MAX };
+	let interval = Interval { start, end: I::max_value() };
 
-	invalid_interval_panic(interval);
+	invalid_interval_panic(&interval);
 
 	interval
 }
+
+/// Create an new Included-Unbounded interval by reference.
+pub fn iu_by_ref<I>(start: &I) -> Interval<I>
+where
+	I: PointType,
+{
+	let interval = Interval { start: start.clone(), end: I::max_value() };
+
+	invalid_interval_panic(&interval);
+
+	interval
+}
+
 /// Create an new Excluded-Unbounded interval.
 ///
 /// # Panics
@@ -258,13 +314,29 @@ where
 {
 	let interval = Interval {
 		start: start.up().unwrap(),
-		end: I::MAX,
+		end: I::max_value(),
 	};
 
-	invalid_interval_panic(interval);
+	invalid_interval_panic(&interval);
 
 	interval
 }
+
+/// Create an new Excluded-Unbounded interval by reference.
+pub fn eu_by_ref<I>(start: &I) -> Interval<I>
+where
+	I: PointType,
+{
+	let interval = Interval {
+		start: start.up().unwrap(),
+		end: I::max_value(),
+	};
+
+	invalid_interval_panic(&interval);
+
+	interval
+}
+
 /// Create an new Included-Included interval.
 ///
 /// # Panics
@@ -287,10 +359,23 @@ where
 {
 	let interval = Interval { start, end };
 
-	invalid_interval_panic(interval);
+	invalid_interval_panic(&interval);
 
 	interval
 }
+
+/// Create an new Included-Included interval by reference.
+pub fn ii_by_ref<I>(start: &I, end: &I) -> Interval<I>
+where
+	I: PointType,
+{
+	let interval = Interval { start: start.clone(), end: end.clone() };
+
+	invalid_interval_panic(&interval);
+
+	interval
+}
+
 /// Create an new Included-Excluded interval.
 ///
 /// # Panics
@@ -316,10 +401,26 @@ where
 		end: end.down().unwrap(),
 	};
 
-	invalid_interval_panic(interval);
+	invalid_interval_panic(&interval);
 
 	interval
 }
+
+/// Create an new Included-Excluded interval by reference.
+pub fn ie_by_ref<I>(start: &I, end: &I) -> Interval<I>
+where
+	I: PointType,
+{
+	let interval = Interval {
+		start: start.clone(),
+		end: end.down().unwrap(),
+	};
+
+	invalid_interval_panic(&interval);
+
+	interval
+}
+
 /// Create an new Excluded-Included interval.
 ///
 /// # Panics
@@ -345,10 +446,26 @@ where
 		end,
 	};
 
-	invalid_interval_panic(interval);
+	invalid_interval_panic(&interval);
 
 	interval
 }
+
+/// Create an new Excluded-Included interval by reference.
+pub fn ei_by_ref<I>(start: &I, end: &I) -> Interval<I>
+where
+	I: PointType,
+{
+	let interval = Interval {
+		start: start.up().unwrap(),
+		end: end.clone(),
+	};
+
+	invalid_interval_panic(&interval);
+
+	interval
+}
+
 /// Create an new Excluded-Excluded interval.
 ///
 /// # Panics
@@ -374,13 +491,28 @@ where
 		end: end.down().unwrap(),
 	};
 
-	invalid_interval_panic(interval);
+	invalid_interval_panic(&interval);
+
+	interval
+}
+
+/// Create an new Excluded-Excluded interval by reference.
+pub fn ee_by_ref<I>(start: &I, end: &I) -> Interval<I>
+where
+	I: PointType,
+{
+	let interval = Interval {
+		start: start.up().unwrap(),
+		end: end.down().unwrap(),
+	};
+
+	invalid_interval_panic(&interval);
 
 	interval
 }
 
 /// A interval that has **Inclusive** end-points.
-pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
+pub trait InclusiveInterval<I>: Clone + From<Interval<I>> {
 	/// The start of `self`, inclusive.
 	///
 	/// # Examples
@@ -388,11 +520,11 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 	/// use nodit::interval::{ie, ii};
 	/// use nodit::InclusiveInterval;
 	///
-	/// assert_eq!(ii(3, 4).start(), 3);
-	/// assert_eq!(ii(4, 5).start(), 4);
-	/// assert_eq!(ie(5, 6).start(), 5);
+	/// assert_eq!(ii(3, 4).start(), &3);
+	/// assert_eq!(ii(4, 5).start(), &4);
+	/// assert_eq!(ie(5, 6).start(), &5);
 	/// ```
-	fn start(&self) -> I;
+	fn start(&self) -> &I;
 	/// The end of `self`, inclusive.
 	///
 	/// # Examples
@@ -400,11 +532,11 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 	/// use nodit::interval::{ei, ii};
 	/// use nodit::InclusiveInterval;
 	///
-	/// assert_eq!(ii(3, 4).end(), 4);
-	/// assert_eq!(ii(4, 5).end(), 5);
-	/// assert_eq!(ei(5, 6).end(), 6);
+	/// assert_eq!(ii(3, 4).end(), &4);
+	/// assert_eq!(ii(4, 5).end(), &5);
+	/// assert_eq!(ei(5, 6).end(), &6);
 	/// ```
-	fn end(&self) -> I;
+	fn end(&self) -> &I;
 
 	/// Does `self` contain the given point?
 	///
@@ -419,6 +551,14 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 	/// assert_eq!(ii(4, 5).contains_point(6), false);
 	/// ```
 	fn contains_point(&self, point: I) -> bool
+	where
+		I: PointType,
+	{
+		&point >= self.start() && &point <= self.end()
+	}
+
+	/// Does `self` contain the given point by referrence?
+	fn contains_point_by_ref(&self, point: &I) -> bool
 	where
 		I: PointType,
 	{
@@ -501,8 +641,8 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 		Q: IntervalType<I>,
 		Self: From<Interval<I>>,
 	{
-		let intersect_start = I::max(self.start(), other.start());
-		let intersect_end = I::min(self.end(), other.end());
+		let intersect_start = I::max(self.start().clone(), other.start().clone());
+		let intersect_end = I::min(self.end().clone(), other.end().clone());
 		if intersect_start <= intersect_end {
 			Some(Self::from(Interval {
 				start: intersect_start,
@@ -529,7 +669,7 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 		Q: IntervalType<I>,
 	{
 		!matches!(
-			sorted_config(*self, *other),
+			sorted_config( (*self).clone(), (*other).clone()),
 			SortedConfig::NonOverlapping(_, _)
 		)
 	}
@@ -551,8 +691,21 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 		Self: From<Interval<I>>,
 	{
 		Self::from(Interval {
-			start: self.start() + delta,
-			end: self.end() + delta,
+			start: self.start().clone() + delta.clone(),
+			end: self.end().clone() + delta,
+		})
+	}
+
+	/// Move `self` by the given `delta` amount upwards by reference to delta.
+	fn translate_by_ref(&self, delta: &I) -> Self
+	where
+		I: PointType,
+		I: core::ops::Add<Output = I>,
+		Self: From<Interval<I>>,
+	{
+		Self::from(Interval {
+			start: self.start().clone() + delta.clone(),
+			end: self.end().clone() + delta.clone(),
 		})
 	}
 
@@ -573,6 +726,6 @@ pub trait InclusiveInterval<I>: Copy + From<Interval<I>> {
 		I: PointType,
 		I: core::ops::Sub<Output = I>,
 	{
-		self.end() - self.start()
+		self.end().clone().clone() - self.start().clone()
 	}
 }

@@ -2,12 +2,12 @@ use core::cmp::Ordering;
 
 use crate::{InclusiveInterval, Interval, IntervalType, PointType};
 
-pub(crate) fn cmp_point_with_interval<I, K>(point: I, interval: K) -> Ordering
+pub(crate) fn cmp_point_with_interval<I, K>(point: &I, interval: &K) -> Ordering
 where
 	I: PointType,
 	K: IntervalType<I>,
 {
-	inclusive_comp_generator(point, Ordering::Equal)(&interval)
+	inclusive_comp_generator(point, Ordering::Equal)(interval)
 }
 
 #[derive(Debug, PartialEq)]
@@ -27,14 +27,14 @@ where
 	B: IntervalType<I>,
 {
 	if a.start() < b.start() {
-		match (contains_point(a, b.start()), contains_point(a, b.end())) {
+		match (contains_point_by_ref(&a, &b.start()), contains_point_by_ref(&a, &b.end())) {
 			(false, false) => Config::LeftFirstNonOverlapping,
 			(true, false) => Config::LeftFirstPartialOverlap,
 			(true, true) => Config::LeftContainsRight,
 			(false, true) => unreachable!(),
 		}
 	} else {
-		match (contains_point(b, a.start()), contains_point(b, a.end())) {
+		match (contains_point_by_ref(&b, &a.start()), contains_point_by_ref(&b, &a.end())) {
 			(false, false) => Config::RightFirstNonOverlapping,
 			(true, false) => Config::RightFirstPartialOverlap,
 			(true, true) => Config::RightContainsLeft,
@@ -55,12 +55,12 @@ where
 	B: IntervalType<I>,
 {
 	let ae = Interval {
-		start: a.start(),
-		end: a.end(),
+		start: a.start().clone(),
+		end: a.end().clone(),
 	};
 	let be = Interval {
-		start: b.start(),
-		end: b.end(),
+		start: b.start().clone(),
+		end: b.end().clone(),
 	};
 	match config(a, b) {
 		Config::LeftFirstNonOverlapping => SortedConfig::NonOverlapping(ae, be),
@@ -82,6 +82,14 @@ where
 	I: PointType,
 	K: IntervalType<I>,
 {
+	cmp_point_with_interval(&point, &interval).is_eq()
+}
+
+pub(crate) fn contains_point_by_ref<I, K>(interval: &K, point: &I) -> bool
+where
+	I: PointType,
+	K: IntervalType<I>,
+{
 	cmp_point_with_interval(point, interval).is_eq()
 }
 
@@ -91,7 +99,7 @@ pub(crate) struct CutResult<I> {
 	pub(crate) inside_cut: Option<Interval<I>>,
 	pub(crate) after_cut: Option<Interval<I>>,
 }
-pub(crate) fn cut_interval<I, A, B>(base: A, cut: B) -> CutResult<I>
+pub(crate) fn cut_interval<I, A, B>(base: &A, cut: &B) -> CutResult<I>
 where
 	I: PointType,
 	A: IntervalType<I>,
@@ -103,62 +111,62 @@ where
 		after_cut: None,
 	};
 
-	match config(base, cut) {
+	match config(base.clone(), cut.clone()) {
 		Config::LeftFirstNonOverlapping => {
 			result.before_cut = Some(Interval {
-				start: base.start(),
-				end: base.end(),
+				start: base.start().clone(),
+				end: base.end().clone(),
 			});
 		}
 		Config::LeftFirstPartialOverlap => {
 			result.before_cut = Some(Interval {
-				start: base.start(),
-				end: cut.start().down().unwrap(),
+				start: base.start().clone(),
+				end: cut.start().down().unwrap().clone(),
 			});
 			result.inside_cut = Some(Interval {
-				start: cut.start(),
-				end: base.end(),
+				start: cut.start().clone(),
+				end: base.end().clone(),
 			});
 		}
 		Config::LeftContainsRight => {
 			result.before_cut = Some(Interval {
-				start: base.start(),
-				end: cut.start().down().unwrap(),
+				start: base.start().clone(),
+				end: cut.start().down().unwrap().clone(),
 			});
 			result.inside_cut = Some(Interval {
-				start: cut.start(),
-				end: cut.end(),
+				start: cut.start().clone(),
+				end: cut.end().clone(),
 			});
 			//if cut is already max then we don't need to have an
 			//after_cut
 			if let Some(upped_end) = cut.end().up() {
 				result.after_cut = Some(Interval {
-					start: upped_end,
-					end: base.end(),
+					start: upped_end.clone(),
+					end: base.end().clone(),
 				});
 			}
 		}
 
 		Config::RightFirstNonOverlapping => {
 			result.after_cut = Some(Interval {
-				start: base.start(),
-				end: base.end(),
+				start: base.start().clone(),
+				end: base.end().clone(),
 			});
 		}
 		Config::RightFirstPartialOverlap => {
 			result.after_cut = Some(Interval {
 				start: cut.end().up().unwrap(),
-				end: base.end(),
+				end: base.end().clone(),
 			});
 			result.inside_cut = Some(Interval {
-				start: base.start(),
-				end: cut.end(),
+				start: base.start().clone(),
+				end: cut.end().clone(),
 			});
 		}
 		Config::RightContainsLeft => {
 			result.inside_cut = Some(Interval {
-				start: base.start(),
-				end: base.end(),
+				start: base.start().clone(),
+				end: base.end().clone(),
 			});
 		}
 	}
@@ -181,9 +189,9 @@ where
 	}
 }
 pub(crate) fn exclusive_comp_generator<I, K>(
-	point: I,
+	point: &I,
 	extraneous_result: Ordering,
-) -> impl FnMut(&K) -> Ordering
+) -> impl FnMut(&K) -> Ordering + use<'_, I, K>
 where
 	I: PointType,
 	K: IntervalType<I>,
@@ -201,31 +209,31 @@ where
 	}
 }
 pub(crate) fn inclusive_comp_generator<I, K>(
-	point: I,
+	point: &I,
 	extraneous_result: Ordering,
-) -> impl FnMut(&K) -> Ordering
+) -> impl FnMut(&K) -> Ordering + use<'_, I, K>
 where
 	I: PointType,
 	K: IntervalType<I>,
 {
 	move |inner_interval: &K| {
-		if point < inner_interval.start() {
+		if point < &inner_interval.start() {
 			Ordering::Less
-		} else if point > inner_interval.end() {
+		} else if point > &inner_interval.end() {
 			Ordering::Greater
 		} else {
 			extraneous_result
 		}
 	}
 }
-pub(crate) fn overlapping_comp<I, K>(point: I) -> impl FnMut(&K) -> Ordering
+pub(crate) fn overlapping_comp<I, K>(point: &I) -> impl FnMut(&K) -> Ordering + use<'_, I, K>
 where
 	I: PointType,
 	K: IntervalType<I>,
 {
-	move |inner_interval: &K| cmp_point_with_interval(point, *inner_interval)
+	move |inner_interval: &K| cmp_point_with_interval(point, inner_interval)
 }
-pub(crate) fn touching_start_comp<I, K>(start: I) -> impl FnMut(&K) -> Ordering
+pub(crate) fn touching_start_comp<I, K>(start: &I) -> impl FnMut(&K) -> Ordering + use<'_, I, K>
 where
 	I: PointType,
 	K: IntervalType<I>,
@@ -235,7 +243,7 @@ where
 		None => Ordering::Less,
 	}
 }
-pub(crate) fn touching_end_comp<I, K>(end: I) -> impl FnMut(&K) -> Ordering
+pub(crate) fn touching_end_comp<I, K>(end: &I) -> impl FnMut(&K) -> Ordering + use<'_, I, K>
 where
 	I: PointType,
 	K: IntervalType<I>,
@@ -246,7 +254,7 @@ where
 	}
 }
 
-pub(crate) fn invalid_interval_panic<Q, I>(interval: Q)
+pub(crate) fn invalid_interval_panic<Q, I>(interval: &Q)
 where
 	I: PointType,
 	Q: IntervalType<I>,
