@@ -24,16 +24,6 @@ is a brief summary of each of them and why you might use them:
 |[`ZosditMap`]|Zero-Overlap Sequential Discrete Interval Tree Map| Useful for time-graph traversal algorithms and possibly other things|
 |[`Gqdit`]|Gap-Query Discrete Interval Tree| Useful for when you have a set of different non-overlapping intervals and want to perform efficient gap-query searches over all the sets of intervals|
 
-## `Clone` is partially required
-
-`Clone` trait is required on both keys and values
-
-## Reference based APIs 
-
-In case the intervals and points are of significant size and cannot be cloned in arbitrary volumes the APIs 
-that use only references are provided and apply a clone only where necessary. This allows working with Rc<..> 
-and Rc<Ref<..>> patterns easily to store points and intervals. 
-
 ## Example using an Inclusive-Exclusive interval
 
 ```rust
