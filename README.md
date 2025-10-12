@@ -46,8 +46,8 @@ map.insert_strict(ie(0, 5), true);
 map.insert_strict(ie(5, 10), false);
 
 assert_eq!(map.overlaps(&ie(-2, 12)), true);
-assert_eq!(map.contains_point(20), false);
-assert_eq!(map.contains_point(5), true);
+assert_eq!(map.contains_point(&20), false);
+assert_eq!(map.contains_point(&5), true);
 ```
 
 ## Example using a custom interval type
@@ -159,7 +159,7 @@ use std::cmp::Ordering;
 
 use nodit::DiscreteFinite;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum WithInfinity<T> {
 	Finite(T),
 	Infinity,
@@ -202,7 +202,7 @@ where
 	T: DiscreteFinite,
 {
 	fn min_value() -> Self { WithInfinity::Finite(T::min_value()) }
-    fn max_value() -> Self { WithInfinity::Infinity } 
+	fn max_value() -> Self { WithInfinity::Infinity } 
 
 	fn up(&self) -> Option<Self>
 	where
@@ -244,7 +244,7 @@ let map: NoditMap<
 	bool,
 > = NoditMap::new();
 
-let mut gap = map.get_key_value_at_point(WithInfinity::Finite(4));
+let mut gap = map.get_key_value_at_point(&WithInfinity::Finite(4));
 
 assert_eq!(gap, Err(uu()));
 ```

@@ -37,7 +37,7 @@ use crate::{IntervalType, PointType};
 ///
 /// let invalid_interval = ee(4, 4);
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Interval<I> {
 	/// The start of the interval, inclusive.
@@ -421,10 +421,10 @@ pub trait InclusiveInterval<I>: Clone + From<Interval<I>> {
 	/// use nodit::interval::{ie, ii};
 	/// use nodit::InclusiveInterval;
 	///
-	/// assert_eq!(ii(4, 5).contains_point(3), false);
-	/// assert_eq!(ii(4, 5).contains_point(4), true);
-	/// assert_eq!(ii(4, 5).contains_point(5), true);
-	/// assert_eq!(ii(4, 5).contains_point(6), false);
+	/// assert_eq!(ii(4, 5).contains_point(&3), false);
+	/// assert_eq!(ii(4, 5).contains_point(&4), true);
+	/// assert_eq!(ii(4, 5).contains_point(&5), true);
+	/// assert_eq!(ii(4, 5).contains_point(&6), false);
 	/// ```
 	fn contains_point(&self, point: &I) -> bool
 	where

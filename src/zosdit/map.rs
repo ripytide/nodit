@@ -169,9 +169,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.get_last_value_at_point(0), Some(&-2));
-	/// assert_eq!(map.get_last_value_at_point(4), Some(&-10));
-	/// assert_eq!(map.get_last_value_at_point(10), None);
+	/// assert_eq!(map.get_last_value_at_point(&0), Some(&-2));
+	/// assert_eq!(map.get_last_value_at_point(&4), Some(&-10));
+	/// assert_eq!(map.get_last_value_at_point(&10), None);
 	/// ```
 	pub fn get_last_value_at_point(&self, point: &I) -> Option<&V> {
 		let mut cursor = self.inner.lower_bound(
@@ -205,20 +205,20 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.get_last_value_at_point(4), Some(&-10));
-	/// assert_eq!(map.remove_last_value_at_point(4), Some(-10));
+	/// assert_eq!(map.get_last_value_at_point(&4), Some(&-10));
+	/// assert_eq!(map.remove_last_value_at_point(&4), Some(-10));
 	///
-	/// assert_eq!(map.get_last_value_at_point(4), Some(&-8));
-	/// assert_eq!(map.remove_last_value_at_point(4), Some(-8));
+	/// assert_eq!(map.get_last_value_at_point(&4), Some(&-8));
+	/// assert_eq!(map.remove_last_value_at_point(&4), Some(-8));
 	///
-	/// assert_eq!(map.get_last_value_at_point(4), Some(&-4));
-	/// assert_eq!(map.remove_last_value_at_point(4), Some(-4));
+	/// assert_eq!(map.get_last_value_at_point(&4), Some(&-4));
+	/// assert_eq!(map.remove_last_value_at_point(&4), Some(-4));
 	///
-	/// assert_eq!(map.get_last_value_at_point(4), Some(&-2));
-	/// assert_eq!(map.remove_last_value_at_point(4), Some(-2));
+	/// assert_eq!(map.get_last_value_at_point(&4), Some(&-2));
+	/// assert_eq!(map.remove_last_value_at_point(&4), Some(-2));
 	///
-	/// assert_eq!(map.get_last_value_at_point(4), None);
-	/// assert_eq!(map.remove_last_value_at_point(4), None);
+	/// assert_eq!(map.get_last_value_at_point(&4), None);
+	/// assert_eq!(map.remove_last_value_at_point(&4), None);
 	/// ```
 	pub fn remove_last_value_at_point(&mut self, point: &I) -> Option<V> {
 		let mut cursor = self.inner.lower_bound_mut(

@@ -27,14 +27,14 @@ where
 	B: IntervalType<I>,
 {
 	if a.start() < b.start() {
-		match (contains_point(&a, &b.start()), contains_point(&a, &b.end())) {
+		match (contains_point(&a, b.start()), contains_point(&a, b.end())) {
 			(false, false) => Config::LeftFirstNonOverlapping,
 			(true, false) => Config::LeftFirstPartialOverlap,
 			(true, true) => Config::LeftContainsRight,
 			(false, true) => unreachable!(),
 		}
 	} else {
-		match (contains_point(&b, &a.start()), contains_point(&b, &a.end())) {
+		match (contains_point(&b, a.start()), contains_point(&b, a.end())) {
 			(false, false) => Config::RightFirstNonOverlapping,
 			(true, false) => Config::RightFirstPartialOverlap,
 			(true, true) => Config::RightContainsLeft,
@@ -177,7 +177,7 @@ where
 	K: IntervalType<I>,
 {
 	|inner_interval: &K, new_interval: &K| {
-		new_interval.start().cmp(&inner_interval.start())
+		new_interval.start().cmp(inner_interval.start())
 	}
 }
 pub(crate) fn exclusive_comp_generator<I, K>(
@@ -209,9 +209,9 @@ where
 	K: IntervalType<I>,
 {
 	move |inner_interval: &K| {
-		if point < &inner_interval.start() {
+		if point < inner_interval.start() {
 			Ordering::Less
-		} else if point > &inner_interval.end() {
+		} else if point > inner_interval.end() {
 			Ordering::Greater
 		} else {
 			extraneous_result

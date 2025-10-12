@@ -5,9 +5,8 @@
 /// top-level module documentation for more detailed descriptions on
 /// discrete-ness and finite-ness.
 pub trait DiscreteFinite {
-	/// The minimum value of the type. Kept as function since that allows
-	/// complex shared points, keys that have to initialize OnceLock etc.
-	fn min_value() -> Self;
+	/// The minimum value of the type.
+    fn min_value() -> Self;
 	/// The maximum value of the type.
 	fn max_value() -> Self;
 

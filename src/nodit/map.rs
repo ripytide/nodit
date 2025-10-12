@@ -42,9 +42,9 @@ use crate::{DiscreteFinite, InclusiveInterval, Interval};
 /// .unwrap();
 ///
 /// // Change a value in the map
-/// *map.get_at_point_mut(7).unwrap() = true;
+/// *map.get_at_point_mut(&7).unwrap() = true;
 ///
-/// if map.contains_point(99) {
+/// if map.contains_point(&99) {
 /// 	println!("Map contains value at 99 :)");
 /// }
 ///
@@ -228,9 +228,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.get_at_point(3), Some(&false));
-	/// assert_eq!(map.get_at_point(4), Some(&true));
-	/// assert_eq!(map.get_at_point(101), None);
+	/// assert_eq!(map.get_at_point(&3), Some(&false));
+	/// assert_eq!(map.get_at_point(&4), Some(&true));
+	/// assert_eq!(map.get_at_point(&101), None);
 	/// ```
 	pub fn get_at_point(&self, point: &I) -> Option<&V> {
 		self.get_key_value_at_point(point)
@@ -248,11 +248,11 @@ where
 	/// let mut map =
 	/// 	NoditMap::from_slice_strict([(ie(1, 4), false)]).unwrap();
 	///
-	/// if let Some(x) = map.get_at_point_mut(2) {
+	/// if let Some(x) = map.get_at_point_mut(&2) {
 	/// 	*x = true;
 	/// }
 	///
-	/// assert_eq!(map.get_at_point(1), Some(&true));
+	/// assert_eq!(map.get_at_point(&1), Some(&true));
 	/// ```
 	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
 		self.inner.get_mut(overlapping_comp(point))
@@ -273,9 +273,9 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.contains_point(3), true);
-	/// assert_eq!(map.contains_point(4), true);
-	/// assert_eq!(map.contains_point(101), false);
+	/// assert_eq!(map.contains_point(&3), true);
+	/// assert_eq!(map.contains_point(&4), true);
+	/// assert_eq!(map.contains_point(&101), false);
 	/// ```
 	pub fn contains_point(&self, point: &I) -> bool {
 		self.get_key_value_at_point(point).is_ok()
@@ -300,17 +300,17 @@ where
 	/// .unwrap();
 	///
 	/// assert_eq!(
-	/// 	map.get_key_value_at_point(3),
+	/// 	map.get_key_value_at_point(&3),
 	/// 	Ok((&ie(1, 4), &false))
 	/// );
-	/// assert_eq!(map.get_key_value_at_point(5), Ok((&ie(4, 6), &true)));
-	/// assert_eq!(map.get_key_value_at_point(7), Err(ie(6, 8)));
-	/// assert_eq!(map.get_key_value_at_point(101), Err(iu(100)));
+	/// assert_eq!(map.get_key_value_at_point(&5), Ok((&ie(4, 6), &true)));
+	/// assert_eq!(map.get_key_value_at_point(&7), Err(ie(6, 8)));
+	/// assert_eq!(map.get_key_value_at_point(&101), Err(iu(100)));
 	/// ```
 	pub fn get_key_value_at_point(&self, point: &I) -> Result<(&K, &V), K> {
 		self.inner
 			.get_key_value(overlapping_comp(point))
-			.ok_or_else(|| K::from(self.get_gap_at_raw(&point)))
+			.ok_or_else(|| K::from(self.get_gap_at_raw(point)))
 	}
 
 	fn get_gap_at_raw(&self, point: &I) -> Interval<I> {
@@ -352,7 +352,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut removed = map.remove_overlapping(ie(2, 8));
+	/// let mut removed = map.remove_overlapping(&ie(2, 8));
 	///
 	/// assert_eq!(
 	/// 	removed.collect::<Vec<_>>(),
@@ -509,10 +509,10 @@ where
 		// generate the gaps.
 		let start_gap =
 			(!self.inner.contains_key(overlapping_comp(interval.start())))
-				.then(|| self.get_gap_at_raw(&interval.start()));
+				.then(|| self.get_gap_at_raw(interval.start()));
 		let end_gap =
 			(!self.inner.contains_key(overlapping_comp(interval.end())))
-				.then(|| self.get_gap_at_raw(&interval.end()));
+				.then(|| self.get_gap_at_raw(interval.end()));
 
 		let (start_gap, end_gap) = match (start_gap, end_gap) {
 			(Some(start_gap), Some(end_gap)) => {
@@ -597,10 +597,10 @@ where
 		// generate the gaps.
 		let start_gap =
 			(!self.inner.contains_key(overlapping_comp(interval.start())))
-				.then(|| self.get_gap_at_raw(&interval.start()));
+				.then(|| self.get_gap_at_raw(interval.start()));
 		let end_gap =
 			(!self.inner.contains_key(overlapping_comp(interval.end())))
-				.then(|| self.get_gap_at_raw(&interval.end()));
+				.then(|| self.get_gap_at_raw(interval.end()));
 
 		let (trimmed_start_gap, trimmed_end_gap) = match (start_gap, end_gap) {
 			(Some(mut start_gap), Some(mut end_gap)) => {

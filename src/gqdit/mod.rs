@@ -180,7 +180,7 @@ where
 			.inner
 			.overlapping(interval)
 			.filter_map(move |(inner_interval, other_identifiers)| {
-				if valid_identifier(Some(identifier.clone()), other_identifiers) {
+				if valid_identifier(Some(identifier), other_identifiers) {
 					Some(inner_interval)
 				} else {
 					None
@@ -198,9 +198,9 @@ where
 		//replace them with completely_iterated gaps
 		//expanded on both sides outwardly only not inwardly
 		let mut left_gap =
-			self.expand_gaps_at_point_left(identifier.clone(), interval.start());
+			self.expand_gaps_at_point_left(identifier, interval.start());
 		let mut right_gap =
-			self.expand_gaps_at_point_right(identifier.clone(), interval.end());
+			self.expand_gaps_at_point_right(identifier, interval.end());
 		//if they refer to the save gap then merge them
 		if let (Some(left), Some(right)) = (left_gap.as_mut(), right_gap.clone()) {
 			if overlaps_ordered(left, &right) {
@@ -442,11 +442,11 @@ where
 	/// map.insert(BTreeSet::from([0_u8]), &ii(2, 6));
 	/// map.insert(BTreeSet::from([1_u8]), &ii(4, 8));
 	///
-	/// assert_eq!(map.identifiers_at_point(0), BTreeSet::from([]));
-	/// assert_eq!(map.identifiers_at_point(2), BTreeSet::from([0]));
-	/// assert_eq!(map.identifiers_at_point(5), BTreeSet::from([0, 1]));
-	/// assert_eq!(map.identifiers_at_point(8), BTreeSet::from([1]));
-	/// assert_eq!(map.identifiers_at_point(10), BTreeSet::from([]));
+	/// assert_eq!(map.identifiers_at_point(&0), BTreeSet::from([]));
+	/// assert_eq!(map.identifiers_at_point(&2), BTreeSet::from([0]));
+	/// assert_eq!(map.identifiers_at_point(&5), BTreeSet::from([0, 1]));
+	/// assert_eq!(map.identifiers_at_point(&8), BTreeSet::from([1]));
+	/// assert_eq!(map.identifiers_at_point(&10), BTreeSet::from([]));
 	/// ```
 	pub fn identifiers_at_point(&self, point: &I) -> BTreeSet<D> {
 		self.inner
