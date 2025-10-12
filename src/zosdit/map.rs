@@ -416,9 +416,9 @@ where
 	/// assert_eq!(base.len(), 2);
 	/// assert_eq!(base, after_cut);
 	/// ```
-	pub fn cut<'a, Q>(&'a mut self, interval: Q) -> impl Iterator<Item = (K, V)>
+	pub fn cut<Q>(&mut self, interval: Q) -> impl Iterator<Item = (K, V)>
 	where
-		Q: IntervalType<I> + 'a,
+		Q: IntervalType<I>,
 		V: Clone,
 	{
 		invalid_interval_panic(&interval);

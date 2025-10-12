@@ -364,12 +364,12 @@ where
 	/// 	[(ie(8, 100), false)]
 	/// );
 	/// ```
-	pub fn remove_overlapping<'a, Q>(
-		&'a mut self,
+	pub fn remove_overlapping<Q>(
+		&mut self,
 		interval: &Q,
 	) -> impl Iterator<Item = (K, V)>
 	where
-		Q: IntervalType<I> + 'a,
+		Q: IntervalType<I>,
 	{
 		invalid_interval_panic(interval);
 
@@ -428,9 +428,9 @@ where
 	/// );
 	/// assert_eq!(base, after_cut);
 	/// ```
-	pub fn cut<'a, Q>(&'a mut self, interval: &Q) -> impl Iterator<Item = (K, V)>
+	pub fn cut<Q>(&mut self, interval: &Q) -> impl Iterator<Item = (K, V)>
 	where
-		Q: IntervalType<I> + 'a,
+		Q: IntervalType<I>,
 		V: Clone,
 	{
 		invalid_interval_panic(interval);

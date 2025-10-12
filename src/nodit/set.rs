@@ -57,20 +57,20 @@ where
 	}
 
 	/// See [`NoditMap::remove_overlapping()`] for more details.
-	pub fn remove_overlapping<'a, Q>(
-		&'a mut self,
+	pub fn remove_overlapping<Q>(
+		&mut self,
 		interval: &Q,
 	) -> impl Iterator<Item = K>
 	where
-		Q: IntervalType<I> + 'a,
+		Q: IntervalType<I>,
 	{
 		self.inner.remove_overlapping(interval).map(first)
 	}
 
 	/// See [`NoditMap::cut()`] for more details.
-	pub fn cut<'a, Q>(&'a mut self, interval: &Q) -> impl Iterator<Item = K>
+	pub fn cut<Q>(&mut self, interval: &Q) -> impl Iterator<Item = K>
 	where
-		Q: IntervalType<I> + 'a,
+		Q: IntervalType<I>,
 	{
 		self.inner.cut(interval).map(first)
 	}
