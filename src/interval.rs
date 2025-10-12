@@ -105,7 +105,7 @@ where
 	I: PointType,
 {
 	fn from(value: RangeInclusive<I>) -> Self {
-		ii_by_ref(value.start(), value.end())
+		ii(value.start().clone(), value.end().clone())
 	}
 }
 impl<I> From<Interval<I>> for Range<I>
@@ -156,21 +156,6 @@ where
 	interval
 }
 
-/// Create an new Unbounded-Unbounded interval by references.
-pub fn uu_by_ref<I>() -> Interval<I>
-where
-	I: PointType,
-{
-	let interval = Interval {
-		start: I::min_value(),
-		end: I::max_value(),
-	};
-
-	invalid_interval_panic(&interval);
-
-	interval
-}
-
 /// Create an new Unbounded-Included interval.
 ///
 /// # Panics
@@ -198,17 +183,6 @@ where
 	interval
 }
 
-/// Create an new Unbounded-Included interval by reference.
-pub fn ui_by_ref<I>(end: &I) -> Interval<I>
-where
-	I: PointType,
-{
-	let interval = Interval { start: I::min_value(), end: end.clone() };
-
-	invalid_interval_panic(&interval);
-
-	interval
-}
 /// Create an new Unbounded-Excluded interval.
 ///
 /// # Panics
@@ -239,20 +213,6 @@ where
 	interval
 }
 
-/// Create an new Unbounded-Excluded interval by reference.
-pub fn ue_by_ref<I>(end: &I) -> Interval<I>
-where
-	I: PointType,
-{
-	let interval = Interval {
-		start: I::min_value(),
-		end: end.down().unwrap(),
-	};
-
-	invalid_interval_panic(&interval);
-
-	interval
-}
 /// Create an new Included-Unbounded interval.
 ///
 /// # Panics
@@ -280,18 +240,6 @@ where
 	interval
 }
 
-/// Create an new Included-Unbounded interval by reference.
-pub fn iu_by_ref<I>(start: &I) -> Interval<I>
-where
-	I: PointType,
-{
-	let interval = Interval { start: start.clone(), end: I::max_value() };
-
-	invalid_interval_panic(&interval);
-
-	interval
-}
-
 /// Create an new Excluded-Unbounded interval.
 ///
 /// # Panics
@@ -309,21 +257,6 @@ where
 /// assert_ne!(interval1, interval2)
 /// ```
 pub fn eu<I>(start: I) -> Interval<I>
-where
-	I: PointType,
-{
-	let interval = Interval {
-		start: start.up().unwrap(),
-		end: I::max_value(),
-	};
-
-	invalid_interval_panic(&interval);
-
-	interval
-}
-
-/// Create an new Excluded-Unbounded interval by reference.
-pub fn eu_by_ref<I>(start: &I) -> Interval<I>
 where
 	I: PointType,
 {
@@ -364,18 +297,6 @@ where
 	interval
 }
 
-/// Create an new Included-Included interval by reference.
-pub fn ii_by_ref<I>(start: &I, end: &I) -> Interval<I>
-where
-	I: PointType,
-{
-	let interval = Interval { start: start.clone(), end: end.clone() };
-
-	invalid_interval_panic(&interval);
-
-	interval
-}
-
 /// Create an new Included-Excluded interval.
 ///
 /// # Panics
@@ -398,21 +319,6 @@ where
 {
 	let interval = Interval {
 		start,
-		end: end.down().unwrap(),
-	};
-
-	invalid_interval_panic(&interval);
-
-	interval
-}
-
-/// Create an new Included-Excluded interval by reference.
-pub fn ie_by_ref<I>(start: &I, end: &I) -> Interval<I>
-where
-	I: PointType,
-{
-	let interval = Interval {
-		start: start.clone(),
 		end: end.down().unwrap(),
 	};
 
@@ -451,21 +357,6 @@ where
 	interval
 }
 
-/// Create an new Excluded-Included interval by reference.
-pub fn ei_by_ref<I>(start: &I, end: &I) -> Interval<I>
-where
-	I: PointType,
-{
-	let interval = Interval {
-		start: start.up().unwrap(),
-		end: end.clone(),
-	};
-
-	invalid_interval_panic(&interval);
-
-	interval
-}
-
 /// Create an new Excluded-Excluded interval.
 ///
 /// # Panics
@@ -483,21 +374,6 @@ where
 /// assert_ne!(interval1, interval2)
 /// ```
 pub fn ee<I>(start: I, end: I) -> Interval<I>
-where
-	I: PointType,
-{
-	let interval = Interval {
-		start: start.up().unwrap(),
-		end: end.down().unwrap(),
-	};
-
-	invalid_interval_panic(&interval);
-
-	interval
-}
-
-/// Create an new Excluded-Excluded interval by reference.
-pub fn ee_by_ref<I>(start: &I, end: &I) -> Interval<I>
 where
 	I: PointType,
 {
@@ -550,15 +426,7 @@ pub trait InclusiveInterval<I>: Clone + From<Interval<I>> {
 	/// assert_eq!(ii(4, 5).contains_point(5), true);
 	/// assert_eq!(ii(4, 5).contains_point(6), false);
 	/// ```
-	fn contains_point(&self, point: I) -> bool
-	where
-		I: PointType,
-	{
-		&point >= self.start() && &point <= self.end()
-	}
-
-	/// Does `self` contain the given point by referrence?
-	fn contains_point_by_ref(&self, point: &I) -> bool
+	fn contains_point(&self, point: &I) -> bool
 	where
 		I: PointType,
 	{
@@ -693,19 +561,6 @@ pub trait InclusiveInterval<I>: Clone + From<Interval<I>> {
 		Self::from(Interval {
 			start: self.start().clone() + delta.clone(),
 			end: self.end().clone() + delta,
-		})
-	}
-
-	/// Move `self` by the given `delta` amount upwards by reference to delta.
-	fn translate_by_ref(&self, delta: &I) -> Self
-	where
-		I: PointType,
-		I: core::ops::Add<Output = I>,
-		Self: From<Interval<I>>,
-	{
-		Self::from(Interval {
-			start: self.start().clone() + delta.clone(),
-			end: self.end().clone() + delta.clone(),
 		})
 	}
 

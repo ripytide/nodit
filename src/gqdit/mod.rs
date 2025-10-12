@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 
 use itertools::Itertools;
 
-use crate::interval::{ii_by_ref, iu_by_ref, ui_by_ref, uu};
+use crate::interval::{ii, iu, ui, uu};
 use crate::utils::invalid_interval_panic;
 use crate::{Interval, IntervalType, NoditMap, PointType};
 
@@ -190,8 +190,8 @@ where
 		//we don't want end ones as they are
 		//handled separately
 		let non_end_gaps = valid_gaps.filter(|gap| {
-			!gap.contains_point_by_ref(interval.start())
-				&& !gap.contains_point_by_ref(interval.end())
+			!gap.contains_point(interval.start())
+				&& !gap.contains_point(interval.end())
 		});
 
 		//instead of using possibly-partial end gaps we will
@@ -279,8 +279,8 @@ where
 			cut_identifiers.retain(|i| !identifiers.contains(i));
 
 			self.inner
-				.insert_merge_touching_if_values_equal_by_ref(
-					&cut_interval,
+				.insert_merge_touching_if_values_equal(
+					cut_interval,
 					cut_identifiers,
 				)
 				.unwrap_or_else(|_| panic!());
@@ -330,8 +330,8 @@ where
 			cut_identifiers.clear();
 
 			self.inner
-				.insert_merge_touching_if_values_equal_by_ref(
-					&cut_interval,
+				.insert_merge_touching_if_values_equal(
+					cut_interval,
 					cut_identifiers,
 				)
 				.unwrap_or_else(|_| panic!());
@@ -395,8 +395,8 @@ where
 
 		for (extended_interval, extended_identifiers) in extended_cut {
 			self.inner
-				.insert_merge_touching_if_values_equal_by_ref(
-					&extended_interval,
+				.insert_merge_touching_if_values_equal(
+					extended_interval,
 					extended_identifiers,
 				)
 				.unwrap_or_else(|_| panic!());
@@ -423,7 +423,7 @@ where
 	/// assert_eq!(map.gaps_no_identifier(&ii(0, 10)), [ii(5, 5)]);
 	/// ```
 	pub fn append(&mut self, other: &mut Self) {
-		for (interval, identifiers) in other.inner.remove_overlapping(uu()) {
+		for (interval, identifiers) in other.inner.remove_overlapping(&uu()) {
 			self.insert(identifiers, &interval);
 		}
 	}
@@ -448,24 +448,15 @@ where
 	/// assert_eq!(map.identifiers_at_point(8), BTreeSet::from([1]));
 	/// assert_eq!(map.identifiers_at_point(10), BTreeSet::from([]));
 	/// ```
-	pub fn identifiers_at_point(&self, point: I) -> BTreeSet<D> {
+	pub fn identifiers_at_point(&self, point: &I) -> BTreeSet<D> {
 		self.inner
 			.get_at_point(point)
 			.cloned()
 			.unwrap_or(BTreeSet::new())
 	}
 
-	/// Return all the identifiers with intervals overlapping the given
-	/// `point` given by reference.
-	pub fn identifiers_at_point_by_ref(&self, point: &I) -> BTreeSet<D> {
-		self.inner
-			.get_at_point_by_ref(point)
-			.cloned()
-			.unwrap_or(BTreeSet::new())
-	}
-
 	fn expand_gaps_at_point_right(&self, identifier: D, point: &I) -> Option<K> {
-		let overlapping_right = self.inner.overlapping(&iu_by_ref(point));
+		let overlapping_right = self.inner.overlapping(&iu(point.clone()));
 
 		overlapping_right
 			.take_while(|(_, other_identifiers)| {
@@ -481,7 +472,7 @@ where
 	}
 	fn expand_gaps_at_point_left(&self, identifier: D, point: &I) -> Option<K> {
 		//we are going in reverse since we are going left
-		let overlapping_left = self.inner.overlapping(&ui_by_ref(point)).rev();
+		let overlapping_left = self.inner.overlapping(&ui(point.clone())).rev();
 
 		overlapping_left
 			.take_while(|(_, other_identifiers)| {
@@ -523,7 +514,7 @@ where
 	A: IntervalType<I>,
 	B: IntervalType<I>,
 {
-	ii_by_ref(a.start(), b.end())
+	ii(a.start().clone(), b.end().clone())
 }
 /// Requires that self comes before other
 fn overlaps_ordered<I, A, B>(a: &A, b: &B) -> bool
@@ -532,7 +523,7 @@ where
 	A: IntervalType<I>,
 	B: IntervalType<I>,
 {
-	a.contains_point_by_ref(b.start()) || a.contains_point_by_ref(b.end())
+	a.contains_point(b.start()) || a.contains_point(b.end())
 }
 /// Requires that self comes before other
 fn touches_ordered<I, A, B>(a: &A, b: &B) -> bool

@@ -232,16 +232,8 @@ where
 	/// assert_eq!(map.get_at_point(4), Some(&true));
 	/// assert_eq!(map.get_at_point(101), None);
 	/// ```
-	pub fn get_at_point(&self, point: I) -> Option<&V> {
+	pub fn get_at_point(&self, point: &I) -> Option<&V> {
 		self.get_key_value_at_point(point)
-			.map(|(_, value)| value)
-			.ok()
-	}
-
-	/// Returns a reference to the value corresponding to the interval in
-	/// the map that overlaps the given point, if any. Point by reference.
-	pub fn get_at_point_by_ref(&self, point: &I) -> Option<&V> {
-		self.get_key_value_at_point_by_ref(point)
 			.map(|(_, value)| value)
 			.ok()
 	}
@@ -262,13 +254,7 @@ where
 	///
 	/// assert_eq!(map.get_at_point(1), Some(&true));
 	/// ```
-	pub fn get_at_point_mut(&mut self, point: I) -> Option<&mut V> {
-		self.inner.get_mut(overlapping_comp(&point))
-	}
-
-	/// Returns a mutable reference to the value corresponding to the
-	/// interval that overlaps the given point, if any.
-	pub fn get_at_point_mut_by_ref(&mut self, point: &I) -> Option<&mut V> {
+	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
 		self.inner.get_mut(overlapping_comp(point))
 	}
 
@@ -291,14 +277,8 @@ where
 	/// assert_eq!(map.contains_point(4), true);
 	/// assert_eq!(map.contains_point(101), false);
 	/// ```
-	pub fn contains_point(&self, point: I) -> bool {
+	pub fn contains_point(&self, point: &I) -> bool {
 		self.get_key_value_at_point(point).is_ok()
-	}
-
-	/// Returns `true` if the map contains a interval that overlaps the
-	/// given point, and `false` if not. Point is given by reference.
-	pub fn contains_point_by_ref(&self, point: &I) -> bool {
-		self.get_key_value_at_point_by_ref(point).is_ok()
 	}
 
 	/// Returns the entry corresponding to the interval that
@@ -327,13 +307,7 @@ where
 	/// assert_eq!(map.get_key_value_at_point(7), Err(ie(6, 8)));
 	/// assert_eq!(map.get_key_value_at_point(101), Err(iu(100)));
 	/// ```
-	pub fn get_key_value_at_point(&self, point: I) -> Result<(&K, &V), K> {
-		self.get_key_value_at_point_by_ref(&point)
-	}
-
-	/// Returns the entry corresponding to the interval that
-	/// overlaps the given point, if any. Point is given by reference.
-	pub fn get_key_value_at_point_by_ref(&self, point: &I) -> Result<(&K, &V), K> {
+	pub fn get_key_value_at_point(&self, point: &I) -> Result<(&K, &V), K> {
 		self.inner
 			.get_key_value(overlapping_comp(point))
 			.ok_or_else(|| K::from(self.get_gap_at_raw(&point)))
@@ -392,23 +366,11 @@ where
 	/// ```
 	pub fn remove_overlapping<'a, Q>(
 		&'a mut self,
-		interval: Q,
+		interval: &Q,
 	) -> impl Iterator<Item = (K, V)>
 	where
 		Q: IntervalType<I> + 'a,
 	{
-		self.remove_overlapping_by_ref(&interval)
-	}
-
-	/// Removes every entry in the map which overlaps the given interval
-	/// and returns them in an iterator in ascending order.
-	pub fn remove_overlapping_by_ref<'a, Q>(
-			&'a mut self,
-			interval: &Q,
-		) -> impl Iterator<Item = (K, V)>
-		where
-			Q: IntervalType<I> + 'a,
-		{
 		invalid_interval_panic(interval);
 
 		let mut result = Vec::new();
@@ -766,29 +728,8 @@ where
 		Ok(())
 	}
 
-	/// Adds a new entry to the map without modifying other entries. Interval by reference.
-	pub fn insert_strict_by_ref(
-		&mut self,
-		interval: &K,
-		value: V,
-	) -> Result<(), OverlapError<V>> {
-		invalid_interval_panic(interval);
-
-		if self.overlaps(interval) {
-			return Err(OverlapError { value });
-		}
-
-		self.insert_unchecked_by_ref(interval, value);
-
-		Ok(())
-	}
-
 	fn insert_unchecked(&mut self, interval: K, value: V) {
 		self.inner.insert(interval, value, starts_comp());
-	}
-
-	fn insert_unchecked_by_ref(&mut self, interval: &K, value: V) {
-		self.inner.insert(interval.clone(), value, starts_comp());
 	}
 
 	fn insert_merge_with_comps<G1, G2, R1, R2>(
@@ -806,25 +747,7 @@ where
 		R1: FnOnce(&mut Self, &V),
 		R2: FnOnce(&mut Self, &V),
 	{
-		self.insert_merge_with_comps_by_ref(&interval, value, get_start, get_end, remove_start, remove_end)
-	}
-
-	fn insert_merge_with_comps_by_ref<G1, G2, R1, R2>(
-		&mut self,
-		interval: &K,
-		value: V,
-		get_start: G1,
-		get_end: G2,
-		remove_start: R1,
-		remove_end: R2,
-	) -> K
-	where
-		G1: FnOnce(&Self, &V) -> Option<K>,
-		G2: FnOnce(&Self, &V) -> Option<K>,
-		R1: FnOnce(&mut Self, &V),
-		R2: FnOnce(&mut Self, &V),
-	{
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
 		let matching_start = get_start(self, &value);
 		let matching_end = get_end(self, &value);
@@ -845,12 +768,12 @@ where
 			(None, None) => interval.clone(),
 		};
 
-		let _ = self.remove_overlapping_by_ref(interval);
+		let _ = self.remove_overlapping(&interval);
 
 		remove_start(self, &value);
 		remove_end(self, &value);
 
-		self.insert_unchecked_by_ref(&returning, value);
+		self.insert_unchecked(returning.clone(), value);
 
 		returning
 	}
@@ -913,25 +836,14 @@ where
 		interval: K,
 		value: V,
 	) -> Result<K, OverlapError<V>> {
-		self.insert_merge_touching_by_ref(&interval, value)
-	}
+		invalid_interval_panic(&interval);
 
-	/// Adds a new entry to the map and merges into other intervals in
-	/// the map which touch it.
-	pub fn insert_merge_touching_by_ref(
-		&mut self,
-		interval: &K,
-		value: V,
-	) -> Result<K, OverlapError<V>> {
-
-		invalid_interval_panic(interval);
-
-		if self.overlaps(interval) {
+		if self.overlaps(&interval) {
 			return Err(OverlapError { value });
 		}
 
-		Ok(self.insert_merge_with_comps_by_ref(
-			interval,
+		Ok(self.insert_merge_with_comps(
+			interval.clone(),
 			value,
 			|selfy, _| {
 				selfy
@@ -1015,24 +927,9 @@ where
 	where
 		V: Eq,
 	{
-		self.insert_merge_touching_if_values_equal_by_ref(&interval, value)
-	}
+		invalid_interval_panic(&interval);
 
-	/// Adds a new entry to the map and merges into other intervals in
-	/// the map which touch it if the touching intervals' values are
-	/// equal to the value being inserted.
-	pub fn insert_merge_touching_if_values_equal_by_ref(
-		&mut self,
-		interval: &K,
-		value: V,
-	) -> Result<K, OverlapError<V>>
-	where
-		V: Eq,
-	{
-
-		invalid_interval_panic(interval);
-
-		if self.overlaps(interval) {
+		if self.overlaps(&interval) {
 			return Err(OverlapError { value });
 		}
 
@@ -1057,8 +954,8 @@ where
 				.cloned()
 		};
 
-		Ok(self.insert_merge_with_comps_by_ref(
-			interval,
+		Ok(self.insert_merge_with_comps(
+			interval.clone(),
 			value,
 			get_start,
 			get_end,
@@ -1124,16 +1021,10 @@ where
 	/// );
 	/// ```
 	pub fn insert_merge_overlapping(&mut self, interval: K, value: V) -> K {
-		self.insert_merge_overlapping_by_ref(&interval, value)
-	}
+		invalid_interval_panic(&interval);
 
-	/// Adds a new entry to the map and merges into other intervals in
-	/// the map which overlap it.
-	pub fn insert_merge_overlapping_by_ref(&mut self, interval: &K, value: V) -> K {
-		invalid_interval_panic(interval);
-
-		self.insert_merge_with_comps_by_ref(
-			interval,
+		self.insert_merge_with_comps(
+			interval.clone(),
 			value,
 			|selfy, _| {
 				selfy
@@ -1207,20 +1098,10 @@ where
 		interval: K,
 		value: V,
 	) -> K {
-		self.insert_merge_touching_or_overlapping_by_ref(&interval, value)
-	}
+		invalid_interval_panic(&interval);
 
-	/// Adds a new entry to the map and merges into other intervals in
-	/// the map which touch or overlap it.
-	pub fn insert_merge_touching_or_overlapping_by_ref(
-			&mut self,
-			interval: &K,
-			value: V,
-		) -> K {
-		invalid_interval_panic(interval);
-
-		self.insert_merge_with_comps_by_ref(
-			interval,
+		self.insert_merge_with_comps(
+			interval.clone(),
 			value,
 			|selfy, _| {
 				selfy
@@ -1296,23 +1177,6 @@ where
 
 		let cut = self.cut(&interval);
 		self.insert_unchecked(interval, value);
-		cut
-	}
-
-	/// Adds a new entry to the map and overwrites any other intervals
-	/// that overlap the new interval.
-	pub fn insert_overwrite_by_ref(
-		&mut self,
-		interval: &K,
-		value: V,
-	) -> impl Iterator<Item = (K, V)>
-	where
-		V: Clone,
-	{
-		invalid_interval_panic(interval);
-
-		let cut = self.cut(interval);
-		self.insert_unchecked_by_ref(interval, value);
 		cut
 	}
 
@@ -1661,7 +1525,7 @@ mod tests {
 
 	use super::*;
 	use crate::interval::{ee, ei, ie, ii, iu, ue, ui, uu};
-	use crate::utils::{config, contains_point, contains_point_by_ref, Config, CutResult};
+	use crate::utils::{config, contains_point, Config, CutResult};
 
 	//only every other number to allow mathematical_overlapping_definition
 	//to test between bounds in finite using smaller intervalled finite
@@ -1748,7 +1612,7 @@ mod tests {
 		for overlap_interval in all_valid_test_bounds() {
 			for inside_interval in all_valid_test_bounds() {
 				let mut map = NoditMap::new();
-				map.insert_strict_by_ref(&inside_interval, ()).unwrap();
+				map.insert_strict(inside_interval.clone(), ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
 				if overlap_interval.overlaps(&inside_interval) {
@@ -1846,7 +1710,7 @@ mod tests {
 		after: [(Interval<i8>, bool); Y],
 	) {
 		assert_eq!(
-			before.remove_overlapping(to_remove).collect::<Vec<_>>(),
+			before.remove_overlapping(&to_remove).collect::<Vec<_>>(),
 			result
 		);
 		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap())
@@ -2252,8 +2116,8 @@ mod tests {
 
 				let mathematical_definition_of_overlap =
 					NUMBERS_DOMAIN.iter().any(|x| {
-						contains_point_by_ref(&interval1, x)
-							&& contains_point_by_ref(&interval2, x)
+						contains_point(&interval1, x)
+							&& contains_point(&interval2, x)
 					});
 
 				if our_answer != mathematical_definition_of_overlap {
@@ -2279,8 +2143,8 @@ mod tests {
 
 				// The definition of a cut is: A && NOT B
 				for x in NUMBERS_DOMAIN {
-					let base_contains = contains_point_by_ref(&base, x);
-					let cut_contains = contains_point_by_ref(&cut, x);
+					let base_contains = contains_point(&base, x);
+					let cut_contains = contains_point(&cut, x);
 
 					if cut_contains {
 						on_left = false;
@@ -2318,7 +2182,7 @@ mod tests {
 	}
 	fn con(x: Option<Interval<i8>>, point: &i8) -> bool {
 		match x {
-			Some(y) => contains_point(y, *point),
+			Some(y) => contains_point(&y, point),
 			None => false,
 		}
 	}

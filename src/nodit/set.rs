@@ -47,45 +47,24 @@ where
 		self.inner.overlapping(interval).map(first)
 	}
 	/// See [`NoditMap::get_key_value_at_point()`] for more details.
-	pub fn get_at_point(&self, point: I) -> Result<&K, K> {
+	pub fn get_at_point(&self, point: &I) -> Result<&K, K> {
 		self.inner.get_key_value_at_point(point).map(first)
 	}
 
-	/// See [`NoditMap::get_key_value_at_point_by_ref()`] for more details.
-	pub fn get_at_point_by_ref(&self, point: &I) -> Result<&K, K> {
-		self.inner.get_key_value_at_point_by_ref(point).map(first)
-	}
-
 	/// See [`NoditMap::contains_point()`] for more details.
-	pub fn contains_point(&self, point: I) -> bool {
+	pub fn contains_point(&self, point: &I) -> bool {
 		self.inner.contains_point(point)
-	}
-
-	/// See [`NoditMap::contains_point()`] for more details.
-	pub fn contains_point_by_ref(&self, point: &I) -> bool {
-		self.inner.contains_point_by_ref(point)
 	}
 
 	/// See [`NoditMap::remove_overlapping()`] for more details.
 	pub fn remove_overlapping<'a, Q>(
-		&'a mut self,
-		interval: Q,
-	) -> impl Iterator<Item = K>
-	where
-		Q: IntervalType<I> + 'a,
-	{
-		self.inner.remove_overlapping(interval).map(first)
-	}
-
-	/// See [`NoditMap::remove_overlapping_by_ref()`] for more details.
-	pub fn remove_overlapping_by_ref<'a, Q>(
 		&'a mut self,
 		interval: &Q,
 	) -> impl Iterator<Item = K>
 	where
 		Q: IntervalType<I> + 'a,
 	{
-		self.inner.remove_overlapping_by_ref(interval).map(first)
+		self.inner.remove_overlapping(interval).map(first)
 	}
 
 	/// See [`NoditMap::cut()`] for more details.
@@ -129,26 +108,12 @@ where
 	) -> Result<(), OverlapError<()>> {
 		self.inner.insert_strict(interval, ())
 	}
-	/// See [`NoditMap::insert_strict_by_ref()`] for more details.
-	pub fn insert_strict_by_ref(
-		&mut self,
-		interval: &K,
-	) -> Result<(), OverlapError<()>> {
-		self.inner.insert_strict_by_ref(interval, ())
-	}
 	/// See [`NoditMap::insert_merge_touching()`] for more details.
 	pub fn insert_merge_touching(
 		&mut self,
 		interval: K,
 	) -> Result<K, OverlapError<()>> {
 		self.inner.insert_merge_touching(interval, ())
-	}
-	/// See [`NoditMap::insert_merge_touching_by_ref()`] for more details.
-	pub fn insert_merge_touching_by_ref(
-		&mut self,
-		interval: &K,
-	) -> Result<K, OverlapError<()>> {
-		self.inner.insert_merge_touching_by_ref(interval, ())
 	}
 	/// See [`NoditMap::insert_merge_overlapping()`] for more details.
 	pub fn insert_merge_overlapping(&mut self, interval: K) -> K {
@@ -159,18 +124,9 @@ where
 		self.inner
 			.insert_merge_touching_or_overlapping(interval, ())
 	}
-	/// See [`NoditMap::insert_merge_touching_or_overlapping_by_ref()`] for more details.
-	pub fn insert_merge_touching_or_overlapping_by_ref(&mut self, interval: &K) -> K {
-		self.inner
-			.insert_merge_touching_or_overlapping_by_ref(interval, ())
-	}
 	/// See [`NoditMap::insert_overwrite()`] for more details.
 	pub fn insert_overwrite(&mut self, interval: K) -> impl Iterator<Item = K> {
 		self.inner.insert_overwrite(interval, ()).map(first)
-	}
-	/// See [`NoditMap::insert_overwrite()`] for more details.
-	pub fn insert_overwrite_by_ref(&mut self, interval: &K) -> impl Iterator<Item = K> {
-		self.inner.insert_overwrite_by_ref(interval, ()).map(first)
 	}
 	/// See [`NoditMap::from_slice_strict()`] for more details.
 	pub fn from_slice_strict<const N: usize>(

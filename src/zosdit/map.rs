@@ -173,13 +173,7 @@ where
 	/// assert_eq!(map.get_last_value_at_point(4), Some(&-10));
 	/// assert_eq!(map.get_last_value_at_point(10), None);
 	/// ```
-	pub fn get_last_value_at_point(&self, point: I) -> Option<&V> {
-		self.get_last_value_at_point_by_ref(&point)
-	}
-
-	/// Gets the last value stored in the `SmallVec` for the interval(s)
-	/// that contain that point by ref.
-	pub fn get_last_value_at_point_by_ref(&self, point: &I) -> Option<&V> {
+	pub fn get_last_value_at_point(&self, point: &I) -> Option<&V> {
 		let mut cursor = self.inner.lower_bound(
 			exclusive_comp_generator(point, Ordering::Greater),
 			SearchBoundCustom::Included,
@@ -191,7 +185,7 @@ where
 
 		cursor
 			.key_value()
-			.filter(|(x, _)| x.contains_point_by_ref(point))
+			.filter(|(x, _)| x.contains_point(point))
 			.and_then(|(_, x)| x.last())
 	}
 
@@ -226,13 +220,7 @@ where
 	/// assert_eq!(map.get_last_value_at_point(4), None);
 	/// assert_eq!(map.remove_last_value_at_point(4), None);
 	/// ```
-	pub fn remove_last_value_at_point(&mut self, point: I) -> Option<V> {
-		self.remove_last_value_at_point_by_ref(&point)
-	}
-
-	/// Removes the last value stored in the `SmallVec` for the interval(s)
-	/// that contain that point by ref.
-	pub fn remove_last_value_at_point_by_ref(&mut self, point: &I) -> Option<V> {
+	pub fn remove_last_value_at_point(&mut self, point: &I) -> Option<V> {
 		let mut cursor = self.inner.lower_bound_mut(
 			exclusive_comp_generator(point, Ordering::Greater),
 			SearchBoundCustom::Included,
@@ -243,7 +231,7 @@ where
 		}
 
 		if let Some((key, value)) = cursor.key_value_mut() {
-			if key.contains_point_by_ref(point) {
+			if key.contains_point(point) {
 				let last = value.pop().unwrap();
 
 				if value.is_empty() {
@@ -332,16 +320,6 @@ where
 
 			Ok(())
 		}
-	}
-
-	/// Appends the value to the `SmallVec` corresponding to the interval. Interval by
-	/// reference. It will be cloned in any case due to internal APIs called. 
-	pub fn insert_strict_back_by_ref(
-		&mut self,
-		interval: &K,
-		value: V,
-	) -> Result<(), NonZeroOverlapError<V>> {
-		self.insert_strict_back(interval.clone(), value)
 	}
 
 	/// Returns `true` if the given interval zero-overlaps the intervals in
@@ -818,13 +796,13 @@ mod tests {
 		map.insert_strict_back(ii(4_u8, 8), -2_i8).unwrap();
 		map.insert_strict_back(ii(8_u8, u8::MAX), -3_i8).unwrap();
 
-		assert_eq!(map.get_last_value_at_point(0_u8), Some(&-1));
-		assert_eq!(map.get_last_value_at_point(2_u8), Some(&-1));
-		assert_eq!(map.get_last_value_at_point(4_u8), Some(&-2));
-		assert_eq!(map.get_last_value_at_point(6_u8), Some(&-2));
-		assert_eq!(map.get_last_value_at_point(8_u8), Some(&-3));
-		assert_eq!(map.get_last_value_at_point(10_u8), Some(&-3));
-		assert_eq!(map.get_last_value_at_point(u8::MAX), Some(&-3));
+		assert_eq!(map.get_last_value_at_point(&0_u8), Some(&-1));
+		assert_eq!(map.get_last_value_at_point(&2_u8), Some(&-1));
+		assert_eq!(map.get_last_value_at_point(&4_u8), Some(&-2));
+		assert_eq!(map.get_last_value_at_point(&6_u8), Some(&-2));
+		assert_eq!(map.get_last_value_at_point(&8_u8), Some(&-3));
+		assert_eq!(map.get_last_value_at_point(&10_u8), Some(&-3));
+		assert_eq!(map.get_last_value_at_point(&u8::MAX), Some(&-3));
 	}
 
 	#[test]

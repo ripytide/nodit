@@ -27,14 +27,14 @@ where
 	B: IntervalType<I>,
 {
 	if a.start() < b.start() {
-		match (contains_point_by_ref(&a, &b.start()), contains_point_by_ref(&a, &b.end())) {
+		match (contains_point(&a, &b.start()), contains_point(&a, &b.end())) {
 			(false, false) => Config::LeftFirstNonOverlapping,
 			(true, false) => Config::LeftFirstPartialOverlap,
 			(true, true) => Config::LeftContainsRight,
 			(false, true) => unreachable!(),
 		}
 	} else {
-		match (contains_point_by_ref(&b, &a.start()), contains_point_by_ref(&b, &a.end())) {
+		match (contains_point(&b, &a.start()), contains_point(&b, &a.end())) {
 			(false, false) => Config::RightFirstNonOverlapping,
 			(true, false) => Config::RightFirstPartialOverlap,
 			(true, true) => Config::RightContainsLeft,
@@ -77,15 +77,7 @@ where
 	}
 }
 
-pub(crate) fn contains_point<I, K>(interval: K, point: I) -> bool
-where
-	I: PointType,
-	K: IntervalType<I>,
-{
-	cmp_point_with_interval(&point, &interval).is_eq()
-}
-
-pub(crate) fn contains_point_by_ref<I, K>(interval: &K, point: &I) -> bool
+pub(crate) fn contains_point<I, K>(interval: &K, point: &I) -> bool
 where
 	I: PointType,
 	K: IntervalType<I>,
