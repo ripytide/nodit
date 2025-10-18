@@ -30,7 +30,7 @@ where
 	K: IntervalType<I>,
 {
 	/// See [`NoditMap::overlaps()`] for more details.
-	pub fn overlaps<Q>(&self, interval: Q) -> bool
+	pub fn overlaps<Q>(&self, interval: &Q) -> bool
 	where
 		Q: IntervalType<I>,
 	{
@@ -39,7 +39,7 @@ where
 	/// See [`NoditMap::overlapping()`] for more details.
 	pub fn overlapping<Q>(
 		&self,
-		interval: Q,
+		interval: &Q,
 	) -> impl DoubleEndedIterator<Item = &K>
 	where
 		Q: IntervalType<I>,
@@ -47,35 +47,38 @@ where
 		self.inner.overlapping(interval).map(first)
 	}
 	/// See [`NoditMap::get_key_value_at_point()`] for more details.
-	pub fn get_at_point(&self, point: I) -> Result<&K, K> {
+	pub fn get_at_point(&self, point: &I) -> Result<&K, K> {
 		self.inner.get_key_value_at_point(point).map(first)
 	}
+
 	/// See [`NoditMap::contains_point()`] for more details.
-	pub fn contains_point(&self, point: I) -> bool {
+	pub fn contains_point(&self, point: &I) -> bool {
 		self.inner.contains_point(point)
 	}
+
 	/// See [`NoditMap::remove_overlapping()`] for more details.
-	pub fn remove_overlapping<'a, Q>(
-		&'a mut self,
-		interval: Q,
+	pub fn remove_overlapping<Q>(
+		&mut self,
+		interval: &Q,
 	) -> impl Iterator<Item = K>
 	where
-		Q: IntervalType<I> + 'a,
+		Q: IntervalType<I>,
 	{
 		self.inner.remove_overlapping(interval).map(first)
 	}
+
 	/// See [`NoditMap::cut()`] for more details.
-	pub fn cut<'a, Q>(&'a mut self, interval: Q) -> impl Iterator<Item = K>
+	pub fn cut<Q>(&mut self, interval: &Q) -> impl Iterator<Item = K>
 	where
-		Q: IntervalType<I> + 'a,
+		Q: IntervalType<I>,
 	{
 		self.inner.cut(interval).map(first)
 	}
 	/// See [`NoditMap::gaps_untrimmed()`] for more details.
 	pub fn gaps_untrimmed<'a, Q>(
 		&'a self,
-		interval: Q,
-	) -> impl Iterator<Item = K> + '_
+		interval: &Q,
+	) -> impl Iterator<Item = K> + 'a
 	where
 		Q: IntervalType<I> + 'a,
 	{
@@ -84,15 +87,15 @@ where
 	/// See [`NoditMap::gaps_trimmed()`] for more details.
 	pub fn gaps_trimmed<'a, Q>(
 		&'a self,
-		interval: Q,
-	) -> impl Iterator<Item = K> + '_
+		interval: &Q,
+	) -> impl Iterator<Item = K> + 'a
 	where
 		Q: IntervalType<I> + 'a,
 	{
 		self.inner.gaps_trimmed(interval)
 	}
 	/// See [`NoditMap::contains_interval()`] for more details.
-	pub fn contains_interval<Q>(&self, interval: Q) -> bool
+	pub fn contains_interval<Q>(&self, interval: &Q) -> bool
 	where
 		Q: IntervalType<I>,
 	{

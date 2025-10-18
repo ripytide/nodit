@@ -42,9 +42,9 @@ use crate::{DiscreteFinite, InclusiveInterval, Interval};
 /// .unwrap();
 ///
 /// // Change a value in the map
-/// *map.get_at_point_mut(7).unwrap() = true;
+/// *map.get_at_point_mut(&7).unwrap() = true;
 ///
-/// if map.contains_point(99) {
+/// if map.contains_point(&99) {
 /// 	println!("Map contains value at 99 :)");
 /// }
 ///
@@ -71,8 +71,8 @@ pub struct OverlapError<V> {
 
 /// The marker trait for valid point types, a blanket implementation is provided for all types
 /// which implement this traits' super-traits so you shouln't need to implement this yourself.
-pub trait PointType: Ord + Copy + DiscreteFinite {}
-impl<I> PointType for I where I: Ord + Copy + DiscreteFinite {}
+pub trait PointType: Ord + Clone + DiscreteFinite {}
+impl<I> PointType for I where I: Ord + Clone + DiscreteFinite {}
 
 /// The marker trait for valid interval types, a blanket implementation is provided for all types
 /// which implement this traits' super-traits so you shouln't need to implement this yourself.
@@ -80,7 +80,7 @@ pub trait IntervalType<I>: InclusiveInterval<I> {}
 impl<I, K> IntervalType<I> for K
 where
 	I: PointType,
-	K: InclusiveInterval<I> + Copy + From<Interval<I>>,
+	K: InclusiveInterval<I> + Clone + From<Interval<I>>,
 {
 }
 
@@ -107,13 +107,13 @@ where
 	///
 	/// map.insert_strict(ie(5, 10), false);
 	///
-	/// assert_eq!(map.overlaps(ii(1, 3)), false);
-	/// assert_eq!(map.overlaps(ie(4, 5)), false);
+	/// assert_eq!(map.overlaps(&ii(1, 3)), false);
+	/// assert_eq!(map.overlaps(&ie(4, 5)), false);
 	///
-	/// assert_eq!(map.overlaps(ii(4, 5)), true);
-	/// assert_eq!(map.overlaps(ie(4, 6)), true);
+	/// assert_eq!(map.overlaps(&ii(4, 5)), true);
+	/// assert_eq!(map.overlaps(&ie(4, 6)), true);
 	/// ```
-	pub fn overlaps<Q>(&self, interval: Q) -> bool
+	pub fn overlaps<Q>(&self, interval: &Q) -> bool
 	where
 		Q: IntervalType<I>,
 	{
@@ -143,7 +143,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut overlapping = map.overlapping(ie(2, 8));
+	/// let mut overlapping = map.overlapping(&ie(2, 8));
 	///
 	/// assert_eq!(
 	/// 	overlapping.collect::<Vec<_>>(),
@@ -152,7 +152,7 @@ where
 	/// ```
 	pub fn overlapping<Q>(
 		&self,
-		interval: Q,
+		interval: &Q,
 	) -> impl DoubleEndedIterator<Item = (&K, &V)>
 	where
 		Q: IntervalType<I>,
@@ -203,7 +203,7 @@ where
 	where
 		Q: IntervalType<I>,
 	{
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
 		self.inner.range_mut(
 			overlapping_comp(interval.start()),
@@ -228,11 +228,11 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.get_at_point(3), Some(&false));
-	/// assert_eq!(map.get_at_point(4), Some(&true));
-	/// assert_eq!(map.get_at_point(101), None);
+	/// assert_eq!(map.get_at_point(&3), Some(&false));
+	/// assert_eq!(map.get_at_point(&4), Some(&true));
+	/// assert_eq!(map.get_at_point(&101), None);
 	/// ```
-	pub fn get_at_point(&self, point: I) -> Option<&V> {
+	pub fn get_at_point(&self, point: &I) -> Option<&V> {
 		self.get_key_value_at_point(point)
 			.map(|(_, value)| value)
 			.ok()
@@ -248,13 +248,13 @@ where
 	/// let mut map =
 	/// 	NoditMap::from_slice_strict([(ie(1, 4), false)]).unwrap();
 	///
-	/// if let Some(x) = map.get_at_point_mut(2) {
+	/// if let Some(x) = map.get_at_point_mut(&2) {
 	/// 	*x = true;
 	/// }
 	///
-	/// assert_eq!(map.get_at_point(1), Some(&true));
+	/// assert_eq!(map.get_at_point(&1), Some(&true));
 	/// ```
-	pub fn get_at_point_mut(&mut self, point: I) -> Option<&mut V> {
+	pub fn get_at_point_mut(&mut self, point: &I) -> Option<&mut V> {
 		self.inner.get_mut(overlapping_comp(point))
 	}
 
@@ -273,11 +273,11 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.contains_point(3), true);
-	/// assert_eq!(map.contains_point(4), true);
-	/// assert_eq!(map.contains_point(101), false);
+	/// assert_eq!(map.contains_point(&3), true);
+	/// assert_eq!(map.contains_point(&4), true);
+	/// assert_eq!(map.contains_point(&101), false);
 	/// ```
-	pub fn contains_point(&self, point: I) -> bool {
+	pub fn contains_point(&self, point: &I) -> bool {
 		self.get_key_value_at_point(point).is_ok()
 	}
 
@@ -300,19 +300,20 @@ where
 	/// .unwrap();
 	///
 	/// assert_eq!(
-	/// 	map.get_key_value_at_point(3),
+	/// 	map.get_key_value_at_point(&3),
 	/// 	Ok((&ie(1, 4), &false))
 	/// );
-	/// assert_eq!(map.get_key_value_at_point(5), Ok((&ie(4, 6), &true)));
-	/// assert_eq!(map.get_key_value_at_point(7), Err(ie(6, 8)));
-	/// assert_eq!(map.get_key_value_at_point(101), Err(iu(100)));
+	/// assert_eq!(map.get_key_value_at_point(&5), Ok((&ie(4, 6), &true)));
+	/// assert_eq!(map.get_key_value_at_point(&7), Err(ie(6, 8)));
+	/// assert_eq!(map.get_key_value_at_point(&101), Err(iu(100)));
 	/// ```
-	pub fn get_key_value_at_point(&self, point: I) -> Result<(&K, &V), K> {
+	pub fn get_key_value_at_point(&self, point: &I) -> Result<(&K, &V), K> {
 		self.inner
 			.get_key_value(overlapping_comp(point))
 			.ok_or_else(|| K::from(self.get_gap_at_raw(point)))
 	}
-	fn get_gap_at_raw(&self, point: I) -> Interval<I> {
+
+	fn get_gap_at_raw(&self, point: &I) -> Interval<I> {
 		let lower = self
 			.inner
 			.upper_bound(overlapping_comp(point), SearchBoundCustom::Included);
@@ -323,10 +324,10 @@ where
 		Interval {
 			start: lower
 				.key()
-				.map_or(I::MIN, |lower| lower.end().up().unwrap()),
+				.map_or(I::min_value(), |lower| lower.end().up().unwrap()),
 			end: upper
 				.key()
-				.map_or(I::MAX, |upper| upper.start().down().unwrap()),
+				.map_or(I::max_value(), |upper| upper.start().down().unwrap()),
 		}
 	}
 
@@ -351,7 +352,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut removed = map.remove_overlapping(ie(2, 8));
+	/// let mut removed = map.remove_overlapping(&ie(2, 8));
 	///
 	/// assert_eq!(
 	/// 	removed.collect::<Vec<_>>(),
@@ -363,12 +364,12 @@ where
 	/// 	[(ie(8, 100), false)]
 	/// );
 	/// ```
-	pub fn remove_overlapping<'a, Q>(
-		&'a mut self,
-		interval: Q,
+	pub fn remove_overlapping<Q>(
+		&mut self,
+		interval: &Q,
 	) -> impl Iterator<Item = (K, V)>
 	where
-		Q: IntervalType<I> + 'a,
+		Q: IntervalType<I>,
 	{
 		invalid_interval_panic(interval);
 
@@ -422,14 +423,14 @@ where
 	/// .unwrap();
 	///
 	/// assert_eq!(
-	/// 	base.cut(ie(2, 40)).collect::<Vec<_>>(),
+	/// 	base.cut(&ie(2, 40)).collect::<Vec<_>>(),
 	/// 	[(ie(2, 4), false), (ie(4, 8), true), (ie(8, 40), false),]
 	/// );
 	/// assert_eq!(base, after_cut);
 	/// ```
-	pub fn cut<'a, Q>(&'a mut self, interval: Q) -> impl Iterator<Item = (K, V)>
+	pub fn cut<Q>(&mut self, interval: &Q) -> impl Iterator<Item = (K, V)>
 	where
-		Q: IntervalType<I> + 'a,
+		Q: IntervalType<I>,
 		V: Clone,
 	{
 		invalid_interval_panic(interval);
@@ -442,13 +443,13 @@ where
 		);
 
 		while let Some(key) = cursor.key() {
-			if !key.overlaps(&interval) {
+			if !key.overlaps(interval) {
 				break;
 			}
 
 			let (key, value) = cursor.remove_current().unwrap();
 
-			let cut_result = cut_interval(key, interval);
+			let cut_result = cut_interval(&key, interval);
 
 			if let Some(before_cut) = cut_result.before_cut {
 				cursor.insert_before(K::from(before_cut), value.clone());
@@ -487,7 +488,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut gaps = map.gaps_untrimmed(ii(4, 120));
+	/// let mut gaps = map.gaps_untrimmed(&ii(4, 120));
 	///
 	/// assert_eq!(
 	/// 	gaps.collect::<Vec<_>>(),
@@ -496,8 +497,8 @@ where
 	/// ```
 	pub fn gaps_untrimmed<'a, Q>(
 		&'a self,
-		interval: Q,
-	) -> impl Iterator<Item = K> + '_
+		interval: &Q,
+	) -> impl Iterator<Item = K> + 'a
 	where
 		Q: IntervalType<I> + 'a,
 	{
@@ -575,7 +576,7 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// let mut gaps = map.gaps_trimmed(ii(4, 120));
+	/// let mut gaps = map.gaps_trimmed(&ii(4, 120));
 	///
 	/// assert_eq!(
 	/// 	gaps.collect::<Vec<_>>(),
@@ -584,8 +585,8 @@ where
 	/// ```
 	pub fn gaps_trimmed<'a, Q>(
 		&'a self,
-		interval: Q,
-	) -> impl Iterator<Item = K> + '_
+		interval: &Q,
+	) -> impl Iterator<Item = K> + 'a
 	where
 		Q: IntervalType<I> + 'a,
 	{
@@ -605,24 +606,24 @@ where
 			(Some(mut start_gap), Some(mut end_gap)) => {
 				if start_gap.start() == end_gap.start() {
 					//it's the same gap
-					start_gap.start = interval.start();
-					start_gap.end = interval.end();
+					start_gap.start = interval.start().clone();
+					start_gap.end = interval.end().clone();
 
 					(Some(start_gap), None)
 				} else {
 					//it's different gaps
-					start_gap.start = interval.start();
-					end_gap.end = interval.end();
+					start_gap.start = interval.start().clone();
+					end_gap.end = interval.end().clone();
 
 					(Some(start_gap), Some(end_gap))
 				}
 			}
 			(Some(mut start_gap), None) => {
-				start_gap.start = interval.start();
+				start_gap.start = interval.start().clone();
 				(Some(start_gap), None)
 			}
 			(None, Some(mut end_gap)) => {
-				end_gap.end = interval.end();
+				end_gap.end = interval.end().clone();
 				(None, Some(end_gap))
 			}
 			(None, None) => (None, None),
@@ -671,11 +672,11 @@ where
 	/// ])
 	/// .unwrap();
 	///
-	/// assert_eq!(map.contains_interval(ie(1, 3)), true);
-	/// assert_eq!(map.contains_interval(ie(2, 6)), false);
-	/// assert_eq!(map.contains_interval(ie(6, 100)), true);
+	/// assert_eq!(map.contains_interval(&ie(1, 3)), true);
+	/// assert_eq!(map.contains_interval(&ie(2, 6)), false);
+	/// assert_eq!(map.contains_interval(&ie(6, 100)), true);
 	/// ```
-	pub fn contains_interval<Q>(&self, interval: Q) -> bool
+	pub fn contains_interval<Q>(&self, interval: &Q) -> bool
 	where
 		Q: IntervalType<I>,
 	{
@@ -716,9 +717,9 @@ where
 		interval: K,
 		value: V,
 	) -> Result<(), OverlapError<V>> {
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
-		if self.overlaps(interval) {
+		if self.overlaps(&interval) {
 			return Err(OverlapError { value });
 		}
 
@@ -726,6 +727,7 @@ where
 
 		Ok(())
 	}
+
 	fn insert_unchecked(&mut self, interval: K, value: V) {
 		self.inner.insert(interval, value, starts_comp());
 	}
@@ -745,33 +747,33 @@ where
 		R1: FnOnce(&mut Self, &V),
 		R2: FnOnce(&mut Self, &V),
 	{
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
 		let matching_start = get_start(self, &value);
 		let matching_end = get_end(self, &value);
 
 		let returning = match (matching_start, matching_end) {
 			(Some(matching_start), Some(matching_end)) => K::from(Interval {
-				start: matching_start.start(),
-				end: matching_end.end(),
+				start: matching_start.start().clone(),
+				end: matching_end.end().clone(),
 			}),
 			(Some(matching_start), None) => K::from(Interval {
-				start: matching_start.start(),
-				end: interval.end(),
+				start: matching_start.start().clone(),
+				end: interval.end().clone(),
 			}),
 			(None, Some(matching_end)) => K::from(Interval {
-				start: interval.start(),
-				end: matching_end.end(),
+				start: interval.start().clone(),
+				end: matching_end.end().clone(),
 			}),
-			(None, None) => interval,
+			(None, None) => interval.clone(),
 		};
 
-		let _ = self.remove_overlapping(interval);
+		let _ = self.remove_overlapping(&interval);
 
 		remove_start(self, &value);
 		remove_end(self, &value);
 
-		self.insert_unchecked(returning, value);
+		self.insert_unchecked(returning.clone(), value);
 
 		returning
 	}
@@ -834,28 +836,28 @@ where
 		interval: K,
 		value: V,
 	) -> Result<K, OverlapError<V>> {
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
-		if self.overlaps(interval) {
+		if self.overlaps(&interval) {
 			return Err(OverlapError { value });
 		}
 
 		Ok(self.insert_merge_with_comps(
-			interval,
+			interval.clone(),
 			value,
 			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(touching_start_comp(interval.start()))
 					.map(|(key, _)| key)
-					.copied()
+					.cloned()
 			},
 			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(touching_end_comp(interval.end()))
 					.map(|(key, _)| key)
-					.copied()
+					.cloned()
 			},
 			|selfy, _| {
 				selfy.inner.remove(touching_start_comp(interval.start()));
@@ -925,9 +927,9 @@ where
 	where
 		V: Eq,
 	{
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
-		if self.overlaps(interval) {
+		if self.overlaps(&interval) {
 			return Err(OverlapError { value });
 		}
 
@@ -939,7 +941,7 @@ where
 					*start_touching_value == value
 				})
 				.map(|(key, _)| key)
-				.copied()
+				.cloned()
 		};
 		let get_end = |selfy: &Self, value: &V| {
 			selfy
@@ -949,11 +951,11 @@ where
 					*start_touching_value == value
 				})
 				.map(|(key, _)| key)
-				.copied()
+				.cloned()
 		};
 
 		Ok(self.insert_merge_with_comps(
-			interval,
+			interval.clone(),
 			value,
 			get_start,
 			get_end,
@@ -1019,24 +1021,24 @@ where
 	/// );
 	/// ```
 	pub fn insert_merge_overlapping(&mut self, interval: K, value: V) -> K {
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
 		self.insert_merge_with_comps(
-			interval,
+			interval.clone(),
 			value,
 			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(overlapping_comp(interval.start()))
 					.map(|(key, _)| key)
-					.copied()
+					.cloned()
 			},
 			|selfy, _| {
 				selfy
 					.inner
 					.get_key_value(overlapping_comp(interval.end()))
 					.map(|(key, _)| key)
-					.copied()
+					.cloned()
 			},
 			|_, _| {},
 			|_, _| {},
@@ -1096,10 +1098,10 @@ where
 		interval: K,
 		value: V,
 	) -> K {
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
 		self.insert_merge_with_comps(
-			interval,
+			interval.clone(),
 			value,
 			|selfy, _| {
 				selfy
@@ -1110,7 +1112,7 @@ where
 						.inner
 						.get_key_value(overlapping_comp(interval.start()))
 						.map(|(key, _)| key))
-					.copied()
+					.cloned()
 			},
 			|selfy, _| {
 				selfy
@@ -1121,7 +1123,7 @@ where
 						.inner
 						.get_key_value(overlapping_comp(interval.end()))
 						.map(|(key, _)| key))
-					.copied()
+					.cloned()
 			},
 			|selfy, _| {
 				selfy.inner.remove(touching_start_comp(interval.start()));
@@ -1171,9 +1173,9 @@ where
 	where
 		V: Clone,
 	{
-		invalid_interval_panic(interval);
+		invalid_interval_panic(&interval);
 
-		let cut = self.cut(interval);
+		let cut = self.cut(&interval);
 		self.insert_unchecked(interval, value);
 		cut
 	}
@@ -1232,7 +1234,7 @@ where
 	/// let map: NoditMap<_, _, _> = NoditMap::from_iter_strict(
 	/// 	slice
 	/// 		.into_iter()
-	/// 		.filter(|(interval, _)| interval.start() > 2),
+	/// 		.filter(|(interval, _)| *interval.start() > 2),
 	/// )
 	/// .unwrap();
 	/// ```
@@ -1600,7 +1602,7 @@ mod tests {
 			//you can't overlap nothing
 			assert!(
 				NoditMap::<i8, Interval<i8>, ()>::new()
-					.overlapping(overlap_interval)
+					.overlapping(&overlap_interval)
 					.next()
 					.is_none()
 			);
@@ -1610,17 +1612,17 @@ mod tests {
 		for overlap_interval in all_valid_test_bounds() {
 			for inside_interval in all_valid_test_bounds() {
 				let mut map = NoditMap::new();
-				map.insert_strict(inside_interval, ()).unwrap();
+				map.insert_strict(inside_interval.clone(), ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
 				if overlap_interval.overlaps(&inside_interval) {
-					expected_overlapping.push(inside_interval);
+					expected_overlapping.push(inside_interval.clone());
 				}
 
 				let overlapping = map
-					.overlapping(overlap_interval)
+					.overlapping(&overlap_interval)
 					.map(|(key, _)| key)
-					.copied()
+					.cloned()
 					.collect::<Vec<_>>();
 
 				if overlapping != expected_overlapping {
@@ -1639,15 +1641,15 @@ mod tests {
 				all_non_overlapping_test_bound_entries()
 			{
 				let mut map = NoditMap::new();
-				map.insert_strict(inside_interval1, ()).unwrap();
-				map.insert_strict(inside_interval2, ()).unwrap();
+				map.insert_strict(inside_interval1.clone(), ()).unwrap();
+				map.insert_strict(inside_interval2.clone(), ()).unwrap();
 
 				let mut expected_overlapping = Vec::new();
-				if overlap_interval.overlaps(&inside_interval1) {
-					expected_overlapping.push(inside_interval1);
+				if overlap_interval.overlaps(&inside_interval1.clone()) {
+					expected_overlapping.push(inside_interval1.clone());
 				}
-				if overlap_interval.overlaps(&inside_interval2) {
-					expected_overlapping.push(inside_interval2);
+				if overlap_interval.overlaps(&inside_interval2.clone()) {
+					expected_overlapping.push(inside_interval2.clone());
 				}
 				//make our expected_overlapping the correct order
 				if expected_overlapping.len() > 1
@@ -1658,9 +1660,9 @@ mod tests {
 				}
 
 				let overlapping = map
-					.overlapping(overlap_interval)
+					.overlapping(&overlap_interval)
 					.map(|(key, _)| key)
-					.copied()
+					.cloned()
 					.collect::<Vec<_>>();
 
 				if overlapping != expected_overlapping {
@@ -1708,7 +1710,7 @@ mod tests {
 		after: [(Interval<i8>, bool); Y],
 	) {
 		assert_eq!(
-			before.remove_overlapping(to_remove).collect::<Vec<_>>(),
+			before.remove_overlapping(&to_remove).collect::<Vec<_>>(),
 			result
 		);
 		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap())
@@ -1757,7 +1759,7 @@ mod tests {
 		result: [(Interval<i8>, bool); Y],
 		after: [(Interval<i8>, bool); N],
 	) {
-		assert_eq!(before.cut(to_cut).collect::<Vec<_>>(), result);
+		assert_eq!(before.cut(&to_cut).collect::<Vec<_>>(), result);
 		assert_eq!(before, NoditMap::from_slice_strict(after).unwrap());
 	}
 
@@ -1786,7 +1788,7 @@ mod tests {
 		assert_eq!(
 			NoditMap::from_slice_strict([(ii(i8::MIN, i8::MAX), false)])
 				.unwrap()
-				.gaps_trimmed(uu())
+				.gaps_trimmed(&uu())
 				.collect::<Vec<_>>(),
 			[]
 		);
@@ -1796,7 +1798,7 @@ mod tests {
 		interval: Interval<i8>,
 		result: [Interval<i8>; N],
 	) {
-		assert_eq!(map.gaps_untrimmed(interval).collect::<Vec<_>>(), result);
+		assert_eq!(map.gaps_untrimmed(&interval).collect::<Vec<_>>(), result);
 	}
 
 	#[test]
@@ -1824,7 +1826,7 @@ mod tests {
 		assert_eq!(
 			NoditMap::from_slice_strict([(ii(i8::MIN, i8::MAX), false)])
 				.unwrap()
-				.gaps_trimmed(uu())
+				.gaps_trimmed(&uu())
 				.collect::<Vec<_>>(),
 			[]
 		);
@@ -1834,7 +1836,7 @@ mod tests {
 		interval: Interval<i8>,
 		result: [Interval<i8>; N],
 	) {
-		assert_eq!(map.gaps_trimmed(interval).collect::<Vec<_>>(), result);
+		assert_eq!(map.gaps_trimmed(&interval).collect::<Vec<_>>(), result);
 	}
 
 	#[test]
@@ -2114,8 +2116,8 @@ mod tests {
 
 				let mathematical_definition_of_overlap =
 					NUMBERS_DOMAIN.iter().any(|x| {
-						contains_point(interval1, *x)
-							&& contains_point(interval2, *x)
+						contains_point(&interval1, x)
+							&& contains_point(&interval2, x)
 					});
 
 				if our_answer != mathematical_definition_of_overlap {
@@ -2131,33 +2133,33 @@ mod tests {
 	fn cut_interval_tests() {
 		for base in all_valid_test_bounds() {
 			for cut in all_valid_test_bounds() {
-				let cut_result @ CutResult {
-					before_cut: b,
-					inside_cut: i,
-					after_cut: a,
-				} = cut_interval(base, cut);
+				let ref cut_result @ CutResult {
+					before_cut: ref b,
+					inside_cut: ref i,
+					after_cut: ref a,
+				} = cut_interval(&base, &cut);
 
 				let mut on_left = true;
 
 				// The definition of a cut is: A && NOT B
 				for x in NUMBERS_DOMAIN {
-					let base_contains = contains_point(base, *x);
-					let cut_contains = contains_point(cut, *x);
+					let base_contains = contains_point(&base, x);
+					let cut_contains = contains_point(&cut, x);
 
 					if cut_contains {
 						on_left = false;
 					}
 
 					let invariant = match (base_contains, cut_contains) {
-						(false, _) => !con(b, x) && !con(i, x) && !con(a, x),
+						(false, _) => !con(b.clone(), x) && !con(i.clone(), x) && !con(a.clone(), x),
 						(true, false) => {
 							if on_left {
-								con(b, x) && !con(i, x) && !con(a, x)
+								con(b.clone(), x) && !con(i.clone(), x) && !con(a.clone(), x)
 							} else {
-								!con(b, x) && !con(i, x) && con(a, x)
+								!con(b.clone(), x) && !con(i.clone(), x) && con(a.clone(), x)
 							}
 						}
-						(true, true) => !con(b, x) && con(i, x) && !con(a, x),
+						(true, true) => !con(b.clone(), x) && con(i.clone(), x) && !con(a.clone(), x),
 					};
 
 					if !invariant {
@@ -2180,13 +2182,13 @@ mod tests {
 	}
 	fn con(x: Option<Interval<i8>>, point: &i8) -> bool {
 		match x {
-			Some(y) => contains_point(y, *point),
+			Some(y) => contains_point(&y, point),
 			None => false,
 		}
 	}
 	#[test]
 	fn cut_interval_should_return_valid_intervals() {
-		let result: CutResult<i8> = cut_interval(ie(3, 8), ie(5, 8));
+		let result: CutResult<i8> = cut_interval(&ie(3, 8), &ie(5, 8));
 		if let Some(x) = result.before_cut {
 			assert!(x.is_valid());
 		}
@@ -2197,7 +2199,7 @@ mod tests {
 			assert!(x.is_valid());
 		}
 
-		let result = cut_interval(ie(3, 8), ie(3, 5));
+		let result = cut_interval(&ie(3, 8), &ie(3, 5));
 		if let Some(x) = result.before_cut {
 			assert!(x.is_valid());
 		}
@@ -2238,7 +2240,7 @@ mod tests {
 		for test_bounds1 in all_valid_test_bounds() {
 			for test_bounds2 in all_valid_test_bounds() {
 				if !test_bounds1.overlaps(&test_bounds2) {
-					output.push((test_bounds1, test_bounds2));
+					output.push((test_bounds1.clone(), test_bounds2));
 				}
 			}
 		}

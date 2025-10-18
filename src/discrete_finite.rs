@@ -6,16 +6,16 @@
 /// discrete-ness and finite-ness.
 pub trait DiscreteFinite {
 	/// The minimum value of the type.
-	const MIN: Self;
+    fn min_value() -> Self;
 	/// The maximum value of the type.
-	const MAX: Self;
+	fn max_value() -> Self;
 
 	/// The smallest value greater than `self` if one exists.
-	fn up(self) -> Option<Self>
+	fn up(&self) -> Option<Self>
 	where
 		Self: Sized;
 	/// The greatest value smaller than `self` if one exists.
-	fn down(self) -> Option<Self>
+	fn down(&self) -> Option<Self>
 	where
 		Self: Sized;
 }
@@ -24,13 +24,13 @@ macro_rules! foo {
     () => {};
 	($ident:ident, $($t:tt)*) => {
 		impl DiscreteFinite for $ident {
-			const MIN: Self = $ident::MIN;
-			const MAX: Self = $ident::MAX;
+			fn min_value () -> Self { $ident::MIN }
+			fn max_value () -> Self { $ident::MAX }
 
-			fn up(self) -> Option<Self> {
+			fn up(&self) -> Option<Self> {
 				self.checked_add(1)
 			}
-			fn down(self) -> Option<Self> {
+			fn down(&self) -> Option<Self> {
 				self.checked_sub(1)
 			}
 		}
