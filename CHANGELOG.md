@@ -7,13 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 
-## Unreleased - ReleaseDate
+## Unreleased
+
+## 0.10.0 - 2025-10-18
 
 ## Changed
 
+- Breaking Change: Relevant methods now take references rather than owned
+  point and range types.
 - `Copy` is no longer a requirement for point and range types, only `Clone`
   is now needed.
-- Relevant methods now take references rather than owned point and range types.
 
 ## 0.9.2 - 2024-08-03
 
