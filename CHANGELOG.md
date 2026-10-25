@@ -5,9 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-<!-- next-header -->
-
 ## Unreleased
+
+## 0.10.1 - 2026-10-25
+
+## Fixed
+
+- Updated `btree_monstrousity` dependency to fix
+  <https://github.com/ripytide/btree_monstrousity/issues/2>.
+- Also updated all other dependencies to their latest versions.
 
 ## 0.10.0 - 2025-10-18
 
@@ -32,11 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   existing `ZosditMap::get_last_value_at_point()` method.
 
 ### Changed
+
 - Some spelling errors corrected
 
 ## 0.9.0 - 2024-02-11
 
 ### Added
+
 - Added the `Gqdit` data-structure with all the proper documentation and
   examples for all its methods
 - Added a new table to the readme/top-level module docs for describing all
@@ -45,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added another method to `InclusiveInterval`, `contains_interval()`
 
 ### Changed
+
 - Renamed `contains_entire_interval()` methods to `contains_interval()` to match
   `InclusiveInterval::contains_interval()`
 - Renamed `InclusiveInterval::contains()` to

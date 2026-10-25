@@ -1,7 +1,6 @@
 [package]
 name = "nodit"
 version = "0.10.0"
-authors = ["James Forster <james.forsterer@gmail.com>"]
 edition = "2021"
 description = """
 This crate provides Discrete Interval Tree Data-Structures, which are based
@@ -16,22 +15,22 @@ keywords = ["data-structures", "map", "data", "library"]
 categories = ["data-structures"]
 
 [dependencies]
-serde = { version = "1.0.204", features = [
+serde = { version = "1.0.229", features = [
 	"derive",
 ], default-features = false, optional = true }
-btree_monstrousity = { version = "0.0.5", features = [
+btree_monstrousity = { version = "0.0.6", features = [
 	"btree_drain_filter",
 	"btree_cursors",
 ], default-features = false }
-itertools = { version = "0.13.0", default-features = false }
-smallvec = { version = "1.13.2", default-features = false }
+itertools = { version = "0.15.0", default-features = false }
+smallvec = { version = "1.16.4", default-features = false }
 
 [features]
 default = []
 serde = ["dep:serde"]
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
+pretty_assertions = "1.4.1"
 
 [lints.rust]
 missing_docs = "deny"
