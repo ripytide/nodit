@@ -8,7 +8,6 @@ off BTreeMap.
 """
 documentation = "https://docs.rs/nodit"
 readme = "README.md"
-homepage = "https://github.com/ripytide/nodit"
 repository = "https://github.com/ripytide/nodit"
 license = "MIT"
 keywords = ["data-structures", "map", "data", "library"]
