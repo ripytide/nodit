@@ -1,6 +1,6 @@
 [package]
 name = "nodit"
-version = "0.10.0"
+version = "0.10.1"
 edition = "2021"
 description = """
 This crate provides Discrete Interval Tree Data-Structures, which are based
