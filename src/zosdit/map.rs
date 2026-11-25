@@ -179,7 +179,9 @@ where
 			SearchBoundCustom::Included,
 		);
 
-		if cursor.key().is_none() {
+		// the interval found starts at or after the point, if it doesn't contain
+		// the point then only the previous one can
+		if !cursor.key().is_some_and(|x| x.contains_point(point)) {
 			cursor.move_prev();
 		}
 
@@ -226,7 +228,9 @@ where
 			SearchBoundCustom::Included,
 		);
 
-		if cursor.key().is_none() {
+		// the interval found starts at or after the point, if it doesn't contain
+		// the point then only the previous one can
+		if !cursor.key().is_some_and(|x| x.contains_point(point)) {
 			cursor.move_prev();
 		}
 
@@ -237,6 +241,8 @@ where
 				if value.is_empty() {
 					cursor.remove_current();
 				}
+
+				self.len -= 1;
 
 				return Some(last);
 			}
@@ -430,7 +436,8 @@ where
 			SearchBoundCustom::Included,
 		);
 
-		if cursor.key().is_none() {
+		// the interval found may end before the given one starts
+		if !cursor.key().is_some_and(|x| x.overlaps(&interval)) {
 			cursor.move_next();
 		}
 
@@ -803,6 +810,55 @@ mod tests {
 		assert_eq!(map.get_last_value_at_point(&8_u8), Some(&-3));
 		assert_eq!(map.get_last_value_at_point(&10_u8), Some(&-3));
 		assert_eq!(map.get_last_value_at_point(&u8::MAX), Some(&-3));
+	}
+
+	#[test]
+	fn last_value_at_point_before_next_interval_tests() {
+		let mut map = ZosditMap::new();
+
+		map.insert_strict_back(ii(2_u8, 4), -1_i8).unwrap();
+		map.insert_strict_back(ii(4_u8, 4), -2_i8).unwrap();
+		map.insert_strict_back(ii(6_u8, 8), -3_i8).unwrap();
+
+		assert_eq!(map.get_last_value_at_point(&1), None);
+		assert_eq!(map.get_last_value_at_point(&4), Some(&-2));
+		assert_eq!(map.get_last_value_at_point(&5), None);
+		assert_eq!(map.get_last_value_at_point(&8), Some(&-3));
+
+		assert_eq!(map.remove_last_value_at_point(&4), Some(-2));
+		assert_eq!(map.len(), 2);
+		assert_eq!(map.remove_last_value_at_point(&4), Some(-1));
+		assert_eq!(map.len(), 1);
+		assert_eq!(map.remove_last_value_at_point(&4), None);
+		assert_eq!(map.len(), 1);
+	}
+
+	#[test]
+	fn remove_last_value_at_point_len_tests() {
+		let mut map = ZosditMap::new();
+
+		map.insert_strict_back(ii(4_u8, 4), -1_i8).unwrap();
+		map.insert_strict_back(ii(4_u8, 4), -2_i8).unwrap();
+
+		assert_eq!(map.remove_last_value_at_point(&4), Some(-2));
+		assert_eq!(map.len(), 1);
+		assert_eq!(map.remove_last_value_at_point(&4), Some(-1));
+		assert!(map.is_empty());
+	}
+
+	#[test]
+	fn cut_after_earlier_interval_tests() {
+		let mut map = ZosditMap::new();
+
+		map.insert_strict_back(ii(2_u8, 3), -1_i8).unwrap();
+		map.insert_strict_back(ii(7_u8, 9), -2_i8).unwrap();
+
+		let cut = map.cut(ii(5, 8));
+		assert_eq!(cut.collect::<Vec<_>>(), vec![(ii(7, 8), -2)]);
+		assert_eq!(
+			map.iter().collect::<Vec<_>>(),
+			vec![(&ii(2, 3), &-1), (&ii(9, 9), &-2)]
+		);
 	}
 
 	#[test]
