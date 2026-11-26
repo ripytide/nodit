@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## Fixed
+
+- `ZosditMap::remove_last_value_at_point()` now updates the length of the map.
+- `ZosditMap::get_last_value_at_point()` and
+  `ZosditMap::remove_last_value_at_point()` now find a value at the end of an
+  interval if a later interval follows.
+- `ZosditMap::cut()` now cuts if an earlier interval ends before the cut.
+
 ## 0.10.1 - 2026-10-25
 
 ## Fixed
